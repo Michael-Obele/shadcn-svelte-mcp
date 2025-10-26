@@ -1,10 +1,16 @@
 # shadcn-svelte-mcp
 
 [![latest release](https://img.shields.io/github/v/tag/Michael-Obele/shadcn-svelte-mcp?sort=semver)](https://github.com/Michael-Obele/shadcn-svelte-mcp/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Mastra MCP server and tooling for the shadcn-svelte component docs and developer utilities. Now deployed and available at [https://shadcn-svelte.mastra.cloud](https://shadcn-svelte.mastra.cloud)!
 
-This repository contains a Mastra-based MCP server, docs registry and tools that work with the shadcn-svelte component documentation. Use it in your AI-powered code editor to get instant access to shadcn-svelte component information.
+
+Mastra MCP server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping. Now deployed and available at [https://shadcn-svelte.mastra.cloud](https://shadcn-svelte.mastra.cloud)!
+
+> [!NOTE]
+> This project follows our [Code of Conduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+This repository contains a Mastra-based MCP server that provides real-time access to shadcn-svelte component documentation using web scraping. Use it in your AI-powered code editor to get instant access to the latest shadcn-svelte component information directly from the official website.
 
 ## 🎉 What's New
 
@@ -12,7 +18,9 @@ This repository contains a Mastra-based MCP server, docs registry and tools that
 - ✅ Three powerful MCP tools for component discovery and documentation
 - ✅ Support for all major AI code editors (Cursor, Windsurf, VS Code, Zed, Claude Code, Codex)
 - ✅ HTTP and SSE transport protocols
-- ✅ Comprehensive component registry with 59+ components
+- ✅ Real-time web scraping from shadcn-svelte.com
+- ✅ Intelligent caching for performance
+- ✅ Always up-to-date documentation
 
 ## Installation in Your Code Editor
 
@@ -178,8 +186,8 @@ Want to run the MCP server locally or contribute to the project?
 
 ### Contents
 
-- `src/` - Mastra bootstrap, MCP servers, tools, agents and docs content.
-- `src/mastra/docs/` - Documentation content and registry for shadcn-svelte components.
+- `src/` - Mastra bootstrap, MCP servers, tools, and agents.
+- `src/services/` - Web scraping services for real-time documentation fetching.
 - `src/mastra/tools/` - Tools that expose component discovery, fetching and utilities.
 - `package.json` - npm scripts and dependencies.
 
@@ -198,14 +206,25 @@ bun install
 pnpm install
 ```
 
-2. Run the development smoke-test (recommended):
+2. Set up environment variables for web scraping:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Add your Firecrawl API configuration
+FIRECRAWL_API_URL=your_firecrawl_api_url
+FIRECRAWL_API_KEY=your_firecrawl_api_key
+```
+
+3. Run the development smoke-test (recommended):
 
 ```bash
 # Starts Mastra in dev mode; this repo's smoke-test expects a short run to detect runtime errors
 npm run dev
 ```
 
-3. Run MCP server locally (stdio):
+4. Run MCP server locally (stdio):
 
 ```bash
 npm run mcp:stdio
@@ -224,9 +243,10 @@ npm run mcp:dev
 - `npm run start` - Start the built Mastra server.
 - `npm run mcp:stdio` - Run the MCP server in stdio mode (runs `npx tsx src/index.ts`).
 - `npm run mcp:dev` - Run the MCP dev server (runs `npx tsx src/dev-server.ts`).
-- `npm run test:firecrawl` - Run the Firecrawl test harness (`npx tsx src/test-firecrawl.ts`).
-- `npm run test:simple` - Run the simple tools test (`npx tsx src/test-tools-simple.ts`).
-- `npm test` - Placeholder test script (prints an error message by default).
+- `npm run test:firecrawl` - Run the Firecrawl test harness (`npx tsx src/test-firecrawl.ts`)
+- `npm run test:simple` - Run the simple tools test (`npx tsx src/test-tools-simple.ts`)
+- `npm run test:mcp` - Run the MCP server test (`npx tsx src/test-mcp.ts`)
+- `npm test` - Placeholder test script (prints an error message by default)
 
 ## MCP Architecture
 
@@ -243,24 +263,37 @@ For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
 
 ## Conventions & notes
 
-- The project uses Svelte 5 runes in documentation examples and the component tooling expects Svelte 5 syntax (`$state()`, `$props()`, `$derived()`, `$effect()` etc.). See `src/mastra/docs` for examples and a migration guide.
 - Tools are implemented under `src/mastra/tools` and should use `zod` for input validation.
-- The docs registry is `src/mastra/docs/registry.json` — add component entries there when adding docs.
+- Web scraping services are implemented under `src/services/` and use Firecrawl API for real-time documentation fetching.
+- Intelligent caching is used to improve performance and reduce API calls.
+- Tools follow Mastra patterns using `createTool` with proper input/output schemas.
 
 ## Development tips
 
 - Node >= 20.9.0 is recommended (see `package.json` engines).
 - When adding tools, follow the patterns in `src/mastra/tools/shadcn-svelte-get.ts` and `shadcn-svelte-list.ts`.
 - After making changes, run the 10–15s smoke-test via `npm run dev` to surface runtime integration issues early.
+- Set up proper Firecrawl API credentials for web scraping functionality.
+- The system uses intelligent caching - clear cache if you need fresh data during development.
 
 ## License
 
-This project inherits the repository license. Check `package.json` for license details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before getting started.
+
+## Contact
+
+- **Issues & Support**: support@svelte-apps.me
+- **Contributions**: contrib@svelte-apps.me  
+- **Maintainer**: Michael Obele (michael@svelte-apps.me)
 
 ---
 
 For more details:
 
 - **MCP Architecture**: See `MCP_ARCHITECTURE.md` for detailed explanation of MCP server vs client
-- **Internal tooling and docs**: See `src/mastra/docs/README.md`
+- **Web scraping services**: See `src/services/` for real-time documentation fetching implementation
 - **AI assistant guide**: See `.github/copilot-instructions.md`

@@ -7,7 +7,7 @@ This file gives concise, actionable instructions for an AI coding agent to be pr
 1. What this repo is
 
 - A Mastra-based AI tooling project that bundles: workflows, agents, MCP servers and custom tools. See `src/index.ts` for the Mastra bootstrap (workflows, agents, mcpServers).
-- Documentation and component sources live under `src/mastra/docs/` (registry.json, `content/`, and helper code under `src/mastra/docs/lib`).
+- Documentation is fetched in real-time from shadcn-svelte.com using web scraping services under `src/services/`.
 
 2. How to run / common developer commands
 
@@ -30,14 +30,14 @@ Shell command preference
 - MCP Server (src/mastra/mcp-server.\*): exposes an object `shadcn` used by `src/dev-server.ts` and `src/server.ts` via startSSE/startHTTP/close. This SERVER exposes YOUR tools to external MCP clients.
 - MCP Client (src/mastra/mcp-client.ts): connects to EXTERNAL MCP servers (like Mastra's official server at mcp.mastra.ai) to USE their tools in your agents. This CLIENT consumes tools from other servers.
 - Tools (src/mastra/tools/\*): each tool is created with `createTool(...)` from `@mastra/core/tools` and follows the pattern: zod input schema, execute({context}) returns result. Example tools: `shadcn-svelte-get`, `shadcn-svelte-list`, `shadcn-svelte-utility`.
-- Docs & component registry: `src/mastra/docs/registry.json` lists components and files; `src/mastra/docs/content/` contains markdown documentation used by the tools.
+- Web scraping services: `src/services/doc-fetcher.ts` handles real-time documentation fetching from shadcn-svelte.com; `src/services/component-discovery.ts` dynamically discovers available components.
 
 4. Project-specific conventions and gotchas (do not invent alternatives)
 
-- Tools expect Svelte components and docs to follow Svelte 5 runes patterns: props are extracted from `let { ... } = $props()` declarations (see `shadcn-svelte-get.ts` and `shadcn-svelte-component-details.ts`). When editing Svelte files, follow Svelte 5 runes (`$props()`, `$state()`, `$derived()`, `$effect()`) — the repo's tooling parses those patterns.
-- Markdown frontmatter is expected between `---` markers; tools will parse a minimal YAML-like frontmatter (title, description, links, source/api fields). Avoid exotic frontmatter formats unless you also update parsers.
+- Tools follow Mastra patterns using `createTool` with Zod schemas for input validation (see `shadcn-svelte-get.ts`). When creating new tools, follow the established patterns for tool development.
+- Tools use web scraping to fetch documentation in real-time from shadcn-svelte.com. The tooling parses markdown content returned from the scraping service.
 - File path resolution: tools resolve docs relative to the tool file (they use file URL + join with `../docs`) — prefer relative paths instead of hard-coded absolute paths.
-- Registry-driven: many tools rely on `src/mastra/docs/registry.json`. If you add components, update registry.json accordingly or tools may not find files.
+- Web scraping approach: tools use real-time web scraping to fetch documentation from shadcn-svelte.com. Components are discovered dynamically from the live website.
 - Input validation: tools MUST use `zod` to validate inputs. Mastra's createTool requires Zod schemas for proper type inference and runtime validation. When updating or creating tools, use zod schemas (see existing examples in `src/mastra/tools/*`). Follow the pattern: `import { z } from "zod"` and define schemas with `z.object({...})`.
 
 Important runtime smoke-test: always run `bun run dev` for a short smoke-test (10–15s) after making code changes to catch early runtime errors. This runs the full Mastra development lifecycle and surfaces integration/runtime errors that focused MCP runs may not catch. Perform the 10–15s `bun run dev` check before finalizing changes.
@@ -48,7 +48,7 @@ Caching: component analysis tools use an in-memory cache (`componentCache`) with
 
 To add a new tool, mirror `src/mastra/tools/shadcn-svelte-get.ts`: export a tool using `createTool({ id, description, inputSchema: /* use zod schema here */, execute: async ({context}) => { ... } })`. Use Zod for schema validation as Mastra requires it for type inference. Follow existing project patterns for input parsing and error messages.
 
-- To examine how components are discovered, inspect `src/mastra/tools/shadcn-svelte-get.ts` and `src/mastra/docs/registry.json`.
+- To examine how components are discovered, inspect `src/mastra/tools/shadcn-svelte-get.ts` and `src/services/component-discovery.ts`.
 - To test changes quickly: run `bun run dev` and watch console output for errors during the 10–15s smoke-test window.
 
 6. Integration & external deps
@@ -58,8 +58,8 @@ To add a new tool, mirror `src/mastra/tools/shadcn-svelte-get.ts`: export a tool
 
 7. Debugging tips for AI agents
 
-- If a tool returns "not found", check `src/mastra/docs/registry.json` first, then `src/mastra/docs/content/...` for a matching `.md` file.
-- Watch for absolute path constants (some early commit used absolute DOCS_PATH). Prefer the current pattern that computes DOCS_PATH via file URL.
+- If a tool returns "not found", check the web scraping services in `src/services/` and verify the component exists on shadcn-svelte.com.
+- Watch for Firecrawl API configuration in `src/services/doc-fetcher.ts`. Ensure proper environment variables are set for web scraping functionality.
 - For runtime discovery iterate: change code and run `bun run dev` for 10–15s to surface issues; focus on reproducing the failing scenario in that window. If you need a focused MCP/stdio run for deeper debugging, run the specific script directly, but always perform the `bun run dev` smoke-test first.
 
 8. What not to change without confirmation
