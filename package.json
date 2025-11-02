@@ -23,11 +23,13 @@
     "node": ">=20.9.0"
   },
   "dependencies": {
-    "@mastra/core": "^0.21.1",
-    "@mastra/libsql": "^0.15.2",
-    "@mastra/loggers": "^0.10.16",
-    "@mastra/mcp": "^0.13.5",
-    "@mastra/memory": "^0.15.7",
+    "@mastra/core": "^0.23.3",
+    "@mastra/libsql": "^0.16.1",
+    "@mastra/loggers": "^0.10.18",
+    "@mastra/mcp": "^0.14.1",
+    "@mastra/memory": "^0.15.10",
+    "cheerio": "^1.1.2",
+    "turndown": "^7.2.2",
     "valibot": "^1.1.0",
     "zod": "^4.1.12"
   },
@@ -39,6 +41,7 @@
     "@semantic-release/github": "^12.0.0",
     "@semantic-release/release-notes-generator": "^14.1.0",
     "@types/node": "^24.9.1",
+    "@types/turndown": "^5.0.6",
     "conventional-changelog-conventionalcommits": "^9.1.0",
     "mastra": "^0.17.0",
     "semantic-release": "^25.0.1",

@@ -7,6 +7,11 @@
     "shadcn-svelte": {
       "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp",
       "type": "http"
+    },
+    "mastra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@mastra/mcp-docs-server"]
     }
   },
   "inputs": []

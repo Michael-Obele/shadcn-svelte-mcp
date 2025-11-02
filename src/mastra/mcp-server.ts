@@ -5,7 +5,9 @@ import { shadcnSvelteUtilityTool } from "./tools/shadcn-svelte-utility";
 
 export const shadcn = new MCPServer({
   name: "Shadcn Svelte Docs",
-  version: "1.0.4",
+  version: "1.1.0",
+  description:
+    "Access shadcn-svelte component documentation and guides. IMPORTANT: This is for SVELTE components only, NOT React. Do not confuse with shadcn/ui (React version).",
   tools: {
     shadcnSvelteListTool,
     shadcnSvelteGetTool,

@@ -1,17 +1,15 @@
 import { Mastra } from "@mastra/core/mastra";
 import { PinoLogger } from "@mastra/loggers";
 import { LibSQLStore } from "@mastra/libsql";
-import { weatherWorkflow } from "./mastra/workflows/weather-workflow";
-import { weatherAgent } from "./mastra/agents/weather-agent";
 import { shadcnSvelteAgent } from "./mastra/agents/shadcn-svelte-agent";
 import { shadcn } from "./mastra/mcp-server";
 
 // MCP Client is used directly in agents, not registered here
-// See src/mastra/mcp-client.ts and src/mastra/agents/example-mcp-agent.ts for usage
+// See src/mastra/mcp-client.ts for usage examples
 
 export const mastra = new Mastra({
-  workflows: { weatherWorkflow },
-  agents: { weatherAgent, shadcnSvelteAgent },
+  workflows: {},
+  agents: { shadcnSvelteAgent },
   mcpServers: { shadcn },
   storage: new LibSQLStore({
     // stores observability, scores, ... into memory storage, if it needs to persist, change to file:../mastra.db

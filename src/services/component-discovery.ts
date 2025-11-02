@@ -3,7 +3,7 @@
  * Discovers components by scraping the components index page
  */
 
-import { scrapeUrl } from "./doc-fetcher.js";
+import { fetchUrl } from "./doc-fetcher.js";
 import { getFromCache, saveToCache } from "./cache-manager.js";
 
 export interface ComponentInfo {
@@ -28,12 +28,11 @@ export async function discoverComponents(): Promise<ComponentInfo[]> {
 
   console.log("[Discovery] Fetching component list from website...");
 
-  // Scrape the components index page
-  const result = await scrapeUrl(
+  // Fetch the components index page (caching handled internally)
+  const result = await fetchUrl(
     "https://www.shadcn-svelte.com/docs/components",
     {
-      formats: ["markdown", "html"],
-      onlyMainContent: true,
+      useCache: true,
     }
   );
 

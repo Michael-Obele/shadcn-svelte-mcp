@@ -4,13 +4,12 @@ import {
   fetchInstallationDocs,
   fetchGeneralDocs,
 } from "../../services/doc-fetcher.js";
-import { getFromCache, saveToCache } from "../../services/cache-manager.js";
 
 // Tool for utility functions like installation and migration
 export const shadcnSvelteUtilityTool = createTool({
   id: "shadcn-svelte-utility",
   description:
-    "Utility tool for installation guides, migration help, theming, and other shadcn-svelte tasks from the live website",
+    "Utility tool for installation guides, migration help, theming, and other shadcn-svelte tasks from the live website. IMPORTANT: All guides are for SVELTE, not React. Do not confuse with React patterns.",
   inputSchema: z.object({
     action: z
       .enum(["install", "migrate", "theme", "cli", "help"])
@@ -29,109 +28,59 @@ export const shadcnSvelteUtilityTool = createTool({
 
     try {
       if (action === "install") {
-        const cacheKey = `install:${framework || "general"}`;
-        let cached = await getFromCache<{ markdown: string }>(cacheKey);
+        const result = await fetchInstallationDocs(framework, {
+          useCache: true,
+        });
 
-        let content = "";
-        if (cached) {
-          console.log(`Cache hit for installation: ${framework || "general"}`);
-          content = cached.markdown;
-        } else {
-          console.log(
-            `Fetching installation docs from web: ${framework || "general"}`
-          );
-          const result = await fetchInstallationDocs(framework);
-
-          if (result.success && result.markdown) {
-            content = result.markdown;
-            await saveToCache(cacheKey, { markdown: content });
-          } else {
-            return `Error fetching installation docs: ${result.error}`;
-          }
+        if (!result.success || !result.markdown) {
+          return `Error fetching installation docs: ${result.error}`;
         }
 
         let response = `# Installation Guide\n\n`;
         if (framework) {
           response += `**Framework:** ${framework}\n\n`;
         }
-        response += content;
+        response += result.markdown;
 
         // Add package manager note
         response += `\n\n---\n\n**Note:** The examples above can be adapted for ${packageManager}. Replace the package manager commands as needed.`;
 
         return response;
       } else if (action === "migrate") {
-        const cacheKey = "migration:general";
-        let cached = await getFromCache<{ markdown: string }>(cacheKey);
+        let result = await fetchGeneralDocs("/docs/migration", {
+          useCache: true,
+        });
 
-        let content = "";
-        if (cached) {
-          console.log("Cache hit for migration docs");
-          content = cached.markdown;
-        } else {
-          console.log("Fetching migration docs from web");
-          const result = await fetchGeneralDocs("/docs/migration");
-
-          if (result.success && result.markdown) {
-            content = result.markdown;
-            await saveToCache(cacheKey, { markdown: content });
-          } else {
-            // Try alternate paths
-            const altResult = await fetchGeneralDocs(
-              "/docs/migration/svelte-5"
-            );
-            if (altResult.success && altResult.markdown) {
-              content = altResult.markdown;
-              await saveToCache(cacheKey, { markdown: content });
-            } else {
-              return `Error fetching migration docs: ${result.error}`;
-            }
-          }
+        // Try alternate paths if the main one fails
+        if (!result.success) {
+          result = await fetchGeneralDocs("/docs/migration/svelte-5", {
+            useCache: true,
+          });
         }
 
-        return `# Migration Guide\n\n${content}`;
+        if (!result.success || !result.markdown) {
+          return `Error fetching migration docs: ${result.error}`;
+        }
+
+        return `# Migration Guide\n\n${result.markdown}`;
       } else if (action === "theme") {
-        const cacheKey = "theming:general";
-        let cached = await getFromCache<{ markdown: string }>(cacheKey);
+        const result = await fetchGeneralDocs("/docs/theming", {
+          useCache: true,
+        });
 
-        let content = "";
-        if (cached) {
-          console.log("Cache hit for theming docs");
-          content = cached.markdown;
-        } else {
-          console.log("Fetching theming docs from web");
-          const result = await fetchGeneralDocs("/docs/theming");
-
-          if (result.success && result.markdown) {
-            content = result.markdown;
-            await saveToCache(cacheKey, { markdown: content });
-          } else {
-            return `Error fetching theming docs: ${result.error}`;
-          }
+        if (!result.success || !result.markdown) {
+          return `Error fetching theming docs: ${result.error}`;
         }
 
-        return `# Theming Guide\n\n${content}`;
+        return `# Theming Guide\n\n${result.markdown}`;
       } else if (action === "cli") {
-        const cacheKey = "cli:general";
-        let cached = await getFromCache<{ markdown: string }>(cacheKey);
+        const result = await fetchGeneralDocs("/docs/cli", { useCache: true });
 
-        let content = "";
-        if (cached) {
-          console.log("Cache hit for CLI docs");
-          content = cached.markdown;
-        } else {
-          console.log("Fetching CLI docs from web");
-          const result = await fetchGeneralDocs("/docs/cli");
-
-          if (result.success && result.markdown) {
-            content = result.markdown;
-            await saveToCache(cacheKey, { markdown: content });
-          } else {
-            return `Error fetching CLI docs: ${result.error}`;
-          }
+        if (!result.success || !result.markdown) {
+          return `Error fetching CLI docs: ${result.error}`;
         }
 
-        return `# CLI Documentation\n\n${content}`;
+        return `# CLI Documentation\n\n${result.markdown}`;
       } else if (action === "help") {
         return `# shadcn-svelte Help
 

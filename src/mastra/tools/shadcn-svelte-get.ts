@@ -3,15 +3,14 @@ import { z } from "zod";
 import {
   fetchComponentDocs,
   fetchGeneralDocs,
-  type ScrapeResult,
+  type FetchResult,
 } from "../../services/doc-fetcher.js";
-import { getFromCache, saveToCache } from "../../services/cache-manager.js";
 
 // Tool for getting detailed information about components or documentation
 export const shadcnSvelteGetTool = createTool({
   id: "shadcn-svelte-get",
   description:
-    "Get detailed information about any shadcn-svelte component or documentation section from the live website",
+    "Get detailed information about any shadcn-svelte component or documentation section from the live website. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. Svelte has different APIs and patterns than React.",
   inputSchema: z.object({
     name: z.string().describe("Name of the component or documentation section"),
     type: z
@@ -23,23 +22,8 @@ export const shadcnSvelteGetTool = createTool({
 
     try {
       if (type === "component") {
-        // Check cache first
-        const cacheKey = `component:${name}`;
-        let cached = await getFromCache<ScrapeResult>(cacheKey);
-
-        let result;
-        if (cached) {
-          console.log(`Cache hit for component: ${name}`);
-          result = cached;
-        } else {
-          console.log(`Fetching component from web: ${name}`);
-          result = await fetchComponentDocs(name);
-
-          if (result.success && result.markdown) {
-            // Save to cache
-            await saveToCache(cacheKey, result);
-          }
-        }
+        // Fetch component docs (caching handled internally)
+        const result = await fetchComponentDocs(name, { useCache: true });
 
         if (!result.success) {
           return `Component "${name}" not found or error occurred: ${result.error}\n\nUse the list tool to see available components.`;
@@ -49,32 +33,22 @@ export const shadcnSvelteGetTool = createTool({
           return `Component "${name}" not found. Use the list tool to see available components.`;
         }
 
-        return `# ${name} Component\n\n${result.markdown}`;
+        // Add anti-hallucination warning at the top
+        return `⚠️ IMPORTANT: This is a SVELTE component. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.). Always follow the Svelte examples shown below.\n\n# ${name} Component\n\n${result.markdown}`;
       } else if (type === "doc") {
-        // Check cache first
-        const cacheKey = `doc:${name}`;
-        let cached = await getFromCache<ScrapeResult>(cacheKey);
+        // Try common documentation paths
+        const paths = [
+          `/docs/${name}`,
+          `/docs/installation/${name}`,
+          `/docs/dark-mode/${name}`,
+          `/docs/migration/${name}`,
+        ];
 
-        let result;
-        if (cached) {
-          console.log(`Cache hit for doc: ${name}`);
-          result = cached;
-        } else {
-          console.log(`Fetching doc from web: ${name}`);
-          // Try common documentation paths
-          const paths = [
-            `/docs/${name}`,
-            `/docs/installation/${name}`,
-            `/docs/dark-mode/${name}`,
-            `/docs/migration/${name}`,
-          ];
-
-          for (const path of paths) {
-            result = await fetchGeneralDocs(path);
-            if (result.success && result.markdown) {
-              await saveToCache(cacheKey, result);
-              break;
-            }
+        let result: FetchResult | null = null;
+        for (const path of paths) {
+          result = await fetchGeneralDocs(path, { useCache: true });
+          if (result.success && result.markdown) {
+            break;
           }
         }
 
