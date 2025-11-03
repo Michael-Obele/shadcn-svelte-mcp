@@ -232,16 +232,9 @@ npm run mcp:dev
 - `npm run dev` - Start Mastra in development mode (recommended smoke-test).
 - `npm run build` - Build the Mastra project for production.
 - `npm run start` - Start the built Mastra server.
-- `npm run mcp:stdio` - Run the MCP server in stdio mode (runs `npx tsx src/index.ts`).
-- `npm run mcp:dev` - Run the MCP dev server (runs `npx tsx src/dev-server.ts`).
-- `npm run test:crawlee` - Run the Crawlee-based documentation fetcher test (`npx tsx test/test-crawlee.ts`)
-- `npm run test:simple` - Run the simple tools test (`npx tsx test/test-tools-simple.ts`)
-- `npm run test:mcp` - Run the MCP server test (`npx tsx test/test-mcp.ts`)
-- `npm run test:search` - Run the search tool test (`npx tsx test/test-search.ts`)
 - `npm run check-versions` - Check if package.json and mcp-server.ts versions match (fails if mismatched).
 - `npm run sync-versions-auto` - Check versions and auto-sync if mismatched (package.json is source of truth).
 - `npm run sync-versions` - Sync versions from latest git tag to both files.
-- `npm test` - Placeholder test script (prints an error message by default)
 
 ## MCP Architecture
 

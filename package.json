@@ -3,19 +3,12 @@
   "version": "1.0.4",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "mastra dev",
     "build": "mastra build",
     "start": "mastra start",
     "check-versions": "node scripts/check-versions.js",
     "sync-versions": "node scripts/sync-versions.js",
-    "sync-versions-auto": "node scripts/sync-versions-auto.js",
-    "mcp:stdio": "npx tsx src/index.ts",
-    "mcp:dev": "npx tsx src/dev-server.ts",
-    "test:crawlee": "npx tsx test/test-crawlee.ts",
-    "test:simple": "npx tsx test/test-tools-simple.ts",
-    "test:mcp": "npx tsx test/test-mcp.ts",
-    "test:search": "npx tsx test/test-search.ts"
+    "sync-versions-auto": "node scripts/sync-versions-auto.js"
   },
   "keywords": [],
   "author": "",
