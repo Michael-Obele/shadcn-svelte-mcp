@@ -1,4 +1,19 @@
 #!/usr/bin/env node
+/**
+ * Version check script
+ *
+ * This script checks if package.json and mcp-server.ts versions match.
+ * If they don't match, it fails with an error (exit code 1).
+ *
+ * Use this script when you want strict version checking that fails on mismatch.
+ * For auto-syncing versions, use sync-versions-auto.js instead.
+ *
+ * Usage:
+ * - npm run check-versions (strict check, fails on mismatch)
+ * - npm run sync-versions-auto (auto-sync and continue)
+ * - npm run sync-versions (sync from git tags)
+ */
+
 import fs from "fs";
 import path from "path";
 

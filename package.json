@@ -9,6 +9,7 @@
     "start": "mastra start",
     "check-versions": "node scripts/check-versions.js",
     "sync-versions": "node scripts/sync-versions.js",
+    "sync-versions-auto": "node scripts/sync-versions-auto.js",
     "mcp:stdio": "npx tsx src/index.ts",
     "mcp:dev": "npx tsx src/dev-server.ts",
     "test:crawlee": "npx tsx test/test-crawlee.ts",
