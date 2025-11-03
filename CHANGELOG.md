@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.6...v1.0.7) (2025-11-03)
+
+
+### Features
+
+* enhance search functionality by integrating component discovery and improving scoring logic ([3e70c65](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/3e70c6521b157f0cfb76a375b2b94ed0dfd8691c))
+
 ## [1.0.6](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.5...v1.0.6) (2025-11-03)
 
 
