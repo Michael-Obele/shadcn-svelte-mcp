@@ -13,12 +13,16 @@ This repository contains a Mastra-based MCP server that provides real-time acces
 ## 🎉 What's New
 
 - ✅ Production deployment on Mastra Cloud
-- ✅ Three powerful MCP tools for component discovery and documentation
+- ✅ Four powerful MCP tools for component discovery and documentation
+- ✅ Advanced fuzzy search with typo tolerance and intelligent suggestions
+- ✅ **Lucide Svelte icon search** - Browse and search 1400+ icons with smart filtering
 - ✅ Support for all major AI code editors (Cursor, Windsurf, VS Code, Zed, Claude Code, Codex)
 - ✅ HTTP and SSE transport protocols
 - ✅ Real-time web scraping from shadcn-svelte.com
 - ✅ Intelligent caching for performance
 - ✅ Always up-to-date documentation
+- ✅ Comprehensive testing suite
+- ✅ Automated versioning and release management
 
 ## Installation in Your Code Editor
 
@@ -164,10 +168,10 @@ Then run `codex mcp list` to confirm it's enabled.
 
 Once installed, your AI assistant will have access to these tools:
 
-1. **shadcnSvelteListTool** - List all available shadcn-svelte components and documentation sections
+1. **shadcnSvelteListTool** - List all available shadcn-svelte components, blocks, charts, and documentation sections
 2. **shadcnSvelteGetTool** - Get detailed documentation for a specific component (installation, usage, props, examples)
-3. **shadcnSvelteUtilityTool** - Access installation guides, theming help, CLI usage, migration assistance, and Lucide Svelte icon search
-4. **shadcnSvelteSearchTool** ⭐ NEW - Search for components, blocks, charts, and documentation by keyword or phrase (zero AI costs!)
+3. **shadcnSvelteUtilityTool** - Access installation guides, theming help, CLI usage, migration assistance, and **Lucide Svelte icon search** (1400+ icons with smart filtering)
+4. **shadcnSvelteSearchTool** ⭐ NEW - Search for components, blocks, charts, and documentation by keyword or phrase with advanced fuzzy matching, typo tolerance, and intelligent suggestions
 
 ## Example Usage
 
@@ -181,6 +185,7 @@ After installing the MCP server in your editor, you can ask your AI assistant:
 - "What are the props for the Dialog component?"
 - "Help me migrate from shadcn-svelte v0.x to v1.x"
 - "Search for Lucide icons related to 'user profile'"
+- "Find all arrow icons in Lucide Svelte"
 
 ## Local Development
 
@@ -188,10 +193,11 @@ Want to run the MCP server locally or contribute to the project?
 
 ### Contents
 
-- `src/` - Mastra bootstrap, MCP servers, tools, and agents.
-- `src/services/` - Web scraping services for real-time documentation fetching.
-- `src/mastra/tools/` - Tools that expose component discovery, fetching and utilities.
-- `package.json` - npm scripts and dependencies.
+- `src/` - Mastra bootstrap, MCP servers, tools, and agents
+- `src/services/` - Web scraping services for real-time documentation fetching
+- `src/mastra/tools/` - Tools that expose component discovery, fetching and utilities
+- `src/mastra/agents/` - Specialized AI agent for shadcn-svelte assistance
+- `scripts/` - Version management and automation scripts
 
 ### Quick start (development smoke-test)
 
@@ -230,27 +236,63 @@ This project exposes a **production-ready MCP Server** that makes shadcn-svelte 
 
 **What this means:**
 
-- **MCP Server** (`src/mastra/mcp-server.ts`) - Exposes three shadcn-svelte tools to external MCP clients (Cursor, Windsurf, VS Code, etc.)
+- **MCP Server** (`src/mastra/mcp-server.ts`) - Exposes four shadcn-svelte tools to external MCP clients (Cursor, Windsurf, VS Code, etc.)
 - **No MCP Client needed** - This project only _provides_ tools, it doesn't consume tools from other servers
 
 The server is deployed at `https://shadcn-svelte.mastra.cloud` and exposes tools via HTTP and SSE transports.
 
 For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
 
+## Project Architecture
+
+### Core Components
+
+- **Mastra Framework**: Orchestrates agents, workflows, and MCP servers
+- **MCP Server**: Exposes tools to AI code editors via HTTP/SSE protocols
+- **Web Scraping Services**: Multi-strategy approach for fetching documentation:
+  - Direct `.md` endpoint fetching for components
+  - Crawlee (Playwright) for JavaScript-heavy pages (charts, themes, blocks)
+  - Cheerio + Turndown for simple HTML pages
+- **Intelligent Caching**: 24-hour TTL cache with memory and disk storage
+- **Component Discovery**: Dynamic scraping of component registry from shadcn-svelte.com
+- **Advanced Search**: Fuse.js-powered fuzzy search with typo tolerance
+
+### Key Features
+
+- **Real-time Documentation**: Always fetches latest content from shadcn-svelte.com
+- **Multi-strategy Fetching**: Handles different page types (SPA, static, JS-heavy)
+- **Intelligent Caching**: Reduces API calls while ensuring freshness
+- **Lucide Icon Search**: Browse and search 1400+ Lucide Svelte icons with smart filtering by name and tags
+- **Comprehensive Testing**: Edge case coverage and integration tests
+- **Automated Versioning**: Semantic release with version synchronization
+- **Production Deployment**: Mastra Cloud hosting with monitoring
+
 ## Conventions & notes
 
-- Tools are implemented under `src/mastra/tools` and should use `zod` for input validation.
-- Web scraping services are implemented under `src/services/` and use Crawlee (with Playwright) for real-time documentation fetching from JavaScript-heavy pages.
-- Intelligent caching is used to improve performance and reduce API calls.
-- Tools follow Mastra patterns using `createTool` with proper input/output schemas.
+- Tools are implemented under `src/mastra/tools` and should use `zod` for input validation
+- Web scraping services are implemented under `src/services/` and use Crawlee (with Playwright) for real-time documentation fetching from JavaScript-heavy pages
+- Intelligent caching is used to improve performance and reduce API calls
+- Tools follow Mastra patterns using `createTool` with proper input/output schemas
+- Tests are located in the `test/` directory at the repository root
+- AI-generated progress docs are stored in `ai-generated-docs/` folder
+
+## Testing
+
+The project includes a comprehensive test suite covering:
+
+- **Tool Integration Tests**: Verify all MCP tools work correctly
+- **Service Tests**: Test web scraping and caching functionality
+- **Edge Case Tests**: Fuzzy search, typos, and error handling
+- **Package Manager Tests**: Cross-platform compatibility
+- **Crawlee Tests**: Web scraping reliability
 
 ## Development tips
 
-- Node >= 20.9.0 is recommended (see `package.json` engines).
-- When adding tools, follow the patterns in `src/mastra/tools/shadcn-svelte-get.ts` and `shadcn-svelte-list.ts`.
-- After making changes, run the 10–15s smoke-test via `npm run dev` to surface runtime integration issues early.
-- Set up proper Firecrawl API credentials for web scraping functionality.
-- The system uses intelligent caching - clear cache if you need fresh data during development.
+- Node >= 20.9.0 is recommended (see `package.json` engines)
+- When adding tools, follow the patterns in `src/mastra/tools/shadcn-svelte-get.ts` and `shadcn-svelte-list.ts`
+- After making changes, run the 10–15s smoke-test via `npm run dev` to surface runtime integration issues early
+- Set up proper Firecrawl API credentials for web scraping functionality
+- The system uses intelligent caching - clear cache if you need fresh data during development
 
 ## License
 
@@ -272,4 +314,5 @@ For more details:
 
 - **MCP Architecture**: See `ai-generated-docs/MCP_ARCHITECTURE.md` for detailed explanation of MCP server vs client
 - **Web scraping services**: See `src/services/` for Crawlee-based real-time documentation fetching implementation
+- **Search Enhancement**: See `ai-generated-docs/search-enhancement-summary.md` for details on the advanced search functionality
 - **AI assistant guide**: See `.github/copilot-instructions.md`
