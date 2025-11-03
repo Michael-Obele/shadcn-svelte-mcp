@@ -1,9 +1,9 @@
 {
   "servers": {
-    // "test-mcp": {
-    // 	"url": "http://localhost:4111/api/mcp/shadcn/mcp",
-    // 	"type": "http"
-    // },
+    "test-mcp": {
+      "url": "http://localhost:4111/api/mcp/shadcn/mcp",
+      "type": "http"
+    },
     "shadcn-svelte": {
       "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp",
       "type": "http"

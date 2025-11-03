@@ -46,8 +46,8 @@ function unescapeMarkdown(markdown: string): string {
   // Unescape quotes in the content
   // This fixes the issue where .md files from shadcn-svelte.com have \" instead of "
   return markdown
-    .replace(/\\"/g, '"')  // \" → "
-    .replace(/\\'/g, "'")  // \' → '
+    .replace(/\\"/g, '"') // \" → "
+    .replace(/\\'/g, "'") // \' → '
     .replace(/&apos;/g, "'"); // &apos; → '
 }
 
@@ -90,10 +90,10 @@ async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
 
     if (response.ok) {
       let markdown = await response.text();
-      
+
       // Unescape the markdown content (fixes escaped quotes from .md sources)
       markdown = unescapeMarkdown(markdown);
-      
+
       // Extract title from first heading if possible
       const titleMatch = markdown.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1] : undefined;
@@ -136,13 +136,29 @@ async function fetchHtmlAndConvert(url: string): Promise<FetchResult> {
     // Extract title
     const title = $("title").text() || $("h1").first().text() || undefined;
 
-    // Remove navigation, footer, and other non-content elements
-    $("nav, footer, aside, script, style, .navigation, .sidebar").remove();
+    // Remove navigation, footer, header, and other non-content elements
+    $(
+      "nav, footer, aside, script, style, .navigation, .sidebar, header"
+    ).remove();
 
-    // Try to find main content area (common patterns for shadcn-svelte.com)
-    let content = $("main").html() || $("article").html() || $("body").html();
+    // Try to find main content area with improved selectors for SPA-style pages
+    // For landing pages (charts, themes, colors, blocks), extract specific content sections
+    let content = "";
 
-    if (!content) {
+    // Try to get content from main sections, excluding shell elements
+    const mainSections = $("main > section, main > .container-wrapper");
+    if (mainSections.length > 0) {
+      // Found main content sections - extract them
+      mainSections.each((_, elem) => {
+        content += $.html(elem);
+      });
+    } else {
+      // Fallback to traditional selectors
+      content =
+        $("main").html() || $("article").html() || $("body").html() || "";
+    }
+
+    if (!content || content.trim().length === 0) {
       throw new Error("Could not find main content in HTML");
     }
 

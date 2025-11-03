@@ -40,7 +40,7 @@ Shell command preference
 - Web scraping approach: tools use real-time web scraping to fetch documentation from shadcn-svelte.com. Components are discovered dynamically from the live website.
 - Input validation: tools MUST use `zod` to validate inputs. Mastra's createTool requires Zod schemas for proper type inference and runtime validation. When updating or creating tools, use zod schemas (see existing examples in `src/mastra/tools/*`). Follow the pattern: `import { z } from "zod"` and define schemas with `z.object({...})`.
 
-Important runtime smoke-test: always run `bun run dev` for a short smoke-test (10–15s) after making code changes to catch early runtime errors. This runs the full Mastra development lifecycle and surfaces integration/runtime errors that focused MCP runs may not catch. Perform the 10–15s `bun run dev` check before finalizing changes.
+Important runtime smoke-test: when running AI-driven tests or validations, always use the MCP testing channel `#test-mcp` rather than executing repository test scripts directly. Do NOT start or run `bun run dev` from within AI tests — the development server is expected to already be running. If a local manual smoke-test is required by a developer, run `bun run dev` locally for 10–15s, but AI agents must not start it.
 
 Caching: component analysis tools use an in-memory cache (`componentCache`) with a timeout — expect stale cached results when iterating; clear cache or restart the process during development if necessary.
 
@@ -49,7 +49,7 @@ Caching: component analysis tools use an in-memory cache (`componentCache`) with
 To add a new tool, mirror `src/mastra/tools/shadcn-svelte-get.ts`: export a tool using `createTool({ id, description, inputSchema: /* use zod schema here */, execute: async ({context}) => { ... } })`. Use Zod for schema validation as Mastra requires it for type inference. Follow existing project patterns for input parsing and error messages.
 
 - To examine how components are discovered, inspect `src/mastra/tools/shadcn-svelte-get.ts` and `src/services/component-discovery.ts`.
-- To test changes quickly: run `bun run dev` and watch console output for errors during the 10–15s smoke-test window.
+- To test changes quickly: use the `#test-mcp` MCP channel to run tests and validations. Do not invoke repo test scripts or start `bun run dev` from AI-driven runs.
 
 6. Integration & external deps
 
@@ -60,7 +60,7 @@ To add a new tool, mirror `src/mastra/tools/shadcn-svelte-get.ts`: export a tool
 
 - If a tool returns "not found", check the web scraping services in `src/services/` and verify the component exists on shadcn-svelte.com.
 - Watch for Firecrawl API configuration in `src/services/doc-fetcher.ts`. Ensure proper environment variables are set for web scraping functionality.
-- For runtime discovery iterate: change code and run `bun run dev` for 10–15s to surface issues; focus on reproducing the failing scenario in that window. If you need a focused MCP/stdio run for deeper debugging, run the specific script directly, but always perform the `bun run dev` smoke-test first.
+- For runtime discovery iterate: change code and run `bun run dev` for 10–15s to surface issues; focus on reproducing the failing scenario in that window. If you need a focused MCP/stdio run for deeper debugging, run the specific script directly, but always prefer `#test-mcp` for AI-driven tests.
 
 8. What not to change without confirmation
 

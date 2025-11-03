@@ -36,19 +36,54 @@ export const shadcnSvelteGetTool = createTool({
         // Add anti-hallucination warning at the top
         return `⚠️ IMPORTANT: This is a SVELTE component. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.). Always follow the Svelte examples shown below.\n\n# ${name} Component\n\n${result.markdown}`;
       } else if (type === "doc") {
-        // Try common documentation paths
-        const paths = [
-          `/docs/${name}`,
-          `/docs/installation/${name}`,
-          `/docs/dark-mode/${name}`,
-          `/docs/migration/${name}`,
+        // Try a broad set of possible documentation roots so we can fetch
+        // docs that live outside of `/docs` (e.g. /charts, /themes, /colors, /blocks, /view, /examples)
+        const roots = [
+          `/docs`,
+          `/docs/installation`,
+          `/docs/dark-mode`,
+          `/docs/migration`,
+          `/docs/registry`,
+          `/docs/theming`,
+          `/docs/cli`,
+          `/charts`,
+          `/themes`,
+          `/colors`,
+          `/blocks`,
+          `/view`,
+          `/examples`,
         ];
 
         let result: FetchResult | null = null;
-        for (const path of paths) {
-          result = await fetchGeneralDocs(path, { useCache: true });
-          if (result.success && result.markdown) {
-            break;
+
+        // If the caller provided a path-like name (contains a slash), try it directly first
+        if (name.includes("/")) {
+          result = await fetchGeneralDocs(`/docs/${name}`, { useCache: true });
+          if (!result.success) {
+            // also try without /docs prefix (handles top-level paths passed in)
+            result = await fetchGeneralDocs(`/${name}`, { useCache: true });
+          }
+        }
+
+        // Try each root + name
+        if (!result || !result.success || !result.markdown) {
+          for (const root of roots) {
+            const path = name ? `${root}/${name}` : root;
+            result = await fetchGeneralDocs(path, { useCache: true });
+            if (result.success && result.markdown) break;
+          }
+        }
+
+        // As a final fallback, try the root pages themselves (e.g. /charts)
+        // But only if the name matches the root (to avoid returning /docs for a "charts" query)
+        if ((!result || !result.success || !result.markdown) && roots.length) {
+          for (const root of roots) {
+            // Check if this root matches the name (e.g., "/charts" matches "charts")
+            const rootName = root.substring(root.lastIndexOf("/") + 1);
+            if (!name || rootName === name || root === `/${name}`) {
+              result = await fetchGeneralDocs(root, { useCache: true });
+              if (result.success && result.markdown) break;
+            }
           }
         }
 
@@ -56,6 +91,7 @@ export const shadcnSvelteGetTool = createTool({
           return `Documentation "${name}" not found. Use the list tool to see available documentation sections.`;
         }
 
+        // Return the markdown content with a helpful heading
         return `# ${name}\n\n${result.markdown}`;
       }
 

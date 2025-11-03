@@ -110,7 +110,126 @@ export async function discoverDocs(): Promise<{
 
   console.log("[Discovery] Discovering documentation sections...");
 
-  const docs = {
+  // Fetch the main docs page to discover all documentation sections
+  const result = await fetchUrl("https://www.shadcn-svelte.com/docs", {
+    useCache: true,
+  });
+
+  if (!result.success || !result.markdown) {
+    console.error(
+      "[Discovery] Failed to fetch docs page, falling back to hardcoded list"
+    );
+    // Fallback to hardcoded list if scraping fails
+    const fallbackDocs = {
+      installation: ["sveltekit", "vite", "astro"],
+      darkMode: ["svelte"],
+      migration: ["svelte-5", "tailwind-v4"],
+      general: [
+        "cli",
+        "theming",
+        "components-json",
+        "figma",
+        "changelog",
+        "about",
+      ],
+    };
+    await saveToCache(cacheKey, fallbackDocs);
+    return fallbackDocs;
+  }
+
+  // Extract documentation links from markdown
+  // Look for patterns like [Title](/docs/section/name) or [Title](https://www.shadcn-svelte.com/docs/section/name)
+  const docs: {
+    installation: string[];
+    darkMode: string[];
+    migration: string[];
+    general: string[];
+  } = {
+    installation: [],
+    darkMode: [],
+    migration: [],
+    general: [],
+  };
+
+  // Define known categories and their URL patterns
+  const categoryPatterns = {
+    installation: /\/docs\/installation\/([a-z-]+)/g,
+    darkMode: /\/docs\/dark-mode\/([a-z-]+)/g,
+    migration: /\/docs\/migration\/([a-z-]+)/g,
+    general:
+      /\/docs\/(?!components|installation|dark-mode|migration|registry)([a-z-]+(?:\/[a-z-]+)*)/g,
+  };
+
+  // Also look for registry docs
+  const registryPattern = /\/docs\/registry\/([a-z-]+(?:\/[a-z-]+)*)/g;
+
+  // Extract from markdown content
+  const content = result.markdown;
+
+  // Process each category
+  for (const [category, pattern] of Object.entries(categoryPatterns)) {
+    const matches = [...content.matchAll(pattern)];
+    const sections = matches
+      .map((match) => match[1])
+      .filter((value, index, self) => self.indexOf(value) === index); // deduplicate
+
+    if (category === "general") {
+      // For general, also add registry sections
+      const registryMatches = [...content.matchAll(registryPattern)];
+      const registrySections = registryMatches
+        .map((match) => `registry/${match[1]}`)
+        .filter((value, index, self) => self.indexOf(value) === index);
+      sections.push(...registrySections);
+    }
+
+    docs[category as keyof typeof docs] = sections;
+  }
+
+  // If we didn't find much content, try HTML parsing as fallback
+  const totalSections = Object.values(docs).reduce(
+    (sum, arr) => sum + arr.length,
+    0
+  );
+  if (totalSections < 5 && result.html) {
+    console.log(
+      "[Discovery] Limited sections found in markdown, trying HTML parsing..."
+    );
+
+    // Try to extract from HTML links
+    const linkRegex = /href="\/docs\/([^"]+)"/g;
+    const htmlSections: { [key: string]: Set<string> } = {
+      installation: new Set(),
+      darkMode: new Set(),
+      migration: new Set(),
+      general: new Set(),
+    };
+
+    let match;
+    while ((match = linkRegex.exec(result.html)) !== null) {
+      const path = match[1];
+
+      if (path.startsWith("installation/")) {
+        htmlSections.installation.add(path.substring("installation/".length));
+      } else if (path.startsWith("dark-mode/")) {
+        htmlSections.darkMode.add(path.substring("dark-mode/".length));
+      } else if (path.startsWith("migration/")) {
+        htmlSections.migration.add(path.substring("migration/".length));
+      } else if (path.startsWith("registry/")) {
+        htmlSections.general.add(path);
+      } else if (!path.startsWith("components/") && path !== "docs") {
+        // Skip components and main docs page
+        htmlSections.general.add(path);
+      }
+    }
+
+    // Convert Sets to arrays
+    for (const [category, sections] of Object.entries(htmlSections)) {
+      docs[category as keyof typeof docs] = Array.from(sections).sort();
+    }
+  }
+
+  // Ensure we have at least the basic sections that are known to exist
+  const ensureSections = {
     installation: ["sveltekit", "vite", "astro"],
     darkMode: ["svelte"],
     migration: ["svelte-5", "tailwind-v4"],
@@ -123,6 +242,21 @@ export async function discoverDocs(): Promise<{
       "about",
     ],
   };
+
+  for (const [category, requiredSections] of Object.entries(ensureSections)) {
+    for (const section of requiredSections) {
+      if (!docs[category as keyof typeof docs].includes(section)) {
+        docs[category as keyof typeof docs].push(section);
+      }
+    }
+  }
+
+  // Sort all sections
+  for (const category of Object.keys(docs)) {
+    docs[category as keyof typeof docs].sort();
+  }
+
+  console.log(`[Discovery] Found docs sections:`, docs);
 
   // Cache the result
   await saveToCache(cacheKey, docs);

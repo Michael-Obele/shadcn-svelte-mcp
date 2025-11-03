@@ -3,8 +3,6 @@
 [![latest release](https://img.shields.io/github/v/tag/Michael-Obele/shadcn-svelte-mcp?sort=semver)](https://github.com/Michael-Obele/shadcn-svelte-mcp/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-
-
 Mastra MCP server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping. Now deployed and available at [https://shadcn-svelte.mastra.cloud](https://shadcn-svelte.mastra.cloud)!
 
 > [!NOTE]
@@ -287,7 +285,7 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 ## Contact
 
 - **Issues & Support**: support@svelte-apps.me
-- **Contributions**: contrib@svelte-apps.me  
+- **Contributions**: contrib@svelte-apps.me
 - **Maintainer**: Michael Obele (michael@svelte-apps.me)
 
 ---
