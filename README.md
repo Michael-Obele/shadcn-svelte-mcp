@@ -166,6 +166,32 @@ codex mcp add shadcn-svelte --url https://shadcn-svelte.mastra.cloud/api/mcp/sha
 
 Then run `codex mcp list` to confirm it's enabled.
 
+## Backup Server Configuration
+
+<details>
+<summary>⚠️ Backup URL (Slow Start - Use Only If Primary Fails)</summary>
+
+If the primary Mastra Cloud server is not showing all tools or is unresponsive, you can use our backup server hosted on Render. **Note: This backup server has a cold start and may take up to 50 seconds to respond after periods of inactivity.**
+
+```json
+{
+  "shadcn-svelte-backup": {
+    "url": "https://shadcn-svelte-mcp.onrender.com/api/mcp/shadcn/mcp",
+    "type": "http"
+  }
+}
+```
+
+**When to use the backup:**
+
+- Primary Mastra Cloud server (`https://shadcn-svelte.mastra.cloud`) is unresponsive
+- Some tools are not appearing in your AI assistant
+- You need immediate access and can wait for the cold start
+
+**The backup server provides the same tools and functionality as the primary server.**
+
+</details>
+
 ## Available Tools
 
 Once installed, your AI assistant will have access to these tools:
