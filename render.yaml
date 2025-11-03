@@ -1,0 +1,74 @@
+# Render.com deployment configuration for shadcn-svelte-mcp
+# See: https://render.com/docs/infrastructure-as-code
+
+services:
+  # Main MCP Server
+  - type: web
+    name: shadcn-svelte-mcp
+    runtime: node
+    plan: free  # Options: free, starter ($7/mo), standard ($25/mo), pro ($85/mo)
+    region: oregon  # Options: oregon, frankfurt, singapore, ohio
+    branch: main
+    rootDir: .
+    
+    # Build Configuration
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    
+    # Health Check (optional but recommended)
+    healthCheckPath: /mcp
+    
+    # Environment Variables
+    envVars:
+      - key: NODE_ENV
+        value: production
+      
+      - key: PORT
+        value: 10000
+      
+      # API Keys - Set these in Render Dashboard for security
+      # Never commit actual keys to Git!
+      - key: OPENAI_API_KEY
+        sync: false  # Must be set manually in dashboard
+      
+      # Optional: If using Firecrawl
+      - key: FIRECRAWL_API_URL
+        value: https://api-production-fdef.up.railway.app
+      
+      - key: FIRECRAWL_API_KEY
+        sync: false  # Set in dashboard
+      
+      # Optional: Base URL for documentation
+      - key: SHADCN_BASE_URL
+        value: https://www.shadcn-svelte.com
+      
+      # Will be automatically set after deployment
+      # - key: BASE_URL
+      #   value: https://shadcn-svelte-mcp.onrender.com
+    
+    # Auto-Deploy Configuration
+    autoDeploy: true  # Deploy automatically on git push
+
+# Optional: If you need a staging environment
+# Uncomment and customize:
+#
+#   - type: web
+#     name: shadcn-svelte-mcp-staging
+#     runtime: node
+#     plan: free
+#     branch: develop  # Deploy from develop branch
+#     buildCommand: npm install && npm run build
+#     startCommand: npm start
+#     envVars:
+#       - key: NODE_ENV
+#         value: staging
+#       - key: OPENAI_API_KEY
+#         sync: false
+
+# Optional: Add a persistent disk for caching (costs extra)
+# Uncomment if needed:
+#
+# disk:
+#   name: cache-disk
+#   mountPath: /app/cache
+#   sizeGB: 1  # $0.25/GB/month
