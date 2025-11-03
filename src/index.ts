@@ -27,4 +27,7 @@ export const mastra = new Mastra({
     // Enables DefaultExporter and CloudExporter for AI tracing
     default: { enabled: true },
   },
+  bundler: {
+    externals: ["crawlee"],
+  },
 });
