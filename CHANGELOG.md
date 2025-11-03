@@ -1,3 +1,10 @@
+## [1.0.8](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.7...v1.0.8) (2025-11-03)
+
+
+### Features
+
+* integrate Fuse.js for advanced fuzzy search and add install commands in search results ([fb9e25b](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/fb9e25bd343dcef7279e076997dea13cd12e273f))
+
 ## [1.0.7](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.6...v1.0.7) (2025-11-03)
 
 
