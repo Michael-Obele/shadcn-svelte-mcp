@@ -2,274 +2,252 @@
  * shadcn-svelte-search
  *
  * Search tool for finding shadcn-svelte components, blocks, charts, and documentation
- * by keyword or phrase. Uses local string matching over cached site map data for
- * cost-effective search without AI.
+ * by keyword or phrase. Uses fast local string matching against the component registry.
  */
 
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { fetchUrl } from "../../services/doc-fetcher.js";
+import { getAllContent } from "../../services/component-discovery.js";
 
 // Types
-interface SiteMapEntry {
-  url: string;
-  title?: string;
-  description?: string;
-  keywords?: string[];
-  type?: string;
-}
-
 interface SearchResult {
   title: string;
   url: string;
   description?: string;
-  keywords?: string[];
   type: string;
   score: number;
 }
 
-// In-memory cache for site map (24-hour TTL, same as doc-fetcher)
-const siteMapCache = {
-  data: null as SiteMapEntry[] | null,
-  timestamp: 0,
-  ttl: 24 * 60 * 60 * 1000, // 24 hours
+interface SearchableItem {
+  name: string;
+  type: string;
+  category?: string;
+}
+
+// Known blocks and charts (synced with list tool)
+const BLOCKS = {
+  featured: ["dashboard-01"],
+  sidebar: ["sidebar-03", "sidebar-07"],
+  login: ["login-03", "login-04"],
+};
+
+const CHARTS = {
+  area: ["chart-area-default", "chart-area-interactive"],
+  bar: ["chart-bar-default", "chart-bar-interactive"],
+  line: ["chart-line-default", "chart-line-interactive"],
+  pie: ["chart-pie-default", "chart-pie-interactive"],
+  radar: ["chart-radar-default", "chart-radar-interactive"],
+  radial: ["chart-radial-default", "chart-radial-interactive"],
+  tooltip: ["chart-tooltip-default", "chart-tooltip-icons"],
 };
 
 /**
- * Fetch site map from shadcn-svelte.com with rich metadata
+ * Get all searchable items (components, blocks, charts, docs)
  */
-async function getCachedSiteMap(): Promise<SiteMapEntry[]> {
-  const now = Date.now();
+async function getSearchableItems(): Promise<SearchableItem[]> {
+  console.log("[shadcn-svelte-search] Loading searchable items...");
 
-  // Return cached data if still valid
-  if (siteMapCache.data && now - siteMapCache.timestamp < siteMapCache.ttl) {
-    console.log("[shadcn-svelte-search] Using cached site map with metadata");
-    return siteMapCache.data;
+  const content = await getAllContent();
+  const items: SearchableItem[] = [];
+
+  // Add components
+  for (const component of content.components) {
+    items.push({
+      name: component.name,
+      type: "component",
+      category: component.category,
+    });
   }
 
-  console.log(
-    "[shadcn-svelte-search] Fetching fresh site map and metadata from shadcn-svelte.com"
-  );
-
-  try {
-    // Fetch sitemap.xml directly from shadcn-svelte.com
-    const response = await fetch("https://shadcn-svelte.com/sitemap.xml");
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch sitemap: ${response.statusText}`);
-    }
-
-    const text = await response.text();
-
-    // Parse sitemap XML (basic parser)
-    const urlMatches = text.matchAll(/<loc>(.*?)<\/loc>/g);
-    const urls = Array.from(urlMatches).map((match) => match[1]);
-
-    console.log(
-      `[shadcn-svelte-search] Found ${urls.length} URLs, fetching metadata...`
-    );
-
-    // Fetch metadata for each URL (limit to avoid overwhelming the server)
-    const entries: SiteMapEntry[] = [];
-    const BATCH_SIZE = 5; // Process in batches to avoid rate limiting
-
-    for (let i = 0; i < urls.length; i += BATCH_SIZE) {
-      const batch = urls.slice(i, i + BATCH_SIZE);
-      const batchPromises = batch.map(async (url) => {
-        try {
-          // Fetch the page to get rich metadata
-          const result = await fetchUrl(url, {
-            useCache: true,
-            includeMetadata: true,
-            timeout: 10000, // Shorter timeout for search indexing
-          });
-
-          if (result.success && result.metadata) {
-            return {
-              url,
-              title: result.metadata.title || extractTitleFromUrl(url),
-              description: result.metadata.description,
-              keywords: result.metadata.keywords,
-              type: result.type,
-            };
-          } else {
-            // Fallback to basic URL parsing
-            return {
-              url,
-              title: extractTitleFromUrl(url),
-              description: undefined,
-              keywords: undefined,
-              type: getResourceType(url),
-            };
-          }
-        } catch (error) {
-          console.warn(
-            `[shadcn-svelte-search] Failed to fetch metadata for ${url}:`,
-            error
-          );
-          // Fallback to basic URL parsing
-          return {
-            url,
-            title: extractTitleFromUrl(url),
-            description: undefined,
-            keywords: undefined,
-            type: getResourceType(url),
-          };
-        }
+  // Add blocks
+  for (const category of Object.values(BLOCKS)) {
+    for (const block of category) {
+      items.push({
+        name: block,
+        type: "block",
+        category: "block",
       });
-
-      const batchResults = await Promise.all(batchPromises);
-      entries.push(...batchResults);
-
-      // Small delay between batches to be respectful
-      if (i + BATCH_SIZE < urls.length) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
     }
-
-    siteMapCache.data = entries;
-    siteMapCache.timestamp = now;
-
-    console.log(
-      `[shadcn-svelte-search] Cached ${entries.length} URLs with rich metadata`
-    );
-    return entries;
-  } catch (error) {
-    console.error("[shadcn-svelte-search] Error fetching site map:", error);
-
-    // Return empty array if fetch fails
-    return [];
-  }
-}
-
-/**
- * Extract a human-readable title from a URL path
- */
-function extractTitleFromUrl(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split("/").filter(Boolean);
-
-    if (pathParts.length === 0) return "Home";
-
-    // Get the last part of the path
-    const lastPart = pathParts[pathParts.length - 1];
-
-    // Convert kebab-case to Title Case
-    return lastPart
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  } catch {
-    return url;
-  }
-}
-
-/**
- * Determine the type of resource from its URL or metadata
- */
-function getResourceType(url: string, metadataType?: string): string {
-  // Use metadata type if available
-  if (metadataType && metadataType !== "unknown") {
-    return metadataType;
   }
 
-  // Fallback to URL-based detection
-  const lowerUrl = url.toLowerCase();
+  // Add charts
+  for (const category of Object.values(CHARTS)) {
+    for (const chart of category) {
+      items.push({
+        name: chart,
+        type: "chart",
+        category: "chart",
+      });
+    }
+  }
 
-  if (lowerUrl.includes("/docs/components/")) return "component";
-  if (lowerUrl.includes("/blocks/")) return "block";
-  if (lowerUrl.includes("/charts/")) return "chart";
-  if (lowerUrl.includes("/docs/")) return "doc";
-  if (lowerUrl.includes("/examples/")) return "example";
+  // Add documentation sections
+  for (const [category, docs] of Object.entries(content.docs)) {
+    for (const doc of docs) {
+      items.push({
+        name: doc,
+        type: "doc",
+        category,
+      });
+    }
+  }
 
-  return "other";
+  console.log(`[shadcn-svelte-search] Loaded ${items.length} searchable items`);
+  return items;
 }
 
 /**
- * Filter entries by type
+ * Score an item based on query relevance
  */
-function filterByType(entries: SiteMapEntry[], type: string): SiteMapEntry[] {
-  if (type === "all") return entries;
-
-  return entries.filter((entry) => {
-    const resourceType = getResourceType(entry.url, entry.type);
-    return resourceType === type;
-  });
-}
-
-/**
- * Score an entry based on query relevance using rich metadata
- */
-function scoreEntry(entry: SiteMapEntry, query: string): number {
+function scoreItem(item: SearchableItem, query: string): number {
   const normalizedQuery = query.toLowerCase().trim();
-  const words = normalizedQuery.split(/\s+/);
+  const queryWords = normalizedQuery.split(/\s+/);
+  const itemName = item.name.toLowerCase();
 
   let score = 0;
-  const title = (entry.title || "").toLowerCase();
-  const description = (entry.description || "").toLowerCase();
-  const keywords = entry.keywords || [];
-  const url = entry.url.toLowerCase();
 
-  // Title exact match (highest priority)
-  if (title === normalizedQuery) {
-    score += 150;
-  } else if (title.includes(normalizedQuery)) {
-    score += 100;
-  } else if (words.every((word) => title.includes(word))) {
-    // Title contains all words
-    score += 75;
+  // Exact match (highest priority)
+  if (itemName === normalizedQuery) {
+    score += 1000;
   }
 
-  // Description matches (high priority)
-  if (description) {
-    if (description.includes(normalizedQuery)) {
-      score += 60;
-    } else if (words.every((word) => description.includes(word))) {
-      score += 40;
+  // Name starts with query
+  if (itemName.startsWith(normalizedQuery)) {
+    score += 500;
+  }
+
+  // Name contains full query
+  if (itemName.includes(normalizedQuery)) {
+    score += 250;
+  }
+
+  // Check individual words
+  let matchedWords = 0;
+  for (const word of queryWords) {
+    // Exact word match
+    if (itemName === word) {
+      score += 200;
+      matchedWords++;
     }
-  }
-
-  // Keywords matches (very high priority)
-  const keywordMatches = keywords.filter(
-    (keyword) =>
-      normalizedQuery.includes(keyword.toLowerCase()) ||
-      keyword.toLowerCase().includes(normalizedQuery)
-  );
-  score += keywordMatches.length * 80;
-
-  // Individual keyword matches
-  for (const keyword of keywords) {
-    const keywordLower = keyword.toLowerCase();
-    if (normalizedQuery.includes(keywordLower)) {
+    // Word at start
+    else if (itemName.startsWith(word)) {
+      score += 150;
+      matchedWords++;
+    }
+    // Word contained
+    else if (itemName.includes(word)) {
+      score += 100;
+      matchedWords++;
+    }
+    // Fuzzy match (edit distance 1)
+    else if (fuzzyMatch(itemName, word)) {
       score += 50;
-    }
-    // Partial keyword matches
-    if (
-      words.some(
-        (word) => keywordLower.includes(word) || word.includes(keywordLower)
-      )
-    ) {
-      score += 25;
+      matchedWords++;
     }
   }
 
-  // URL contains query
-  if (url.includes(normalizedQuery)) {
-    score += 25;
-  }
-
-  // Boost for exact component name matches
-  const urlParts = url.split("/").filter(Boolean);
-  const lastPart = urlParts[urlParts.length - 1];
-  if (
-    lastPart === normalizedQuery ||
-    lastPart === normalizedQuery.replace(/\s+/g, "-")
-  ) {
-    score += 50;
+  // Bonus for matching all words
+  if (matchedWords === queryWords.length && queryWords.length > 1) {
+    score += 200;
   }
 
   return score;
+}
+
+/**
+ * Simple fuzzy matching (checks if strings are similar with edit distance ≤ 1)
+ */
+function fuzzyMatch(str: string, pattern: string): boolean {
+  // If lengths differ by more than 1, can't be edit distance 1
+  if (Math.abs(str.length - pattern.length) > 1) {
+    return false;
+  }
+
+  let differences = 0;
+  let i = 0;
+  let j = 0;
+
+  while (i < str.length && j < pattern.length) {
+    if (str[i] !== pattern[j]) {
+      differences++;
+      if (differences > 1) return false;
+
+      // Try to skip a character
+      if (str.length > pattern.length) {
+        i++;
+      } else if (pattern.length > str.length) {
+        j++;
+      } else {
+        i++;
+        j++;
+      }
+    } else {
+      i++;
+      j++;
+    }
+  }
+
+  // Account for remaining characters
+  differences += str.length - i + pattern.length - j;
+
+  return differences <= 1;
+}
+
+/**
+ * Build URL for an item
+ */
+function buildUrl(item: SearchableItem): string {
+  const base = "https://www.shadcn-svelte.com";
+
+  switch (item.type) {
+    case "component":
+      return `${base}/docs/components/${item.name}`;
+    case "block":
+      return `${base}/blocks#${item.name}`;
+    case "chart":
+      return `${base}/charts#${item.name}`;
+    case "doc":
+      // Handle different doc categories
+      if (item.category === "installation") {
+        return `${base}/docs/installation/${item.name}`;
+      } else if (item.category === "darkMode") {
+        return `${base}/docs/dark-mode/${item.name}`;
+      } else if (item.category === "migration") {
+        return `${base}/docs/migration/${item.name}`;
+      } else {
+        return `${base}/docs/${item.name}`;
+      }
+    default:
+      return `${base}/docs/${item.name}`;
+  }
+}
+
+/**
+ * Format name as title
+ */
+function formatTitle(name: string): string {
+  return name
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+/**
+ * Generate description for an item
+ */
+function generateDescription(item: SearchableItem): string {
+  switch (item.type) {
+    case "component":
+      return `UI component: ${formatTitle(item.name)}`;
+    case "block":
+      return `Pre-built section: ${formatTitle(item.name)}`;
+    case "chart":
+      return `Chart component: ${formatTitle(item.name)}`;
+    case "doc":
+      return `Documentation: ${formatTitle(item.name)}`;
+    default:
+      return formatTitle(item.name);
+  }
 }
 
 /**
@@ -281,7 +259,7 @@ function formatResults(
   type: string
 ): string {
   if (results.length === 0) {
-    return `# No Results Found\n\nNo matches found for query: **"${query}"**\n\nTry:\n- Using different keywords\n- Checking spelling\n- Being more general`;
+    return `# No Results Found\n\nNo matches found for query: **"${query}"**\n\nTry:\n- Using different keywords\n- Checking spelling\n- Being more general\n\nYou can use the \`list\` tool to see all available components and docs.`;
   }
 
   // Group by type
@@ -309,12 +287,10 @@ function formatResults(
     block: "🏗️ Blocks",
     chart: "📊 Charts",
     doc: "📖 Documentation",
-    example: "💡 Examples",
-    other: "🔗 Other",
   };
 
   // Output each type group
-  const typeOrder = ["component", "block", "chart", "doc", "example", "other"];
+  const typeOrder = ["component", "block", "chart", "doc"];
 
   for (const resourceType of typeOrder) {
     const items = grouped[resourceType];
@@ -325,8 +301,10 @@ function formatResults(
     items.forEach((item, index) => {
       markdown += `${index + 1}. **[${item.title}](${item.url})**`;
 
-      if (item.score >= 100) {
-        markdown += " ⭐"; // High relevance indicator
+      if (item.score >= 500) {
+        markdown += " ⭐⭐"; // Very high relevance
+      } else if (item.score >= 200) {
+        markdown += " ⭐"; // High relevance
       }
 
       markdown += `\n`;
@@ -335,11 +313,7 @@ function formatResults(
         markdown += `   ${item.description}\n`;
       }
 
-      if (item.keywords && item.keywords.length > 0) {
-        markdown += `   *Keywords: ${item.keywords.join(", ")}*\n`;
-      }
-
-      markdown += `   *Score: ${item.score}*\n\n`;
+      markdown += `\n`;
     });
   }
 
@@ -391,49 +365,50 @@ export const shadcnSvelteSearchTool = createTool({
       `[shadcn-svelte-search] Searching for: "${query}" (type: ${type}, limit: ${limit})`
     );
 
-    // Get cached or fresh site map
-    const siteMap = await getCachedSiteMap();
+    try {
+      // Get all searchable items
+      const items = await getSearchableItems();
 
-    if (siteMap.length === 0) {
+      // Filter by type if specified
+      const filtered =
+        type === "all" ? items : items.filter((item) => item.type === type);
+
+      // Score each item
+      const scored = filtered
+        .map((item) => ({
+          item,
+          score: scoreItem(item, query),
+        }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+      // Build results
+      const results: SearchResult[] = scored.map(({ item, score }) => ({
+        title: formatTitle(item.name),
+        url: buildUrl(item),
+        description: generateDescription(item),
+        type: item.type,
+        score,
+      }));
+
+      // Format as markdown
+      const markdown = formatResults(results, query, type);
+
       return {
-        markdown: "# Error\n\nFailed to load site map. Please try again later.",
+        markdown,
+        results,
+        query,
+        totalResults: results.length,
+      };
+    } catch (error) {
+      console.error("[shadcn-svelte-search] Error during search:", error);
+      return {
+        markdown: `# Error\n\nFailed to perform search: ${error}\n\nPlease try again or use the \`list\` tool to browse available content.`,
         results: [],
         query,
         totalResults: 0,
       };
     }
-
-    // Filter by type
-    const filtered = filterByType(siteMap, type);
-
-    // Score and filter entries
-    const scored = filtered
-      .map((entry) => ({
-        ...entry,
-        score: scoreEntry(entry, query),
-      }))
-      .filter((entry) => entry.score > 0) // Only include entries with matches
-      .sort((a, b) => b.score - a.score) // Sort by score descending
-      .slice(0, limit); // Limit results
-
-    // Transform to SearchResult format
-    const results: SearchResult[] = scored.map((entry) => ({
-      title: entry.title || "Untitled",
-      url: entry.url,
-      description: entry.description,
-      keywords: entry.keywords,
-      type: getResourceType(entry.url, entry.type),
-      score: entry.score,
-    }));
-
-    // Format as markdown
-    const markdown = formatResults(results, query, type);
-
-    return {
-      markdown,
-      results,
-      query,
-      totalResults: results.length,
-    };
   },
 });
