@@ -1,3 +1,10 @@
+## [1.0.12](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.11...v1.0.12) (2025-11-03)
+
+
+### Features
+
+* update bundler externals to include fuse.js and enhance documentation for icons in shadcn-svelte-list tool ([252ca48](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/252ca4883cffcfffbd6205f3379b0f4eff1f3e68))
+
 ## [1.0.11](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.10...v1.0.11) (2025-11-03)
 
 
