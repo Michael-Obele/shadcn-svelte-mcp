@@ -412,21 +412,6 @@ export const shadcnSvelteSearchTool = createTool({
         "Package manager for install commands (npm uses npx, others use dlx)"
       ),
   }),
-  outputSchema: z.object({
-    markdown: z.string().describe("Formatted search results in markdown"),
-    results: z.array(
-      z.object({
-        title: z.string(),
-        url: z.string(),
-        description: z.string().optional(),
-        keywords: z.array(z.string()).optional(),
-        type: z.string(),
-        score: z.number(),
-      })
-    ),
-    query: z.string(),
-    totalResults: z.number(),
-  }),
   execute: async ({ context }) => {
     const { query, type = "all", limit = 10, packageManager = "npm" } = context;
 
