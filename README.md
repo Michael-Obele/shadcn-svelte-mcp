@@ -166,7 +166,8 @@ Once installed, your AI assistant will have access to these tools:
 
 1. **shadcnSvelteListTool** - List all available shadcn-svelte components and documentation sections
 2. **shadcnSvelteGetTool** - Get detailed documentation for a specific component (installation, usage, props, examples)
-3. **shadcnSvelteUtilityTool** - Access installation guides, theming help, CLI usage, and migration assistance
+3. **shadcnSvelteUtilityTool** - Access installation guides, theming help, CLI usage, migration assistance, and Lucide Svelte icon search
+4. **shadcnSvelteSearchTool** ⭐ NEW - Search for components, blocks, charts, and documentation by keyword or phrase (zero AI costs!)
 
 ## Example Usage
 
@@ -174,9 +175,12 @@ After installing the MCP server in your editor, you can ask your AI assistant:
 
 - "Show me how to install the shadcn-svelte button component"
 - "List all available shadcn-svelte components"
+- "Search for date picker components in shadcn-svelte"
+- "Find all chart components with 'line' in the name"
 - "How do I customize the theme for shadcn-svelte?"
 - "What are the props for the Dialog component?"
 - "Help me migrate from shadcn-svelte v0.x to v1.x"
+- "Search for Lucide icons related to 'user profile'"
 
 ## Local Development
 
@@ -230,9 +234,10 @@ npm run mcp:dev
 - `npm run start` - Start the built Mastra server.
 - `npm run mcp:stdio` - Run the MCP server in stdio mode (runs `npx tsx src/index.ts`).
 - `npm run mcp:dev` - Run the MCP dev server (runs `npx tsx src/dev-server.ts`).
-- `npm run test:crawlee` - Run the Crawlee-based documentation fetcher test (`npx tsx src/test-crawlee.ts`)
-- `npm run test:simple` - Run the simple tools test (`npx tsx src/test-tools-simple.ts`)
-- `npm run test:mcp` - Run the MCP server test (`npx tsx src/test-mcp.ts`)
+- `npm run test:crawlee` - Run the Crawlee-based documentation fetcher test (`npx tsx test/test-crawlee.ts`)
+- `npm run test:simple` - Run the simple tools test (`npx tsx test/test-tools-simple.ts`)
+- `npm run test:mcp` - Run the MCP server test (`npx tsx test/test-mcp.ts`)
+- `npm run test:search` - Run the search tool test (`npx tsx test/test-search.ts`)
 - `npm test` - Placeholder test script (prints an error message by default)
 
 ## MCP Architecture

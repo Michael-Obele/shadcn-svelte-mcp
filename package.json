@@ -13,7 +13,8 @@
     "mcp:dev": "npx tsx src/dev-server.ts",
     "test:crawlee": "npx tsx test/test-crawlee.ts",
     "test:simple": "npx tsx test/test-tools-simple.ts",
-    "test:mcp": "npx tsx test/test-mcp.ts"
+    "test:mcp": "npx tsx test/test-mcp.ts",
+    "test:search": "npx tsx test/test-search.ts"
   },
   "keywords": [],
   "author": "",
