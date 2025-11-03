@@ -1,3 +1,18 @@
+## [1.0.5](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.4...v1.0.5) (2025-11-03)
+
+
+### Bug Fixes
+
+* revert version number to 1.0.4 in MCP server configuration ([f434b1e](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/f434b1e155a7560fe6be1c3564f37031ceadc881))
+
+
+### Features
+
+* add search functionality for components and documentation, update README and package.json ([d9be80e](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/d9be80ecc82e147e8637c888d30db103b462997b))
+* add support for icon search functionality and enhance documentation for the 'icons' action ([1d96225](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/1d9622568dcac86af12742c5fc228c3819a3fbae))
+* add unescapeMarkdown function to fix escaped quotes in Markdown content ([68c09ba](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/68c09ba8e86d309bf3cca5485bea222406bc0d6d))
+* enhance documentation fetching and improve error handling in component discovery ([a2eae60](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/a2eae60cc8b4b32553c5b0a30a6b8a8afbb33e43))
+
 ## [1.0.4](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.3...v1.0.4) (2025-10-23)
 
 
