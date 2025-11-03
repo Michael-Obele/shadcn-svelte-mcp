@@ -1,3 +1,11 @@
+## [1.0.6](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.5...v1.0.6) (2025-11-03)
+
+
+### Features
+
+* add version synchronization scripts and update README with new commands ([52590c3](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/52590c3d17e3868d00978aca8183fbc02e74027f))
+* replace version check steps with auto-sync in workflows and scripts ([b894618](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/b89461887de693e63ba6b41654fc920d5fcadbef))
+
 ## [1.0.5](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.4...v1.0.5) (2025-11-03)
 
 
