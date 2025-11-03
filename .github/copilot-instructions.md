@@ -61,7 +61,7 @@ To add a new tool, mirror `src/mastra/tools/shadcn-svelte-get.ts`: export a tool
 
 - If a tool returns "not found", check the web scraping services in `src/services/` and verify the component exists on shadcn-svelte.com.
 - Watch for Crawlee configuration in `src/services/doc-fetcher.ts`. Crawlee uses Playwright for JavaScript-heavy pages - ensure browser dependencies are installed.
-- For runtime discovery iterate: change code and run `bun run dev` for 10–15s to surface issues; focus on reproducing the failing scenario in that window. Use `bun run test:crawlee` to test the documentation fetcher directly.
+- For runtime discovery iterate: change code and run `bun run dev` for 10–15s to surface issues; focus on reproducing the failing scenario in that window.
 
 8. What not to change without confirmation
 

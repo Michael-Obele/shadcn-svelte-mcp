@@ -215,18 +215,6 @@ pnpm install
 npm run dev
 ```
 
-3. Run MCP server locally (stdio):
-
-```bash
-npm run mcp:stdio
-```
-
-Or start the dev HTTP server:
-
-```bash
-npm run mcp:dev
-```
-
 ## Useful scripts
 
 - `npm run dev` - Start Mastra in development mode (recommended smoke-test).

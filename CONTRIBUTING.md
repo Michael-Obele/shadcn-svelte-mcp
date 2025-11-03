@@ -50,8 +50,6 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to help us main
 - `bun run dev` - Start Mastra in development mode (recommended smoke-test)
 - `bun run build` - Build the Mastra project for production
 - `bun run start` - Start the built Mastra server
-- `bun run mcp:stdio` - Run the MCP server in stdio mode
-- `bun run mcp:dev` - Run the MCP dev server
 
 ### Smoke Testing
 
@@ -155,11 +153,6 @@ export const yourTool = createTool({
 ```
 
 ## Testing
-
-### Running Tests
-
-- `bun run test:simple` - Run the simple tools test
-- `bun run test:crawlee` - Run the Crawlee-based documentation fetcher test
 
 ### Adding Tests
 
