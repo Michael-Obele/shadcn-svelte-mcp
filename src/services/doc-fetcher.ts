@@ -39,6 +39,19 @@ export interface FetchResult {
 }
 
 /**
+ * Unescapes common escape sequences in Markdown content
+ * Fixes escaped quotes in code blocks from .md sources
+ */
+function unescapeMarkdown(markdown: string): string {
+  // Unescape quotes in the content
+  // This fixes the issue where .md files from shadcn-svelte.com have \" instead of "
+  return markdown
+    .replace(/\\"/g, '"')  // \" → "
+    .replace(/\\'/g, "'")  // \' → '
+    .replace(/&apos;/g, "'"); // &apos; → '
+}
+
+/**
  * Fetches a URL with timeout support
  */
 async function fetchWithTimeout(
@@ -76,7 +89,11 @@ async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
     const response = await fetchWithTimeout(mdUrl);
 
     if (response.ok) {
-      const markdown = await response.text();
+      let markdown = await response.text();
+      
+      // Unescape the markdown content (fixes escaped quotes from .md sources)
+      markdown = unescapeMarkdown(markdown);
+      
       // Extract title from first heading if possible
       const titleMatch = markdown.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1] : undefined;

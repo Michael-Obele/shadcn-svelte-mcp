@@ -6,3 +6,4 @@ dist
 .env
 *.db
 *.db-*
+ai-generated-docs/*
