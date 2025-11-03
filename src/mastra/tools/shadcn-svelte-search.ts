@@ -2,11 +2,12 @@
  * shadcn-svelte-search
  *
  * Search tool for finding shadcn-svelte components, blocks, charts, and documentation
- * by keyword or phrase. Uses fast local string matching against the component registry.
+ * by keyword or phrase. Uses Fuse.js for intelligent fuzzy matching with typo tolerance.
  */
 
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import Fuse from "fuse.js";
 import { getAllContent } from "../../services/component-discovery.js";
 
 // Types
@@ -16,6 +17,7 @@ interface SearchResult {
   description?: string;
   type: string;
   score: number;
+  similarity?: number; // Percentage similarity (0-100)
 }
 
 interface SearchableItem {
@@ -97,100 +99,62 @@ async function getSearchableItems(): Promise<SearchableItem[]> {
 }
 
 /**
- * Score an item based on query relevance
+ * Perform fuzzy search using Fuse.js
+ * Returns scored results with similarity percentage
  */
-function scoreItem(item: SearchableItem, query: string): number {
-  const normalizedQuery = query.toLowerCase().trim();
-  const queryWords = normalizedQuery.split(/\s+/);
-  const itemName = item.name.toLowerCase();
+function performFuzzySearch(
+  items: SearchableItem[],
+  query: string,
+  options: {
+    threshold?: number;
+    limit?: number;
+  } = {}
+): Array<{ item: SearchableItem; score: number; similarity: number }> {
+  const { threshold = 0.4, limit = 50 } = options;
 
-  let score = 0;
+  const fuse = new Fuse(items, {
+    keys: ["name"],
+    threshold, // 0 = exact match, 1 = match anything
+    includeScore: true,
+    ignoreLocation: true, // Search anywhere in string
+    minMatchCharLength: 1,
+    distance: 100, // How far to search
+  });
 
-  // Exact match (highest priority)
-  if (itemName === normalizedQuery) {
-    score += 1000;
-  }
+  const results = fuse.search(query, { limit });
 
-  // Name starts with query
-  if (itemName.startsWith(normalizedQuery)) {
-    score += 500;
-  }
+  // Convert Fuse.js results to our format
+  // Fuse score: 0 = perfect match, 1 = poor match
+  // Our score: 2000 = perfect, 0 = poor (for consistency with existing code)
+  return results.map((result) => {
+    const fuseScore = result.score || 0;
+    const similarity = Math.round((1 - fuseScore) * 100); // Convert to percentage
+    const score = Math.round((1 - fuseScore) * 2000); // Convert to our scoring system
 
-  // Name contains full query
-  if (itemName.includes(normalizedQuery)) {
-    score += 250;
-  }
-
-  // Check individual words
-  let matchedWords = 0;
-  for (const word of queryWords) {
-    // Exact word match
-    if (itemName === word) {
-      score += 200;
-      matchedWords++;
-    }
-    // Word at start
-    else if (itemName.startsWith(word)) {
-      score += 150;
-      matchedWords++;
-    }
-    // Word contained
-    else if (itemName.includes(word)) {
-      score += 100;
-      matchedWords++;
-    }
-    // Fuzzy match (edit distance 1)
-    else if (fuzzyMatch(itemName, word)) {
-      score += 50;
-      matchedWords++;
-    }
-  }
-
-  // Bonus for matching all words
-  if (matchedWords === queryWords.length && queryWords.length > 1) {
-    score += 200;
-  }
-
-  return score;
+    return {
+      item: result.item,
+      score,
+      similarity,
+    };
+  });
 }
 
 /**
- * Simple fuzzy matching (checks if strings are similar with edit distance ≤ 1)
+ * Get suggestions when no good matches are found
+ * Uses a more lenient threshold to find close matches
  */
-function fuzzyMatch(str: string, pattern: string): boolean {
-  // If lengths differ by more than 1, can't be edit distance 1
-  if (Math.abs(str.length - pattern.length) > 1) {
-    return false;
-  }
+function getSuggestionsForNoResults(
+  items: SearchableItem[],
+  query: string,
+  count: number = 3
+): Array<{ item: SearchableItem; similarity: number }> {
+  // Use higher threshold (more lenient) for suggestions
+  const results = performFuzzySearch(items, query, {
+    threshold: 0.7,
+    limit: count,
+  });
 
-  let differences = 0;
-  let i = 0;
-  let j = 0;
-
-  while (i < str.length && j < pattern.length) {
-    if (str[i] !== pattern[j]) {
-      differences++;
-      if (differences > 1) return false;
-
-      // Try to skip a character
-      if (str.length > pattern.length) {
-        i++;
-      } else if (pattern.length > str.length) {
-        j++;
-      } else {
-        i++;
-        j++;
-      }
-    } else {
-      i++;
-      j++;
-    }
-  }
-
-  // Account for remaining characters
-  differences += str.length - i + pattern.length - j;
-
-  return differences <= 1;
+  return results.map((r) => ({ item: r.item, similarity: r.similarity }));
 }
 
 /**
@@ -223,6 +187,41 @@ function buildUrl(item: SearchableItem): string {
 }
 
 /**
+ * Build install command for an item with specified package manager
+ */
+function buildInstallCommand(
+  item: SearchableItem,
+  packageManager: "npm" | "yarn" | "pnpm" | "bun" = "npm"
+): string | null {
+  // Only components, blocks, and charts have install commands
+  if (
+    item.type === "component" ||
+    item.type === "block" ||
+    item.type === "chart"
+  ) {
+    let prefix: string;
+    switch (packageManager) {
+      case "npm":
+        prefix = "npx";
+        break;
+      case "yarn":
+        prefix = "yarn dlx";
+        break;
+      case "pnpm":
+        prefix = "pnpm dlx";
+        break;
+      case "bun":
+        prefix = "bun x";
+        break;
+      default:
+        prefix = "npx";
+    }
+    return `${prefix} shadcn-svelte@latest add ${item.name}`;
+  }
+  return null;
+}
+
+/**
  * Format name as title
  */
 function formatTitle(name: string): string {
@@ -251,15 +250,43 @@ function generateDescription(item: SearchableItem): string {
 }
 
 /**
- * Format results as markdown
+ * Format results as markdown with install commands
  */
 function formatResults(
   results: SearchResult[],
   query: string,
-  type: string
+  type: string,
+  packageManager: "npm" | "yarn" | "pnpm" | "bun" = "npm",
+  allItems?: SearchableItem[]
 ): string {
   if (results.length === 0) {
-    return `# No Results Found\n\nNo matches found for query: **"${query}"**\n\nTry:\n- Using different keywords\n- Checking spelling\n- Being more general\n\nYou can use the \`list\` tool to see all available components and docs.`;
+    let markdown = `# No Results Found\n\nNo matches found for query: **"${query}"**\n\n`;
+
+    // Provide suggestions if we have all items
+    if (allItems) {
+      const suggestions = getSuggestionsForNoResults(allItems, query);
+      if (suggestions.length > 0) {
+        markdown += `## 💡 Did you mean?\n\n`;
+        suggestions.forEach(
+          (
+            suggestion: { item: SearchableItem; similarity: number },
+            index: number
+          ) => {
+            const { item, similarity } = suggestion;
+            const installCmd = buildInstallCommand(item, packageManager);
+            markdown += `${index + 1}. **${formatTitle(item.name)}** (${similarity}% similar)\n`;
+            markdown += `   Type: ${item.type}\n`;
+            if (installCmd) {
+              markdown += `   📦 Install: \`${installCmd}\`\n`;
+            }
+            markdown += `   🔗 [View docs](${buildUrl(item)})\n\n`;
+          }
+        );
+      }
+    }
+
+    markdown += `\n**Try:**\n- Using different keywords\n- Checking spelling\n- Being more general\n\nYou can use the \`list\` tool to see all available components and docs.\n`;
+    return markdown;
   }
 
   // Group by type
@@ -299,18 +326,51 @@ function formatResults(
     markdown += `## ${typeLabels[resourceType]} (${items.length})\n\n`;
 
     items.forEach((item, index) => {
+      // Use similarity from Fuse.js (already calculated as percentage)
+      const matchPercent =
+        item.similarity || Math.round((item.score / 2000) * 100);
+
       markdown += `${index + 1}. **[${item.title}](${item.url})**`;
 
-      if (item.score >= 500) {
+      if (matchPercent >= 95) {
+        markdown += " 🎯"; // Perfect/near-perfect match
+      } else if (matchPercent >= 80) {
         markdown += " ⭐⭐"; // Very high relevance
-      } else if (item.score >= 200) {
+      } else if (matchPercent >= 60) {
         markdown += " ⭐"; // High relevance
       }
 
-      markdown += `\n`;
+      markdown += ` (${matchPercent}% match)\n`;
 
       if (item.description) {
         markdown += `   ${item.description}\n`;
+      }
+
+      // Add install command for components/blocks/charts
+      if (
+        resourceType === "component" ||
+        resourceType === "block" ||
+        resourceType === "chart"
+      ) {
+        const itemName = item.title.toLowerCase().replace(/\s+/g, "-");
+        let prefix: string;
+        switch (packageManager) {
+          case "npm":
+            prefix = "npx";
+            break;
+          case "yarn":
+            prefix = "yarn dlx";
+            break;
+          case "pnpm":
+            prefix = "pnpm dlx";
+            break;
+          case "bun":
+            prefix = "bun x";
+            break;
+          default:
+            prefix = "npx";
+        }
+        markdown += `   📦 Install: \`${prefix} shadcn-svelte@latest add ${itemName}\`\n`;
       }
 
       markdown += `\n`;
@@ -329,9 +389,11 @@ function formatResults(
 export const shadcnSvelteSearchTool = createTool({
   id: "shadcn-svelte-search",
   description:
-    "Search shadcn-svelte documentation, components, blocks, and charts by keyword or phrase. Returns relevant results with descriptions and links.",
+    "Search shadcn-svelte documentation, components, blocks, and charts by keyword or phrase. Features advanced fuzzy matching for typo tolerance, returns relevant results with descriptions, links, install commands, and similarity scores. When no exact matches found, provides intelligent suggestions. Use this for both discovery (exploring options) and direct action (finding specific components to install).",
   inputSchema: z.object({
-    query: z.string().describe("Search query (keywords or phrase)"),
+    query: z
+      .string()
+      .describe("Search query (keywords or phrase, typo-tolerant)"),
     type: z
       .enum(["all", "component", "block", "chart", "doc", "example"])
       .optional()
@@ -342,6 +404,13 @@ export const shadcnSvelteSearchTool = createTool({
       .optional()
       .default(10)
       .describe("Maximum number of results to return"),
+    packageManager: z
+      .enum(["npm", "yarn", "pnpm", "bun"])
+      .optional()
+      .default("npm")
+      .describe(
+        "Package manager for install commands (npm uses npx, others use dlx)"
+      ),
   }),
   outputSchema: z.object({
     markdown: z.string().describe("Formatted search results in markdown"),
@@ -359,10 +428,10 @@ export const shadcnSvelteSearchTool = createTool({
     totalResults: z.number(),
   }),
   execute: async ({ context }) => {
-    const { query, type = "all", limit = 10 } = context;
+    const { query, type = "all", limit = 10, packageManager = "npm" } = context;
 
     console.log(
-      `[shadcn-svelte-search] Searching for: "${query}" (type: ${type}, limit: ${limit})`
+      `[shadcn-svelte-search] Searching for: "${query}" (type: ${type}, limit: ${limit}, packageManager: ${packageManager})`
     );
 
     try {
@@ -373,27 +442,29 @@ export const shadcnSvelteSearchTool = createTool({
       const filtered =
         type === "all" ? items : items.filter((item) => item.type === type);
 
-      // Score each item
-      const scored = filtered
-        .map((item) => ({
-          item,
-          score: scoreItem(item, query),
-        }))
-        .filter(({ score }) => score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
+      // Perform fuzzy search using Fuse.js
+      const scored = performFuzzySearch(filtered, query, { limit });
 
       // Build results
-      const results: SearchResult[] = scored.map(({ item, score }) => ({
-        title: formatTitle(item.name),
-        url: buildUrl(item),
-        description: generateDescription(item),
-        type: item.type,
-        score,
-      }));
+      const results: SearchResult[] = scored.map(
+        ({ item, score, similarity }) => ({
+          title: formatTitle(item.name),
+          url: buildUrl(item),
+          description: generateDescription(item),
+          type: item.type,
+          score,
+          similarity,
+        })
+      );
 
-      // Format as markdown
-      const markdown = formatResults(results, query, type);
+      // Format as markdown (pass allItems for suggestions if no results)
+      const markdown = formatResults(
+        results,
+        query,
+        type,
+        packageManager,
+        items
+      );
 
       return {
         markdown,
