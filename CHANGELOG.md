@@ -1,3 +1,10 @@
+## [1.0.10](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.9...v1.0.10) (2025-11-03)
+
+
+### Features
+
+* add bundler configuration with externals for crawlee ([907383f](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/907383f7bc1147b9ad11b61ea21341835d7a2670))
+
 ## [1.0.9](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.8...v1.0.9) (2025-11-03)
 
 
