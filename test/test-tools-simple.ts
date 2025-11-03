@@ -8,8 +8,8 @@ import {
   fetchGeneralDocs,
   fetchInstallationDocs,
   discoverUrls,
-} from "./services/doc-fetcher.js";
-import { getCacheStats, clearCache } from "./services/cache-manager.js";
+} from "../src/services/doc-fetcher.js";
+import { getCacheStats, clearCache } from "../src/services/cache-manager.js";
 
 console.log("🧪 Testing MCP Tools - Simple Mode\n");
 console.log("=".repeat(60));

@@ -11,8 +11,9 @@
     "sync-versions": "node scripts/sync-versions.js",
     "mcp:stdio": "npx tsx src/index.ts",
     "mcp:dev": "npx tsx src/dev-server.ts",
-    "test:firecrawl": "npx tsx src/test-firecrawl.ts",
-    "test:simple": "npx tsx src/test-tools-simple.ts"
+    "test:crawlee": "npx tsx test/test-crawlee.ts",
+    "test:simple": "npx tsx test/test-tools-simple.ts",
+    "test:mcp": "npx tsx test/test-mcp.ts"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +30,7 @@
     "@mastra/mcp": "^0.14.1",
     "@mastra/memory": "^0.15.10",
     "cheerio": "^1.1.2",
+    "crawlee": "^3.15.2",
     "turndown": "^7.2.2",
     "valibot": "^1.1.0",
     "zod": "^4.1.12"

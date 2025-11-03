@@ -1,17 +1,20 @@
 /**
  * Documentation Fetcher Service
- * Fetches documentation from shadcn-svelte.com using dual strategy:
+ * Fetches documentation from shadcn-svelte.com using multi-strategy approach:
  * 1. Direct .md fetch for components
- * 2. Cheerio + Turndown for HTML pages
+ * 2. Crawlee (Playwright) for JavaScript-heavy pages
+ * 3. Cheerio + Turndown for simple HTML pages (fallback)
  */
 
 import * as cheerio from "cheerio";
 import TurndownService from "turndown";
+import { PlaywrightCrawler, Dataset, Configuration } from "crawlee";
 import { getFromCache, saveToCache } from "./cache-manager.js";
 
 // Configuration
 const SHADCN_BASE_URL = "https://www.shadcn-svelte.com";
 const FETCH_TIMEOUT = 30000; // 30 seconds
+const CRAWLEE_TIMEOUT = 45000; // 45 seconds for Crawlee (needs more time for browser)
 
 // Initialize Turndown service for HTML to Markdown conversion
 const turndownService = new TurndownService({
@@ -27,14 +30,35 @@ const turndownService = new TurndownService({
 export interface FetchOptions {
   useCache?: boolean;
   timeout?: number;
+  includeMetadata?: boolean;
+  includeCodeBlocks?: boolean;
+}
+
+export interface DocumentMetadata {
+  title?: string;
+  description?: string;
+  author?: string;
+  keywords?: string[];
+  ogImage?: string;
+  url?: string;
+  lastModified?: string;
 }
 
 export interface FetchResult {
   success: boolean;
-  markdown?: string;
+  content?: string; // Markdown content
+  markdown?: string; // Deprecated: use content instead
   html?: string;
-  title?: string;
-  source?: "cache" | "md" | "html";
+  metadata?: DocumentMetadata;
+  warnings?: string[];
+  notes?: string[];
+  type?: "component" | "doc" | "block" | "chart" | "theme" | "unknown";
+  source?: "cache" | "md" | "html" | "crawlee";
+  codeBlocks?: Array<{
+    language?: string;
+    code: string;
+    title?: string;
+  }>;
   error?: string;
 }
 
@@ -101,8 +125,13 @@ async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
       console.log(`[Fetcher] ✓ Direct .md fetch successful: ${mdUrl}`);
       return {
         success: true,
-        markdown,
-        title,
+        content: markdown,
+        markdown, // Deprecated: keep for backward compatibility
+        metadata: {
+          title,
+          url: mdUrl,
+        },
+        type: "component",
         source: "md",
       };
     }
@@ -133,8 +162,8 @@ async function fetchHtmlAndConvert(url: string): Promise<FetchResult> {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Extract title
-    const title = $("title").text() || $("h1").first().text() || undefined;
+    // Extract comprehensive metadata
+    const metadata = extractMetadata($, url);
 
     // Remove navigation, footer, header, and other non-content elements
     $(
@@ -165,12 +194,34 @@ async function fetchHtmlAndConvert(url: string): Promise<FetchResult> {
     // Convert HTML to Markdown
     const markdown = turndownService.turndown(content);
 
+    // Extract code blocks from markdown
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const codeBlocks: Array<{ language?: string; code: string }> = [];
+    let match;
+    while ((match = codeBlockRegex.exec(markdown)) !== null) {
+      codeBlocks.push({
+        language: match[1] || undefined,
+        code: match[2].trim(),
+      });
+    }
+
+    // Determine content type from URL
+    let type: FetchResult["type"] = "unknown";
+    if (url.includes("/docs/components/")) type = "component";
+    else if (url.includes("/docs/")) type = "doc";
+    else if (url.includes("/blocks")) type = "block";
+    else if (url.includes("/charts")) type = "chart";
+    else if (url.includes("/themes")) type = "theme";
+
     console.log(`[Fetcher] ✓ HTML fetch and conversion successful: ${url}`);
     return {
       success: true,
-      markdown,
+      content: markdown,
+      markdown, // Deprecated: keep for backward compatibility
       html: content,
-      title,
+      metadata,
+      type,
+      codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
       source: "html",
     };
   } catch (error) {
@@ -183,23 +234,200 @@ async function fetchHtmlAndConvert(url: string): Promise<FetchResult> {
 }
 
 /**
- * Fetches documentation using dual strategy with caching
+ * Fetches documentation using Crawlee (Playwright) for JavaScript-heavy pages
+ * This handles modern SPAs and dynamic content that Cheerio can't handle
+ */
+async function tryFetchWithCrawlee(url: string): Promise<FetchResult | null> {
+  try {
+    console.log(`[Fetcher] Trying Crawlee (Playwright) fetch: ${url}`);
+
+    // Disable Crawlee's default storage to prevent file system clutter
+    Configuration.getGlobalConfig().set("persistStorage", false);
+
+    // Use a container object to work around TypeScript closure issues
+    const result: { data: FetchResult | null } = { data: null };
+
+    const crawler = new PlaywrightCrawler({
+      maxRequestsPerCrawl: 1,
+      requestHandlerTimeoutSecs: CRAWLEE_TIMEOUT / 1000,
+      headless: true,
+      launchContext: {
+        launchOptions: {
+          args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        },
+      },
+      async requestHandler({ page, request }) {
+        try {
+          // Wait for the page to be fully loaded
+          await page.waitForLoadState("networkidle", {
+            timeout: CRAWLEE_TIMEOUT,
+          });
+
+          // Get the page HTML
+          const html = await page.content();
+          const $ = cheerio.load(html);
+
+          // Extract metadata
+          const metadata = extractMetadata($, url);
+
+          // Remove unwanted elements
+          $(
+            "nav, footer, aside, script, style, .navigation, .sidebar, header"
+          ).remove();
+
+          // Try to find main content area with improved selectors
+          let content = "";
+          const mainSections = $(
+            "main > section, main > .container-wrapper, main > div.content"
+          );
+
+          if (mainSections.length > 0) {
+            mainSections.each((_, elem) => {
+              content += $.html(elem);
+            });
+          } else {
+            content =
+              $("main").html() || $("article").html() || $("body").html() || "";
+          }
+
+          if (!content || content.trim().length === 0) {
+            throw new Error("Could not find main content in HTML");
+          }
+
+          // Convert HTML to Markdown
+          const markdown = turndownService.turndown(content);
+
+          // Extract code blocks
+          const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+          const codeBlocks: Array<{ language?: string; code: string }> = [];
+          let match;
+          while ((match = codeBlockRegex.exec(markdown)) !== null) {
+            codeBlocks.push({
+              language: match[1] || undefined,
+              code: match[2].trim(),
+            });
+          }
+
+          // Determine content type
+          let type: FetchResult["type"] = "unknown";
+          if (url.includes("/docs/components/")) type = "component";
+          else if (url.includes("/docs/")) type = "doc";
+          else if (url.includes("/blocks")) type = "block";
+          else if (url.includes("/charts")) type = "chart";
+          else if (url.includes("/themes")) type = "theme";
+
+          result.data = {
+            success: true,
+            content: markdown,
+            markdown,
+            html: content,
+            metadata,
+            type,
+            codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
+            source: "crawlee",
+          };
+        } catch (error) {
+          console.error(`[Fetcher] Error in Crawlee request handler:`, error);
+          result.data = {
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+          };
+        }
+      },
+      failedRequestHandler({ request }, error) {
+        console.error(
+          `[Fetcher] Crawlee request failed for ${request.url}:`,
+          error
+        );
+        result.data = {
+          success: false,
+          error: error.message,
+        };
+      },
+    });
+
+    await crawler.run([url]);
+
+    if (!result.data) {
+      console.log(`[Fetcher] ✗ Crawlee returned no data: ${url}`);
+      return null;
+    }
+
+    console.log(
+      `[Fetcher] ${result.data.success ? "✓" : "✗"} Crawlee fetch ${result.data.success ? "successful" : "failed"}: ${url}`
+    );
+    return result.data;
+  } catch (error) {
+    console.log(`[Fetcher] ✗ Crawlee error: ${error}`);
+    return null;
+  }
+}
+
+/**
+ * Extracts metadata from HTML cheerio object
+ */
+function extractMetadata($: cheerio.CheerioAPI, url: string): DocumentMetadata {
+  const title =
+    $('meta[property="og:title"]').attr("content") ||
+    $("title").text() ||
+    $("h1").first().text() ||
+    undefined;
+
+  const description =
+    $('meta[name="description"]').attr("content") ||
+    $('meta[property="og:description"]').attr("content") ||
+    undefined;
+
+  const author =
+    $('meta[name="author"]').attr("content") ||
+    $('meta[property="og:author"]').attr("content") ||
+    undefined;
+
+  const ogImage = $('meta[property="og:image"]').attr("content") || undefined;
+
+  const keywordsStr = $('meta[name="keywords"]').attr("content");
+  const keywords = keywordsStr
+    ? keywordsStr.split(",").map((k) => k.trim())
+    : undefined;
+
+  return {
+    title,
+    description,
+    author,
+    ogImage,
+    url,
+    keywords,
+  };
+}
+
+/**
+ * Fetches documentation using multi-strategy approach with caching
+ * Strategy order:
+ * 1. Cache (if enabled)
+ * 2. Direct .md endpoint (fastest for components)
+ * 3. Crawlee with Playwright (best for JavaScript-heavy pages)
+ * 4. Simple HTML scraping + conversion (fallback for simple pages)
  */
 export async function fetchUrl(
   url: string,
   options: FetchOptions = {}
 ): Promise<FetchResult> {
-  const { useCache = true, timeout = FETCH_TIMEOUT } = options;
+  const {
+    useCache = true,
+    timeout = FETCH_TIMEOUT,
+    includeMetadata = true,
+  } = options;
 
   // Check cache first if enabled
   if (useCache) {
     const cached = await getFromCache<FetchResult>(url);
     if (cached) {
+      console.log(`[Fetcher] ✓ Retrieved from cache: ${url}`);
       return { ...cached, source: "cache" };
     }
   }
 
-  // Strategy 1: Try direct .md endpoint first
+  // Strategy 1: Try direct .md endpoint first (fastest for components)
   const mdResult = await tryFetchMarkdown(url);
   if (mdResult) {
     // Cache the result
@@ -209,7 +437,26 @@ export async function fetchUrl(
     return mdResult;
   }
 
-  // Strategy 2: Fall back to HTML scraping + conversion
+  // Strategy 2: Use Crawlee for JavaScript-heavy pages (charts, themes, blocks)
+  // These pages require JavaScript to render properly
+  const isJsHeavyPage =
+    url.includes("/charts") ||
+    url.includes("/themes") ||
+    url.includes("/blocks") ||
+    url.includes("/colors");
+
+  if (isJsHeavyPage) {
+    const crawleeResult = await tryFetchWithCrawlee(url);
+    if (crawleeResult && crawleeResult.success) {
+      // Cache the result
+      if (useCache) {
+        await saveToCache(url, crawleeResult);
+      }
+      return crawleeResult;
+    }
+  }
+
+  // Strategy 3: Fall back to simple HTML scraping + conversion
   const htmlResult = await fetchHtmlAndConvert(url);
 
   // Cache the result if successful

@@ -204,25 +204,14 @@ bun install
 pnpm install
 ```
 
-2. Set up environment variables for web scraping:
-
-```bash
-# Copy the example environment file
-cp .env.example .env
-
-# Add your Firecrawl API configuration
-FIRECRAWL_API_URL=your_firecrawl_api_url
-FIRECRAWL_API_KEY=your_firecrawl_api_key
-```
-
-3. Run the development smoke-test (recommended):
+2. Run the development smoke-test (recommended):
 
 ```bash
 # Starts Mastra in dev mode; this repo's smoke-test expects a short run to detect runtime errors
 npm run dev
 ```
 
-4. Run MCP server locally (stdio):
+3. Run MCP server locally (stdio):
 
 ```bash
 npm run mcp:stdio
@@ -241,7 +230,7 @@ npm run mcp:dev
 - `npm run start` - Start the built Mastra server.
 - `npm run mcp:stdio` - Run the MCP server in stdio mode (runs `npx tsx src/index.ts`).
 - `npm run mcp:dev` - Run the MCP dev server (runs `npx tsx src/dev-server.ts`).
-- `npm run test:firecrawl` - Run the Firecrawl test harness (`npx tsx src/test-firecrawl.ts`)
+- `npm run test:crawlee` - Run the Crawlee-based documentation fetcher test (`npx tsx src/test-crawlee.ts`)
 - `npm run test:simple` - Run the simple tools test (`npx tsx src/test-tools-simple.ts`)
 - `npm run test:mcp` - Run the MCP server test (`npx tsx src/test-mcp.ts`)
 - `npm test` - Placeholder test script (prints an error message by default)
@@ -262,7 +251,7 @@ For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
 ## Conventions & notes
 
 - Tools are implemented under `src/mastra/tools` and should use `zod` for input validation.
-- Web scraping services are implemented under `src/services/` and use Firecrawl API for real-time documentation fetching.
+- Web scraping services are implemented under `src/services/` and use Crawlee (with Playwright) for real-time documentation fetching from JavaScript-heavy pages.
 - Intelligent caching is used to improve performance and reduce API calls.
 - Tools follow Mastra patterns using `createTool` with proper input/output schemas.
 
@@ -292,6 +281,6 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 
 For more details:
 
-- **MCP Architecture**: See `MCP_ARCHITECTURE.md` for detailed explanation of MCP server vs client
-- **Web scraping services**: See `src/services/` for real-time documentation fetching implementation
+- **MCP Architecture**: See `ai-generated-docs/MCP_ARCHITECTURE.md` for detailed explanation of MCP server vs client
+- **Web scraping services**: See `src/services/` for Crawlee-based real-time documentation fetching implementation
 - **AI assistant guide**: See `.github/copilot-instructions.md`

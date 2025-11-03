@@ -8,4 +8,4 @@ dist
 *.db-*
 ai-generated-docs/*
 .cache/*
-tests/*
+test/*

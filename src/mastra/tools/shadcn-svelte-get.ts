@@ -114,11 +114,35 @@ async function fetchBlockCode(
   }
 }
 
+/**
+ * Response interface for structured JSON output
+ */
+interface ToolResponse {
+  success: boolean;
+  content?: string;
+  metadata?: {
+    title?: string;
+    description?: string;
+    author?: string;
+    url?: string;
+    keywords?: string[];
+  };
+  warnings?: string[];
+  notes?: string[];
+  type?: "component" | "block" | "chart" | "doc" | "theme" | "unknown";
+  codeBlocks?: Array<{
+    language?: string;
+    code: string;
+    title?: string;
+  }>;
+  error?: string;
+}
+
 // Tool for getting detailed information about components or documentation
 export const shadcnSvelteGetTool = createTool({
   id: "shadcn-svelte-get",
   description:
-    "Get detailed information about any shadcn-svelte component, block, chart, or documentation section from the live website. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), and charts. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. Svelte has different APIs and patterns than React.",
+    "Get detailed information about any shadcn-svelte component, block, chart, or documentation section from the live website. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), and charts. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. Svelte has different APIs and patterns than React.",
   inputSchema: z.object({
     name: z.string().describe("Name of the component or documentation section"),
     type: z
@@ -127,7 +151,7 @@ export const shadcnSvelteGetTool = createTool({
         "Type: 'component' for UI components/blocks/charts, 'doc' for documentation"
       ),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context }): Promise<string> => {
     const { name, type } = context;
 
     try {
@@ -140,26 +164,70 @@ export const shadcnSvelteGetTool = createTool({
           const blockResult = await fetchBlockCode(name);
 
           if (!blockResult.success) {
-            return `Block/Chart "${name}" not found or error occurred: ${blockResult.error}\n\nUse the list tool to see available blocks and charts.`;
+            const response: ToolResponse = {
+              success: false,
+              error: `Block/Chart "${name}" not found: ${blockResult.error}`,
+              notes: ["Use the list tool to see available blocks and charts."],
+            };
+            return JSON.stringify(response, null, 2);
           }
 
-          // Add anti-hallucination warning at the top
-          return `⚠️ IMPORTANT: This is a SVELTE block/chart. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.). Always follow the Svelte examples shown below.\n\n${blockResult.code}`;
+          // Extract code blocks from the markdown-formatted code
+          const codeBlocks: Array<{ language?: string; code: string; title?: string }> = [];
+          const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+          let match;
+          while ((match = codeBlockRegex.exec(blockResult.code || "")) !== null) {
+            codeBlocks.push({
+              language: match[1] || undefined,
+              code: match[2].trim(),
+            });
+          }
+
+          const response: ToolResponse = {
+            success: true,
+            content: blockResult.code,
+            metadata: {
+              title: name,
+              description: `Block/Chart component for shadcn-svelte`,
+              url: `https://shadcn-svelte.com/blocks/${name}`,
+            },
+            warnings: [
+              "This is a SVELTE block/chart. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.).",
+              "Always follow the Svelte examples shown in the code blocks.",
+            ],
+            type: name.startsWith("chart-") ? "chart" : "block",
+            codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
+          };
+          return JSON.stringify(response, null, 2);
         }
 
         // Regular component - fetch from component docs
         const result = await fetchComponentDocs(name, { useCache: true });
 
-        if (!result.success) {
-          return `Component "${name}" not found or error occurred: ${result.error}\n\nUse the list tool to see available components.`;
+        if (!result.success || !result.content) {
+          const response: ToolResponse = {
+            success: false,
+            error: result.error || `Component "${name}" not found`,
+            notes: ["Use the list tool to see available components."],
+          };
+          return JSON.stringify(response, null, 2);
         }
 
-        if (!result.markdown) {
-          return `Component "${name}" not found. Use the list tool to see available components.`;
-        }
-
-        // Add anti-hallucination warning at the top
-        return `⚠️ IMPORTANT: This is a SVELTE component. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.). Always follow the Svelte examples shown below.\n\n# ${name} Component\n\n${result.markdown}`;
+        const response: ToolResponse = {
+          success: true,
+          content: result.content,
+          metadata: result.metadata || {
+            title: `${name} Component`,
+            url: `https://shadcn-svelte.com/docs/components/${name}`,
+          },
+          warnings: [
+            "This is a SVELTE component. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.).",
+            "Always follow the Svelte examples shown in the documentation.",
+          ],
+          type: "component",
+          codeBlocks: result.codeBlocks,
+        };
+        return JSON.stringify(response, null, 2);
       } else if (type === "doc") {
         // Try a broad set of possible documentation roots so we can fetch
         // docs that live outside of `/docs` (e.g. /charts, /themes, /colors, /blocks, /view, /examples)
@@ -212,17 +280,40 @@ export const shadcnSvelteGetTool = createTool({
           }
         }
 
-        if (!result || !result.success || !result.markdown) {
-          return `Documentation "${name}" not found. Use the list tool to see available documentation sections.`;
+        if (!result || !result.success || !result.content) {
+          const response: ToolResponse = {
+            success: false,
+            error: result?.error || `Documentation "${name}" not found`,
+            notes: ["Use the list tool to see available documentation sections."],
+          };
+          return JSON.stringify(response, null, 2);
         }
 
-        // Return the markdown content with a helpful heading
-        return `# ${name}\n\n${result.markdown}`;
+        const response: ToolResponse = {
+          success: true,
+          content: result.content,
+          metadata: result.metadata || {
+            title: name,
+          },
+          notes: result.notes,
+          warnings: result.warnings,
+          type: result.type || "doc",
+          codeBlocks: result.codeBlocks,
+        };
+        return JSON.stringify(response, null, 2);
       }
 
-      return `Invalid type "${type}". Use "component" or "doc".`;
+      const response: ToolResponse = {
+        success: false,
+        error: `Invalid type "${type}". Use "component" or "doc".`,
+      };
+      return JSON.stringify(response, null, 2);
     } catch (error) {
-      return `Error retrieving ${type} "${name}": ${error}`;
+      const response: ToolResponse = {
+        success: false,
+        error: `Error retrieving ${type} "${name}": ${error}`,
+      };
+      return JSON.stringify(response, null, 2);
     }
   },
 });

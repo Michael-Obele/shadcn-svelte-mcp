@@ -1,26 +1,23 @@
 /**
- * Test script for Firecrawl self-hosted instance
- * Tests connection and basic functionality
+ * Test script for Crawlee-based documentation fetching
+ * Tests connection and basic functionality with the multi-strategy fetcher
  */
 
 import {
   testConnection,
   fetchComponentDocs,
-  mapWebsite,
+  discoverUrls,
   config,
 } from "./services/doc-fetcher.js";
 import { getCacheStats, clearCache } from "./services/cache-manager.js";
 
 async function main() {
   console.log("=".repeat(60));
-  console.log("Testing Firecrawl Self-Hosted Instance");
+  console.log("Testing Crawlee-Based Documentation Fetcher");
   console.log("=".repeat(60));
   console.log(`\nConfiguration:`);
-  console.log(`  API URL: ${config.FIRECRAWL_API_URL}`);
-  console.log(
-    `  API Key: ${config.FIRECRAWL_API_KEY ? "***" + config.FIRECRAWL_API_KEY.slice(-4) : "NOT SET"}`
-  );
   console.log(`  Base URL: ${config.SHADCN_BASE_URL}`);
+  console.log(`  Fetch Timeout: ${config.FETCH_TIMEOUT}ms`);
   console.log();
 
   // Test 1: Connection
@@ -34,9 +31,9 @@ async function main() {
 
   if (!connectionResult.success) {
     console.error("Connection failed. Please check:");
-    console.error("  1. FIRECRAWL_API_URL is set correctly");
-    console.error("  2. FIRECRAWL_API_KEY is set correctly (if required)");
-    console.error("  3. Your Firecrawl instance is running and accessible");
+    console.error("  1. Network connectivity");
+    console.error("  2. shadcn-svelte.com is accessible");
+    console.error("  3. No firewall or proxy issues");
     process.exit(1);
   }
 
@@ -57,27 +54,27 @@ async function main() {
   }
   console.log();
 
-  // Test 3: Map website for component URLs
-  console.log("Test 3: Mapping website to discover component URLs...");
-  const mapResult = await mapWebsite(config.SHADCN_BASE_URL, {
+  // Test 3: Discover URLs from website
+  console.log("Test 3: Discovering URLs from website...");
+  const discoverResult = await discoverUrls(config.SHADCN_BASE_URL, {
     search: "components",
     limit: 20,
   });
-  console.log(`  Status: ${mapResult.success ? "✓ SUCCESS" : "✗ FAILED"}`);
-  if (mapResult.success) {
-    console.log(`  Found ${mapResult.urls.length} URLs`);
-    const componentUrls = mapResult.urls.filter((url) =>
+  console.log(`  Status: ${discoverResult.success ? "✓ SUCCESS" : "✗ FAILED"}`);
+  if (discoverResult.success) {
+    console.log(`  Found ${discoverResult.urls.length} URLs`);
+    const componentUrls = discoverResult.urls.filter((url: string) =>
       url.includes("/components/")
     );
     console.log(`  Component URLs: ${componentUrls.length}`);
     if (componentUrls.length > 0) {
       console.log(`  Sample URLs:`);
-      componentUrls.slice(0, 5).forEach((url) => {
+      componentUrls.slice(0, 5).forEach((url: string) => {
         console.log(`    - ${url}`);
       });
     }
   } else {
-    console.log(`  Error: ${mapResult.error}`);
+    console.log(`  Error: ${discoverResult.error}`);
   }
   console.log();
 
@@ -93,10 +90,9 @@ async function main() {
   console.log("=".repeat(60));
   console.log("\nNext steps:");
   console.log("  1. Review the test results above");
-  console.log(
-    "  2. If successful, start migrating the MCP tools to use doc-fetcher.ts"
-  );
-  console.log("  3. Run: npm run mcp:dev to test the MCP server");
+  console.log("  2. If successful, the MCP tools are ready to use");
+  console.log("  3. Run: bun run mcp:dev to test the MCP server");
+  console.log("  4. Run: bun run dev to start the full Mastra dev environment");
   console.log();
 }
 

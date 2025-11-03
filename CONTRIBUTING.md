@@ -62,7 +62,7 @@ Always run `bun run dev` for 10-15 seconds after making changes to catch early r
 - `src/` - Mastra bootstrap, MCP servers, tools, and agents
 - `src/services/` - Web scraping services for real-time documentation fetching
 - `src/mastra/tools/` - Tools that expose component discovery, fetching and utilities
-- `src/services/doc-fetcher.ts` - Firecrawl-based web scraping service
+- `src/services/doc-fetcher.ts` - Multi-strategy documentation fetcher (Crawlee/Playwright for JS-heavy pages, Cheerio for simple pages)
 - `src/services/component-discovery.ts` - Component discovery via web scraping
 
 ## Pull Request Process
@@ -100,6 +100,7 @@ Always run `bun run dev` for 10-15 seconds after making changes to catch early r
 ### Tool Development
 
 - Follow Mastra tool patterns using `createTool`:
+
   ```typescript
   import { createTool } from "@mastra/core/tools";
   import { z } from "zod";
@@ -112,10 +113,11 @@ Always run `bun run dev` for 10-15 seconds after making changes to catch early r
     }),
     execute: async ({ context, input }) => {
       // Your tool logic here
-      return { result: "your result" }
+      return { result: "your result" };
     },
-  })
+  });
   ```
+
 - Use descriptive tool IDs and descriptions
 - Include proper Zod schemas for input validation
 
@@ -124,16 +126,21 @@ Always run `bun run dev` for 10-15 seconds after making changes to catch early r
 When creating new tools, follow the pattern in existing tools:
 
 ```typescript
-import { z } from "zod"
-import { createTool } from "@mastra/core/tools"
-import { fetchComponentDocs, fetchGeneralDocs } from "../../services/doc-fetcher.js"
+import { z } from "zod";
+import { createTool } from "@mastra/core/tools";
+import {
+  fetchComponentDocs,
+  fetchGeneralDocs,
+} from "../../services/doc-fetcher.js";
 
 export const yourTool = createTool({
   id: "your-tool-id",
   description: "Clear description of what your tool does and when to use it",
   inputSchema: z.object({
     // Define your input schema using Zod with descriptive parameter names
-    parameter: z.string().describe("Description of parameter and expected format"),
+    parameter: z
+      .string()
+      .describe("Description of parameter and expected format"),
   }),
   outputSchema: z.object({
     // Define output structure for better type safety
@@ -141,10 +148,10 @@ export const yourTool = createTool({
   }),
   execute: async ({ context, input }) => {
     // Use web scraping services for real-time data
-    const result = await fetchComponentDocs(input.parameter)
-    return { result: result.markdown || "No data found" }
+    const result = await fetchComponentDocs(input.parameter);
+    return { result: result.markdown || "No data found" };
   },
-})
+});
 ```
 
 ## Testing
@@ -152,11 +159,12 @@ export const yourTool = createTool({
 ### Running Tests
 
 - `bun run test:simple` - Run the simple tools test
-- `bun run test:firecrawl` - Run the Firecrawl test harness
+- `bun run test:crawlee` - Run the Crawlee-based documentation fetcher test
 
 ### Adding Tests
 
 When adding new features, include appropriate tests:
+
 - Unit tests for utility functions
 - Integration tests for tools
 - End-to-end tests for critical workflows
@@ -211,6 +219,7 @@ For feature requests, please:
 ### Recognition
 
 Contributors will be recognized in:
+
 - The project's README.md
 - Release notes
 - GitHub contributors list

@@ -7,7 +7,7 @@ This file gives concise, actionable instructions for an AI coding agent to be pr
 1. What this repo is
 
 - A Mastra-based AI tooling project that bundles: workflows, agents, MCP servers and custom tools. See `src/index.ts` for the Mastra bootstrap (workflows, agents, mcpServers).
-- Documentation is fetched in real-time from shadcn-svelte.com using web scraping services under `src/services/`.
+- Documentation is fetched in real-time from shadcn-svelte.com using Crawlee (Playwright for JS-heavy pages) and Cheerio (fallback for simple pages) under `src/services/`.
 
 2. How to run / common developer commands
 
@@ -39,6 +39,7 @@ Shell command preference
 - File path resolution: tools resolve docs relative to the tool file (they use file URL + join with `../docs`) — prefer relative paths instead of hard-coded absolute paths.
 - Web scraping approach: tools use real-time web scraping to fetch documentation from shadcn-svelte.com. Components are discovered dynamically from the live website.
 - Input validation: tools MUST use `zod` to validate inputs. Mastra's createTool requires Zod schemas for proper type inference and runtime validation. When updating or creating tools, use zod schemas (see existing examples in `src/mastra/tools/*`). Follow the pattern: `import { z } from "zod"` and define schemas with `z.object({...})`.
+- **Test file organization**: ALWAYS place test files in the `test/` directory at the repository root, never in `src/`. Test files should be named descriptively (e.g., `test-crawlee.ts`, `test-mcp.ts`). Update package.json scripts when moving test files to reflect new paths. Use `git mv` when moving files to preserve version history.
 
 Important runtime smoke-test: when running AI-driven tests or validations, always use the MCP testing channel `#test-mcp` rather than executing repository test scripts directly. Do NOT start or run `bun run dev` from within AI tests — the development server is expected to already be running. If a local manual smoke-test is required by a developer, run `bun run dev` locally for 10–15s, but AI agents must not start it.
 
@@ -59,8 +60,8 @@ To add a new tool, mirror `src/mastra/tools/shadcn-svelte-get.ts`: export a tool
 7. Debugging tips for AI agents
 
 - If a tool returns "not found", check the web scraping services in `src/services/` and verify the component exists on shadcn-svelte.com.
-- Watch for Firecrawl API configuration in `src/services/doc-fetcher.ts`. Ensure proper environment variables are set for web scraping functionality.
-- For runtime discovery iterate: change code and run `bun run dev` for 10–15s to surface issues; focus on reproducing the failing scenario in that window. If you need a focused MCP/stdio run for deeper debugging, run the specific script directly, but always prefer `#test-mcp` for AI-driven tests.
+- Watch for Crawlee configuration in `src/services/doc-fetcher.ts`. Crawlee uses Playwright for JavaScript-heavy pages - ensure browser dependencies are installed.
+- For runtime discovery iterate: change code and run `bun run dev` for 10–15s to surface issues; focus on reproducing the failing scenario in that window. Use `bun run test:crawlee` to test the documentation fetcher directly.
 
 8. What not to change without confirmation
 
