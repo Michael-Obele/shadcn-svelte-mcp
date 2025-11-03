@@ -1,3 +1,10 @@
+## [1.0.13](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.12...v1.0.13) (2025-11-03)
+
+
+### Features
+
+* add Render.com deployment configuration for shadcn-svelte-mcp ([f56adbb](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/f56adbb016ab565205b3b5231b523d294c42b47c))
+
 ## [1.0.12](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.11...v1.0.12) (2025-11-03)
 
 
