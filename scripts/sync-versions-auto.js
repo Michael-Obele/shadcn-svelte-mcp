@@ -48,7 +48,10 @@ if (packageVersion !== codeVersion) {
   console.log(`🔧 Auto-syncing versions...`);
 
   // Use package.json as the source of truth (standard practice)
-  const syncedCode = code.replace(/version:\s*"[^"]+",/, `version: "${packageVersion}",`);
+  const syncedCode = code.replace(
+    /version:\s*"[^"]+",/,
+    `version: "${packageVersion}",`
+  );
   fs.writeFileSync(targetPath, syncedCode);
 
   console.log(`✅ Synced ${targetPath} to version ${packageVersion}`);

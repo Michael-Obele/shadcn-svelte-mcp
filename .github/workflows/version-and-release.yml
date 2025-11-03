@@ -41,8 +41,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check version consistency
-        run: node scripts/check-versions.js
+      - name: Sync version consistency
+        run: node scripts/sync-versions-auto.js
 
       - name: Bump version
         id: version
@@ -54,6 +54,9 @@ jobs:
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
+
+      - name: Sync version to code files
+        run: node scripts/sync-versions-auto.js
 
       - name: Update CHANGELOG.md
         run: |
@@ -100,8 +103,8 @@ jobs:
       - name: Commit changes
         run: |
           NEW_VERSION=${{ steps.version.outputs.new_version }}
-          # Stage only package.json and CHANGELOG.md (this repo may use bun/pnpm and not have package-lock.json)
-          git add package.json CHANGELOG.md || true
+          # Stage package.json, CHANGELOG.md, and mcp-server.ts
+          git add package.json CHANGELOG.md src/mastra/mcp-server.ts || true
 
           # Commit only if there are staged changes
           if ! git diff --staged --quiet; then
@@ -124,6 +127,7 @@ jobs:
 
             ### Changes
             - Updated `package.json` version
+            - Updated `src/mastra/mcp-server.ts` version
             - Updated `CHANGELOG.md` with release entry
 
             ### Merge Instructions
