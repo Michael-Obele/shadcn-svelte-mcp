@@ -1,3 +1,11 @@
+## [1.0.9](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.8...v1.0.9) (2025-11-03)
+
+
+### Features
+
+* add installation badge for MCP server in README ([2fcf099](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/2fcf099dd7e719fafde06cdeced56c466793588b))
+* update README with new features and enhancements, including advanced search and additional tools ([a4324a6](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/a4324a6417bdb0a3374a3bc778796917a7f36534))
+
 ## [1.0.8](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.7...v1.0.8) (2025-11-03)
 
 
