@@ -1,3 +1,10 @@
+## [1.0.14](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.13...v1.0.14) (2025-11-03)
+
+
+### Bug Fixes
+
+* remove Firecrawl API configuration from Render.com deployment ([a6f4a49](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/a6f4a49b149497782d0da071756f1a4b0de891b1))
+
 ## [1.0.13](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.12...v1.0.13) (2025-11-03)
 
 
