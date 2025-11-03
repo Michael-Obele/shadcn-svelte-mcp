@@ -1,3 +1,10 @@
+## [1.0.11](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.10...v1.0.11) (2025-11-03)
+
+
+### Bug Fixes
+
+* add bundler externals for crawlee in mastra/index.ts ([398e45f](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/398e45fd8402bb7f15d30efbf59d7add4032bbab))
+
 ## [1.0.10](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.9...v1.0.10) (2025-11-03)
 
 
