@@ -12,11 +12,9 @@ services:
     rootDir: .
     
     # Build Configuration
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: bun install && bun run build
+    startCommand: bun start
     
-    # Health Check (optional but recommended)
-    healthCheckPath: /mcp
     
     # Environment Variables
     envVars:

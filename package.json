@@ -41,7 +41,7 @@
     "@types/node": "^24.9.1",
     "@types/turndown": "^5.0.6",
     "conventional-changelog-conventionalcommits": "^9.1.0",
-    "mastra": "^0.17.0",
+    "mastra": "^0.17.7",
     "semantic-release": "^25.0.1",
     "typescript": "^5.9.3"
   }

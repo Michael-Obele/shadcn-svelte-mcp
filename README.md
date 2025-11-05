@@ -5,7 +5,24 @@
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoic3NlIiwidXJsIjoiaHR0cHM6Ly9zaGFkY24tc3ZlbHRlLm1hc3RyYS5jbG91ZC9hcGkvbWNwL3NoYWRjbi9zc2UifQ%3D%3D)
 
-Mastra MCP server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping. Now deployed and available at [https://shadcn-svelte.mastra.cloud](https://shadcn-svelte.mastra.cloud)!
+Mastra MCP server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping.
+
+Production deployments (multiple hosts are available — either can work):
+
+- Railway (preferred):
+  - HTTP MCP endpoint: https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp
+  - SSE MCP endpoint: https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse
+
+- Mastra Cloud (popular and still operational): https://shadcn-svelte.mastra.cloud
+
+Note: The Railway HTTP endpoint (https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp) is called out as the recommended API endpoint here because we've observed a tooling visibility issue on some Mastra Cloud instances where a subset of tools (4 tools) may not appear reliably. The Mastra Cloud deployment is widely used and operational — it may simply be finicky in certain environments. If you run into missing tools on Mastra Cloud, try the Railway endpoint; both can be used and we may migrate users gradually if necessary.
+For clarity: when using the alternate Railway host replace the host portion only and append the API path, for example:
+
+`https://shadcn-svelte-mcp-api.up.railway.app/api/mcp/shadcn/mcp`
+
+or
+
+`https://shadcn-svelte-mcp-api.up.railway.app/api/mcp/shadcn/sse`
 
 > [!NOTE]
 > This project follows our [Code of Conduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
@@ -21,20 +38,37 @@ This repository contains a Mastra-based MCP server that provides real-time acces
 - ✅ Support for all major AI code editors (Cursor, Windsurf, VS Code, Zed, Claude Code, Codex)
 - ✅ HTTP and SSE transport protocols
 - ✅ Real-time web scraping from shadcn-svelte.com
-- ✅ Intelligent caching for performance
-- ✅ Always up-to-date documentation
-- ✅ Comprehensive testing suite
-- ✅ Automated versioning and release management
-
-## Installation in Your Code Editor
-
-Add the **Shadcn Svelte Docs** MCP server to your AI code editor to get instant access to shadcn-svelte component documentation and utilities.
 
 ### Cursor
 
 1. Open Cursor Settings (Cmd/Ctrl + ,)
 2. Navigate to "MCP" or "Model Context Protocol"
-3. Add a new server configuration:
+3. Add a new server configuration. Railway is recommended first; if you prefer Mastra Cloud its configuration is provided in the collapsible section below.
+
+Railway (preferred) — SSE example:
+
+```json
+{
+  "shadcn-svelte": {
+    "type": "sse",
+    "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse"
+  }
+}
+```
+
+Railway (preferred) — HTTP example:
+
+```json
+{
+  "shadcn-svelte": {
+    "type": "http",
+    "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+  }
+}
+```
+
+<details>
+<summary>Mastra Cloud configuration (alternate)</summary>
 
 ```json
 {
@@ -45,8 +79,6 @@ Add the **Shadcn Svelte Docs** MCP server to your AI code editor to get instant 
 }
 ```
 
-Or use the HTTP endpoint:
-
 ```json
 {
   "shadcn-svelte": {
@@ -56,10 +88,28 @@ Or use the HTTP endpoint:
 }
 ```
 
+</details>
+
 ### Windsurf
 
 1. Open `~/.codeium/windsurf/mcp_config.json` in your editor
-2. Add the following configuration:
+2. Add the following configuration. Railway is shown first (recommended).
+
+Railway (SSE):
+
+```json
+{
+  "mcpServers": {
+    "shadcn-svelte": {
+      "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse",
+      "transport": "sse"
+    }
+  }
+}
+```
+
+<details>
+<summary>Mastra Cloud configuration (alternate)</summary>
 
 ```json
 {
@@ -72,25 +122,9 @@ Or use the HTTP endpoint:
 }
 ```
 
+</details>
+
 3. Save and restart Windsurf
-
-### Visual Studio Code
-
-1. Create or edit `.vscode/mcp.json` in your workspace root
-2. Add the server configuration:
-
-```json
-{
-  "servers": {
-    "shadcn-svelte": {
-      "type": "sse",
-      "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
-    }
-  }
-}
-```
-
-3. Open VSCode settings and enable "Chat > MCP"
 4. In Agent mode, open `mcp.json` and click "start"
 
 Tip: You can also add MCP servers from the Command Palette in VS Code — press Ctrl+Shift+P (or Cmd+Shift+P on macOS), run "MCP: Add server" (or "mcp add server"), then choose:
@@ -99,6 +133,32 @@ Tip: You can also add MCP servers from the Command Palette in VS Code — press 
 - "HTTP (HTTP or Server-Sent Events)" to connect directly to a remote HTTP/SSE MCP endpoint (paste the `https://.../mcp` or `.../sse` URL)
 
 This Command Palette flow is the quickest way to add a server without editing files manually.
+
+Railway HTTP/SSE alternatives (copy the one that fits your transport):
+
+```json
+{
+  "servers": {
+    "shadcn-svelte": {
+      "type": "http",
+      "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+    }
+  }
+}
+```
+
+or
+
+```json
+{
+  "servers": {
+    "shadcn-svelte": {
+      "type": "sse",
+      "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse"
+    }
+  }
+}
+```
 
 ### Zed
 
@@ -166,17 +226,222 @@ codex mcp add shadcn-svelte --url https://shadcn-svelte.mastra.cloud/api/mcp/sha
 
 Then run `codex mcp list` to confirm it's enabled.
 
+## CLI App Configuration
+
+### Gemini CLI (Google)
+
+The Google Gemini CLI supports MCP server integration through configuration files.
+
+1. **Create or edit the settings file:**
+
+   ```bash
+   # Create the .gemini directory if it doesn't exist
+   mkdir -p ~/.gemini
+
+   # Edit the settings file
+   nano ~/.gemini/settings.json
+   ```
+
+2. **Add the MCP server configuration:**
+
+```json
+// Simple HTTP-url variant (Gemini accepts this shape in some versions)
+{
+  "mcpServers": {
+    "shadcn-svelte": {
+      "httpUrl": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+    }
+  }
+}
+```
+
+```json
+{
+  "mcpServers": {
+    "shadcn-svelte": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+      ]
+    }
+  }
+}
+```
+
+**Alternative using Mastra Cloud:**
+
+```json
+{
+  "mcpServers": {
+    "shadcn-svelte": {
+      "httpUrl": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+    }
+  }
+}
+```
+
+3. **Restart Gemini CLI** to load the new configuration.
+
+**Note:** The Railway endpoint is recommended as the primary option. Use Mastra Cloud as an alternative if you encounter issues.
+
+### Claude Code CLI (Anthropic)
+
+Claude Code CLI supports multiple MCP configuration methods. Choose the one that best fits your workflow:
+
+#### Option 1: Global Configuration (Recommended)
+
+1. **Edit the global settings file:**
+
+   ```bash
+   # Create the .claude directory if it doesn't exist
+   mkdir -p ~/.claude
+
+   # Edit the global settings
+   nano ~/.claude/settings.json
+   ```
+
+2. **Add the MCP server configuration:**
+
+   ```json
+   {
+     "mcpServers": {
+       "shadcn-svelte": {
+         "command": "npx",
+         "args": [
+           "-y",
+           "mcp-remote",
+           "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+         ]
+       }
+     }
+   }
+   ```
+
+   **Alternative using Mastra Cloud:**
+
+   ```json
+   {
+     "mcpServers": {
+       "shadcn-svelte": {
+         "command": "npx",
+         "args": [
+           "-y",
+           "mcp-remote",
+           "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+         ]
+       }
+     }
+   }
+   ```
+
+#### Option 2: Project-Scoped Configuration
+
+For project-specific MCP servers, create a `.mcp.json` file in your project root:
+
+```json
+{
+  "mcpServers": {
+    "shadcn-svelte": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+      ]
+    }
+  }
+}
+```
+
+Then enable project-scoped MCP servers in your settings:
+
+```json
+{
+  "enableAllProjectMcpServers": true
+}
+```
+
+#### Option 3: Using Claude Code Commands
+
+You can also add MCP servers directly from within Claude Code:
+
+```bash
+# Add the server using Railway endpoint (recommended)
+claude mcp add shadcn-svelte --url https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp
+
+# Or using Mastra Cloud
+claude mcp add shadcn-svelte --url https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp
+```
+
+#### Managing Permissions
+
+Claude Code provides interactive permission management:
+
+```bash
+# Launch the interactive permissions UI
+/permissions
+```
+
+This allows you to view and modify which tools are allowed or denied for each MCP server.
+
+**Note:** Railway endpoints are recommended as primary options. Use Mastra Cloud as alternatives if you encounter connectivity issues.
+
+## Verification & quick tests
+
+After adding a server, use these commands to verify connectivity and inspect available tools.
+
+- Claude Code
+
+```bash
+claude mcp list
+```
+
+- OpenAI Codex
+
+```bash
+codex mcp list
+```
+
+- Quick `mcp-remote` test (prints tool list / connects to remote MCP)
+
+```bash
+npx mcp-remote https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp
+# or test the SSE URL
+npx mcp-remote https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse
+```
+
+- HTTP quick check with curl
+
+```bash
+curl -I https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp
+```
+
+- SSE quick check with curl (keeps the connection open; Ctrl-C to stop)
+
+```bash
+curl -N https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse
+```
+
+Notes:
+
+- If tools are missing or not visible in the editor, try the Railway HTTP endpoint (https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp) as an alternative to Mastra Cloud.
+- Claude Code requires explicit tool permission in some setups — use the interactive `/permissions` UI inside Claude Code or configure `allowedTools` in `~/.claude.json`.
+- Editors that use long-lived connections (Cursor, Windsurf) generally work best with the SSE URL; CLIs and simple connectors may prefer the HTTP `/mcp` URL.
+
 ## Backup Server Configuration
 
 <details>
-<summary>⚠️ Backup URL (Slow Start - Use Only If Primary Fails)</summary>
+<summary>⚠️ Backup URL (Use if Primary Fails)</summary>
 
-If the primary Mastra Cloud server is not showing all tools or is unresponsive, you can use our backup server hosted on Render. **Note: This backup server has a cold start and may take up to 50 seconds to respond after periods of inactivity.**
+If the primary Mastra Cloud server is not showing all tools or is unresponsive, you can use our alternate Railway host as a backup. **Note: cold start is small — typically a few milliseconds to a few seconds.**
+
+Use the alternate Railway host (append the API path):
 
 ```json
 {
   "shadcn-svelte-backup": {
-    "url": "https://shadcn-svelte-mcp.onrender.com/api/mcp/shadcn/mcp",
+    "url": "https://shadcn-svelte-mcp-api.up.railway.app/api/mcp/shadcn/sse",
     "type": "http"
   }
 }
@@ -186,9 +451,11 @@ If the primary Mastra Cloud server is not showing all tools or is unresponsive, 
 
 - Primary Mastra Cloud server (`https://shadcn-svelte.mastra.cloud`) is unresponsive
 - Some tools are not appearing in your AI assistant
-- You need immediate access and can wait for the cold start
+- You need immediate access and can tolerate a very short cold start
 
 **The backup server provides the same tools and functionality as the primary server.**
+
+If you depend on the Mastra Cloud deployment because others are using it, note that it remains operational; the Railway endpoints are available as smoother fallbacks and can be adopted gradually if needed.
 
 </details>
 
