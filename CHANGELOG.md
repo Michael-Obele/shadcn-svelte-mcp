@@ -1,3 +1,11 @@
+## [1.0.19](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.18...v1.0.19) (2025-11-07)
+
+
+### Features
+
+* implement caching for Lucide icon and tag data fetching ([fd171ae](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/fd171ae137aaa3b7dd1c95fdd1752a5e7ca87cda))
+* replace utility tool with icons tool for Lucide icon search and browsing ([1c4db92](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/1c4db9260dac7621aa7d88835062164e55d08bee))
+
 ## [1.0.18](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.17...v1.0.18) (2025-11-07)
 
 
