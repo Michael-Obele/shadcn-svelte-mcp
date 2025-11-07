@@ -1,5 +1,6 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import { getFromCache, saveToCache } from "../../services/cache-manager.js";
 
 // Tool for searching and browsing Lucide icons
 export const shadcnSvelteIconsTool = createTool({
@@ -26,25 +27,36 @@ export const shadcnSvelteIconsTool = createTool({
     const { query, limit = 50, packageManager = "npm" } = context;
 
     try {
-      // Fetch Lucide icon data from CDN
-      const iconResponse = await fetch(
-        "https://unpkg.com/lucide-static@latest/icon-nodes.json"
-      );
-      if (!iconResponse.ok) {
-        throw new Error(`Failed to fetch icon data: ${iconResponse.status}`);
+      // URLs for Lucide data
+      const iconsUrl = "https://unpkg.com/lucide-static@latest/icon-nodes.json";
+      const tagsUrl = "https://unpkg.com/lucide-static@latest/tags.json";
+
+      // Fetch icon data with caching
+      let iconData = await getFromCache<Record<string, unknown>>(iconsUrl);
+      if (!iconData) {
+        console.log("[Icons] Fetching icon data from CDN...");
+        const iconResponse = await fetch(iconsUrl);
+        if (!iconResponse.ok) {
+          throw new Error(`Failed to fetch icon data: ${iconResponse.status}`);
+        }
+        iconData = (await iconResponse.json()) as Record<string, unknown>;
+        await saveToCache(iconsUrl, iconData);
       }
 
-      const iconData = (await iconResponse.json()) as Record<string, unknown>;
       const allIcons = Object.keys(iconData);
 
-      // Fetch tags for better search if query provided
+      // Fetch tags data with caching (only if searching)
       let tagsData: Record<string, string[]> = {};
       if (query) {
-        const tagsResponse = await fetch(
-          "https://unpkg.com/lucide-static@latest/tags.json"
-        );
-        if (tagsResponse.ok) {
-          tagsData = (await tagsResponse.json()) as Record<string, string[]>;
+        tagsData =
+          (await getFromCache<Record<string, string[]>>(tagsUrl)) || {};
+        if (Object.keys(tagsData).length === 0) {
+          console.log("[Icons] Fetching tags data from CDN...");
+          const tagsResponse = await fetch(tagsUrl);
+          if (tagsResponse.ok) {
+            tagsData = (await tagsResponse.json()) as Record<string, string[]>;
+            await saveToCache(tagsUrl, tagsData);
+          }
         }
       }
 
