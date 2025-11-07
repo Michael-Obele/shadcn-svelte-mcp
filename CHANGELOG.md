@@ -1,3 +1,16 @@
+## [1.0.15](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.14...v1.0.15) (2025-11-07)
+
+
+### Bug Fixes
+
+* extend caching duration from 24 hours to 3 days across documentation and codebase ([8e7d8fe](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/8e7d8fe5877e0811919b950e769d9529dedb394e))
+* update deployment commands in render.yaml to use bun and bump mastra version in package.json and bun.lock ([758e0a8](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/758e0a89a957c022555678f4958cea76d8ca0be6))
+
+
+### Features
+
+* add shadcnSvelteSearchTool to shadcnSvelteAgent for enhanced component search functionality ([3320bb9](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/3320bb9d324610f2500c86e7ee55581eea16dad6))
+
 ## [1.0.14](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.13...v1.0.14) (2025-11-03)
 
 
