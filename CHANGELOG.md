@@ -1,3 +1,10 @@
+## [1.0.17](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.16...v1.0.17) (2025-11-07)
+
+
+### Bug Fixes
+
+* update semantic release config to pass version to sync script ([993c1dc](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/993c1dca9f1529221cb1ff788c9f98c217f3d943))
+
 ## [1.0.16](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.15...v1.0.16) (2025-11-07)
 
 
