@@ -4,6 +4,7 @@ import { LibSQLStore } from "@mastra/libsql";
 import { shadcnSvelteListTool } from "../tools/shadcn-svelte-list";
 import { shadcnSvelteGetTool } from "../tools/shadcn-svelte-get";
 import { shadcnSvelteUtilityTool } from "../tools/shadcn-svelte-utility";
+import { shadcnSvelteSearchTool } from "../tools/shadcn-svelte-search";
 
 export const shadcnSvelteAgent = new Agent({
   name: "Shadcn Svelte Assistant",
@@ -47,6 +48,7 @@ export const shadcnSvelteAgent = new Agent({
     shadcnSvelteListTool,
     shadcnSvelteGetTool,
     shadcnSvelteUtilityTool,
+    shadcnSvelteSearchTool,
   },
   memory: new Memory({
     storage: new LibSQLStore({
