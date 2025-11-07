@@ -3,7 +3,7 @@ import { Memory } from "@mastra/memory";
 import { LibSQLStore } from "@mastra/libsql";
 import { shadcnSvelteListTool } from "../tools/shadcn-svelte-list";
 import { shadcnSvelteGetTool } from "../tools/shadcn-svelte-get";
-import { shadcnSvelteUtilityTool } from "../tools/shadcn-svelte-utility";
+import { shadcnSvelteIconsTool } from "../tools/shadcn-svelte-icons";
 import { shadcnSvelteSearchTool } from "../tools/shadcn-svelte-search";
 
 export const shadcnSvelteAgent = new Agent({
@@ -32,7 +32,7 @@ export const shadcnSvelteAgent = new Agent({
       - Always be helpful and provide accurate information
       - Use the LIST tool to show available components and documentation
       - Use the GET tool to retrieve detailed information about specific components or docs
-      - Use the UTILITY tool for installation guides, migration help, and general assistance
+      - Use the ICONS tool for searching and browsing Lucide icons
       - Keep responses concise but informative
       - If you need more specific information, ask clarifying questions
       - Provide code examples when relevant
@@ -41,13 +41,13 @@ export const shadcnSvelteAgent = new Agent({
       Available tools:
       - LIST: Show all available components and documentation sections
       - GET: Get detailed information about any component or documentation
-      - UTILITY: Installation guides, migration help, and general assistance
+      - ICONS: Search and browse Lucide icons for use with lucide-svelte
 `,
   model: "openai/gpt-5-nano",
   tools: {
     shadcnSvelteListTool,
     shadcnSvelteGetTool,
-    shadcnSvelteUtilityTool,
+    shadcnSvelteIconsTool,
     shadcnSvelteSearchTool,
   },
   memory: new Memory({

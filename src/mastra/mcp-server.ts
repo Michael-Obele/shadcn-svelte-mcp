@@ -1,7 +1,7 @@
 import { MCPServer } from "@mastra/mcp";
 import { shadcnSvelteListTool } from "./tools/shadcn-svelte-list";
 import { shadcnSvelteGetTool } from "./tools/shadcn-svelte-get";
-import { shadcnSvelteUtilityTool } from "./tools/shadcn-svelte-utility";
+import { shadcnSvelteIconsTool } from "./tools/shadcn-svelte-icons";
 import { shadcnSvelteSearchTool } from "./tools/shadcn-svelte-search";
 
 export const shadcn = new MCPServer({
@@ -12,7 +12,7 @@ export const shadcn = new MCPServer({
   tools: {
     shadcnSvelteListTool,
     shadcnSvelteGetTool,
-    shadcnSvelteUtilityTool,
+    shadcnSvelteIconsTool,
     shadcnSvelteSearchTool,
   },
 });

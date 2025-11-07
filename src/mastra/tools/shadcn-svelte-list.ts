@@ -128,7 +128,7 @@ export const shadcnSvelteListTool = createTool({
           "Tailwind color palette reference available at `/colors`. Shows colors in HEX, RGB, HSL, OKLCH, and CSS variable formats.\n\n";
         result += "### Icons\n";
         result +=
-          "Lucide Svelte icons documentation and search available via the `utility` tool with `action: 'icons'`. Browse 1400+ Lucide icons with search and usage examples.\n\n";
+          "Lucide Svelte icons documentation and search available via the `icons` tool. Browse 1600+ Lucide icons with search and usage examples.\n\n";
       }
 
       result +=
