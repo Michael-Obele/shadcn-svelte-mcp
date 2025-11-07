@@ -88,14 +88,14 @@ export const myTool = createTool({
 - **Purpose**: Lists all available shadcn-svelte components
 - **Input**: None
 - **Output**: Array of component metadata
-- **Caching**: 24-hour TTL
+- **Caching**: 3-day TTL
 
 ### 2. shadcnSvelteGetTool
 
 - **Purpose**: Retrieves detailed documentation for a specific component
 - **Input**: Component name
 - **Output**: Installation instructions, usage examples, props
-- **Caching**: 24-hour TTL with real-time fallback
+- **Caching**: 3-day TTL with real-time fallback
 
 ### 3. shadcnSvelteSearchTool
 
@@ -134,7 +134,7 @@ The server uses multi-strategy web scraping to fetch documentation:
 ### Caching Strategy
 
 - **Memory Cache**: Fast in-memory storage for active sessions
-- **Disk Cache**: Persistent storage with 24-hour TTL
+- **Disk Cache**: Persistent storage with 3-day TTL
 - **Cache Keys**: URL + content hash for invalidation
 - **Fallback**: Real-time fetching when cache misses
 
@@ -217,7 +217,7 @@ claude mcp add shadcn-svelte --url https://shadcn-svelte.mastra.cloud/api/mcp/sh
 ### Scaling
 
 - **Concurrent requests**: Mastra framework handles load balancing
-- **Cache efficiency**: 24-hour TTL reduces external API calls
+- **Cache efficiency**: 3-day TTL reduces external API calls
 - **Resource limits**: Configurable timeouts and rate limits
 
 ## Security

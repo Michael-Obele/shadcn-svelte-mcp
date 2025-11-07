@@ -296,7 +296,7 @@ Search and browse Lucide icons available for use with lucide-svelte.
 ## Tips
 
 - All content is fetched from the live shadcn-svelte.com website
-- Results are cached for 24 hours for better performance
+- Results are cached for 3 days for better performance
 - Always use Svelte 5 with runes (\`$state\`, \`$props\`, \`$derived\`, \`$effect\`)`;
       }
 

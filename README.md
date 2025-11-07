@@ -11,14 +11,14 @@ Mastra MCP server and tooling that provides real-time access to shadcn-svelte co
 
 Choose the base host that fits your workflow — both expose the same toolset, but their runtime characteristics differ:
 
-| Host         | Base URL                                 | Highlights                                                                                                                                                                                      |
-| ------------ | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mastra Cloud | https://shadcn-svelte.mastra.cloud       | Zero cold start and noticeably more responsive. Occasionally a subset of four tools may hide, so refresh if you do not see every tool.                                                          |
-| Railway      | https://shadcn-svelte-mcp.up.railway.app | Consistent tool visibility. Expect a split-second cold start; the very first request might fail and then succeed on retry. Alternate base host: `https://shadcn-svelte-mcp-api.up.railway.app`. |
+| Host         | Base URL                                 | Highlights                                                                                                                                                                                                         |
+| ------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mastra Cloud | https://shadcn-svelte.mastra.cloud       | **Primary choice** - Zero cold start, maximum responsiveness, and consistently reliable performance.                                                                                                               |
+| Railway      | https://shadcn-svelte-mcp.up.railway.app | Backup option with consistent tool visibility. Expect a split-second cold start; the very first request might fail and then succeed on retry. Alternate base host: `https://shadcn-svelte-mcp-api.up.railway.app`. |
 
 - Append `/api/mcp/shadcn/sse` for the SSE transport (best for editors that keep long-lived connections).
 - Append `/api/mcp/shadcn/mcp` for the HTTP transport (handy for CLIs and quick one-off calls).
-- Prefer Railway when you must guarantee the full tool list. Prefer Mastra Cloud when you want the fastest response time and consistently warm connections — it tends to be the more reliable runtime once the tools are visible, aside from that occasional visibility refresh.
+- **Mastra Cloud is the recommended primary deployment** - it offers zero cold start and maximum responsiveness. Railway serves as a reliable backup for cases where Mastra Cloud is unavailable.
 
 <details>
 <summary>Endpoint reference & alternates</summary>
@@ -28,7 +28,7 @@ Choose the base host that fits your workflow — both expose the same toolset, b
 - **Railway SSE**: https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse
 - **Railway HTTP**: https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp
 - **Railway alternate host**: replace the host with `https://shadcn-svelte-mcp-api.up.railway.app` and append the same `/api/mcp/shadcn/{sse|mcp}` path.
-- If your very first Railway call returns an error, wait a second and retry — the cold start is short-lived.
+- If the very first Railway call returns an error, wait a second and retry — the cold start is short-lived.
 
 </details>
 
@@ -49,42 +49,42 @@ This repository contains a Mastra-based MCP server that provides real-time acces
 
 ## Editor Setup
 
-Pick either Mastra Cloud or Railway from the table above and use the transport that suits your tool. SSE works best for editors that keep a persistent connection, while HTTP is handy for one-off requests and scripts. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add server` to paste either URL.
+**Mastra Cloud is the recommended primary deployment** for all editors. It offers zero cold start and maximum responsiveness. SSE works best for editors that keep a persistent connection, while HTTP is handy for one-off requests and scripts. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add server` to paste either URL.
 
 <details>
 <summary>Cursor</summary>
 
 1. Open Cursor Settings (`Cmd/Ctrl` + `,`).
 2. Navigate to "MCP" / "Model Context Protocol" and add a new server configuration.
-3. Paste the host you prefer (Mastra Cloud for zero cold start, Railway for guaranteed tool visibility) and append the SSE or HTTP path.
+3. **Mastra Cloud is recommended** for zero cold start and maximum responsiveness. Append the SSE or HTTP path as shown in the examples below.
 
-Railway — SSE example:
+Mastra Cloud — SSE example:
 
 ```json
 {
   "shadcn-svelte": {
     "type": "sse",
-    "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse"
+    "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
   }
 }
 ```
 
-Railway — HTTP example:
+Mastra Cloud — HTTP example:
 
 ```json
 {
   "shadcn-svelte": {
     "type": "http",
-    "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+    "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
   }
 }
 ```
 
-You can swap in the Mastra Cloud host if you prefer instant responses:
+You can swap in the Railway host if you prefer guaranteed tool visibility:
 
 ```diff
--Mastra Cloud replacements swap the host for `https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp`.
-+To use Mastra Cloud, replace the host with `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`.
+- "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
++ "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse"
 ```
 
 </details>
@@ -93,13 +93,13 @@ You can swap in the Mastra Cloud host if you prefer instant responses:
 <summary>Windsurf</summary>
 
 1. Edit `~/.codeium/windsurf/mcp_config.json`.
-2. Add the SSE transport (swap the host if you prefer Mastra Cloud):
+2. **Mastra Cloud is recommended** for zero cold start and maximum responsiveness. Add the SSE transport as shown:
 
 ```json
 {
   "mcpServers": {
     "shadcn-svelte": {
-      "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse",
+      "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse",
       "transport": "sse"
     }
   }
@@ -115,17 +115,17 @@ Use the HTTP variant if you need it:
   "servers": {
     "shadcn-svelte": {
       "type": "http",
-      "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+      "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
     }
   }
 }
 ```
 
-You can swap in the Mastra Cloud host if you prefer instant responses:
+You can swap in the Railway host if you prefer guaranteed tool visibility:
 
 ```diff
-- "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse"
-+ "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
+- "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
++ "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse"
 ```
 
 </details>
@@ -185,7 +185,7 @@ You can swap in the Railway host if you prefer guaranteed tool visibility:
 
 ## CLI & Agent Configuration
 
-The same base URLs work across CLIs. Use Railway when you need all tools every time; use Mastra Cloud for the fastest responses. Remember that Railway may need one retry after a cold start.
+The same base URLs work across CLIs. **Mastra Cloud is the recommended primary deployment** for the fastest responses with zero cold start. Railway serves as a reliable backup option.
 
 <details>
 <summary>Claude Code CLI (Anthropic)</summary>
@@ -200,7 +200,7 @@ The same base URLs work across CLIs. Use Railway when you need all tools every t
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+          "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
         ]
       }
     }
@@ -217,7 +217,7 @@ The same base URLs work across CLIs. Use Railway when you need all tools every t
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+          "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
         ]
       }
     }
@@ -235,17 +235,17 @@ The same base URLs work across CLIs. Use Railway when you need all tools every t
 - **Command palette alternative:**
 
   ```bash
-  claude mcp add shadcn-svelte --url https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp
   claude mcp add shadcn-svelte --url https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp
+  claude mcp add shadcn-svelte --url https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp
   ```
 
 - Use `/permissions` inside Claude Code to grant tool access if prompted.
 
-You can swap in the Mastra Cloud host if you prefer instant responses:
+You can swap in the Railway host if you prefer guaranteed tool visibility:
 
 ```diff
-- "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
-+ "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+- "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
++ "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
 ```
 
 </details>
@@ -256,15 +256,15 @@ You can swap in the Mastra Cloud host if you prefer instant responses:
 Register either endpoint:
 
 ```bash
-codex mcp add shadcn-svelte --url https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse
+codex mcp add shadcn-svelte --url https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse
 codex mcp list
 ```
 
-Swap in the Mastra Cloud host if you prefer the zero cold start experience:
+Swap in the Railway host if you prefer guaranteed tool visibility:
 
 ```diff
-- --url https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse
-+ --url https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse
+- --url https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse
++ --url https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse
 ```
 
 </details>
@@ -279,13 +279,13 @@ Swap in the Mastra Cloud host if you prefer the zero cold start experience:
    nano ~/.gemini/settings.json
    ```
 
-2. Add a configuration. Railway example:
+2. Add a configuration. Mastra Cloud example:
 
    ```json
    {
      "mcpServers": {
        "shadcn-svelte": {
-         "httpUrl": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+         "httpUrl": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
        }
      }
    }
@@ -300,20 +300,20 @@ Swap in the Mastra Cloud host if you prefer the zero cold start experience:
          "command": "npx",
          "args": [
            "mcp-remote",
-           "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
+           "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
          ]
        }
      }
    }
    ```
 
-4. Restart the CLI to apply changes. Swap the host for Mastra Cloud when you want instant responses and do not mind the occasional tool visibility hiccup.
+4. **Mastra Cloud is recommended** for zero cold start and maximum responsiveness. Restart the CLI to apply changes. Railway serves as a backup option.
 
-You can swap in the Mastra Cloud host if you prefer instant responses:
+You can swap in the Railway host if you prefer guaranteed tool visibility:
 
 ```diff
-- "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
-+ "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+- "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
++ "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
 ```
 
 </details>
@@ -322,23 +322,23 @@ You can swap in the Mastra Cloud host if you prefer instant responses:
 
 - `claude mcp list`
 - `codex mcp list`
-- `npx mcp-remote https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp`
-- `curl -I https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp`
-- `curl -N https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse`
+- `npx mcp-remote https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
+- `curl -I https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
+- `curl -N https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse`
 
 If the Railway check fails on the first attempt, wait a moment and retry; the cold start clears almost immediately. Claude Code may prompt for tool permissions — use `/permissions` or set `allowedTools` in `~/.claude.json`. Editors that maintain long-lived connections should use the SSE URL; quick scripts can stick with HTTP.
 
 ## Backup Server Configuration
 
 <details>
-<summary>⚠️ Backup URL (Use if Primary Fails)</summary>
+<summary>⚠️ Backup URL (Use only if Mastra Cloud is unavailable)</summary>
 
-If Mastra Cloud hides tools or is offline, switch to the alternate Railway host. The toolset is identical; only the host name differs. Expect the same split-second cold start as the primary Railway deployment.
+If Mastra Cloud is experiencing downtime, switch to the Railway host as a backup. The toolset is identical; only the host name differs. Expect the same split-second cold start as the Railway deployment.
 
 ```json
 {
   "shadcn-svelte-backup": {
-    "url": "https://shadcn-svelte-mcp-api.up.railway.app/api/mcp/shadcn/sse",
+    "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse",
     "type": "http"
   }
 }
@@ -346,9 +346,9 @@ If Mastra Cloud hides tools or is offline, switch to the alternate Railway host.
 
 Use this backup when:
 
-- Mastra Cloud (`https://shadcn-svelte.mastra.cloud`) does not display every tool.
-- You need a fallback during maintenance windows.
-- You want to route traffic through the alternate Railway host for redundancy.
+- Mastra Cloud (`https://shadcn-svelte.mastra.cloud`) is experiencing downtime.
+- You need a fallback during rare maintenance windows.
+- You want to route traffic through Railway for redundancy.
 
 </details>
 
@@ -441,7 +441,7 @@ For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
   - Direct `.md` endpoint fetching for components
   - Crawlee (Playwright) for JavaScript-heavy pages (charts, themes, blocks)
   - Cheerio + Turndown for simple HTML pages
-- **Intelligent Caching**: 24-hour TTL cache with memory and disk storage
+- **Intelligent Caching**: 3-day TTL cache with memory and disk storage
 - **Component Discovery**: Dynamic scraping of component registry from shadcn-svelte.com
 - **Advanced Search**: Fuse.js-powered fuzzy search with typo tolerance
 

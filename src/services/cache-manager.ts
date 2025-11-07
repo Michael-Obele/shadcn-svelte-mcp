@@ -8,7 +8,7 @@ import path from "path";
 
 // Cache configuration
 const CACHE_DIR = path.join(process.cwd(), ".cache");
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const CACHE_TTL = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
 const IN_MEMORY_CACHE_SIZE = 50; // Number of items to keep in memory
 
 // Types
