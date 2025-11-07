@@ -13,12 +13,12 @@ Choose the base host that fits your workflow — both expose the same toolset, b
 
 | Host         | Base URL                                 | Highlights                                                                                                                                                                                                         |
 | ------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Mastra Cloud | https://shadcn-svelte.mastra.cloud       | **Primary choice** - Zero cold start, maximum responsiveness, and consistently reliable performance.                                                                                                               |
+| Mastra Cloud | https://shadcn-svelte.mastra.cloud       | **Primary choice** - Zero cold start, maximum responsiveness, and consistently reliable performance. Tool discovery issue has been fixed.                                                                          |
 | Railway      | https://shadcn-svelte-mcp.up.railway.app | Backup option with consistent tool visibility. Expect a split-second cold start; the very first request might fail and then succeed on retry. Alternate base host: `https://shadcn-svelte-mcp-api.up.railway.app`. |
 
 - Append `/api/mcp/shadcn/sse` for the SSE transport (best for editors that keep long-lived connections).
 - Append `/api/mcp/shadcn/mcp` for the HTTP transport (handy for CLIs and quick one-off calls).
-- **Mastra Cloud is the recommended primary deployment** - it offers zero cold start and maximum responsiveness. Railway serves as a reliable backup for cases where Mastra Cloud is unavailable.
+- **Mastra Cloud is the recommended primary deployment** - it offers zero cold start and maximum responsiveness. Tool discovery issue has been fixed and it can be used reliably. Railway serves as a backup when Mastra Cloud is unavailable.
 
 <details>
 <summary>Endpoint reference & alternates</summary>
@@ -333,7 +333,7 @@ If the Railway check fails on the first attempt, wait a moment and retry; the co
 <details>
 <summary>⚠️ Backup URL (Use only if Mastra Cloud is unavailable)</summary>
 
-If Mastra Cloud is experiencing downtime, switch to the Railway host as a backup. The toolset is identical; only the host name differs. Expect the same split-second cold start as the Railway deployment.
+The tool discovery issue has been fixed for Mastra Cloud (`https://shadcn-svelte.mastra.cloud`), which can now be used reliably as the primary deployment. Use the Railway host below only as a backup when Mastra Cloud is experiencing downtime. The toolset is identical; only the host name differs. Expect a split-second cold start for the Railway deployment.
 
 ```json
 {
