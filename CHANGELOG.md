@@ -1,3 +1,10 @@
+## [1.0.16](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.15...v1.0.16) (2025-11-07)
+
+
+### Bug Fixes
+
+* update versioning script and synchronize version in mcp-server.ts to 1.0.14 ([ef41457](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/ef41457cb165e28573c62d18388d8299c8a659ef))
+
 ## [1.0.15](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.14...v1.0.15) (2025-11-07)
 
 
