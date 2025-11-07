@@ -80,7 +80,12 @@ Railway — HTTP example:
 }
 ```
 
-Mastra Cloud replacements swap the host for `https://shadcn-svelte.mastra.cloud`.
+You can swap in the Mastra Cloud host if you prefer instant responses:
+
+```diff
+-Mastra Cloud replacements swap the host for `https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp`.
++To use Mastra Cloud, replace the host with `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`.
+```
 
 </details>
 
@@ -114,6 +119,13 @@ Use the HTTP variant if you need it:
     }
   }
 }
+```
+
+You can swap in the Mastra Cloud host if you prefer instant responses:
+
+```diff
+- "url": "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse"
++ "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
 ```
 
 </details>
@@ -161,6 +173,13 @@ Use the HTTP variant if you need it:
 ```
 
 4. Save, restart Zed, and confirm the server shows a green indicator in the Agent panel. Zed also offers a UI flow via Settings → Agent to paste either endpoint without editing JSON.
+
+You can swap in the Railway host if you prefer guaranteed tool visibility:
+
+```diff
+- "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
++ "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse"
+```
 
 </details>
 
@@ -222,6 +241,13 @@ The same base URLs work across CLIs. Use Railway when you need all tools every t
 
 - Use `/permissions` inside Claude Code to grant tool access if prompted.
 
+You can swap in the Mastra Cloud host if you prefer instant responses:
+
+```diff
+- "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
++ "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+```
+
 </details>
 
 <details>
@@ -234,7 +260,12 @@ codex mcp add shadcn-svelte --url https://shadcn-svelte-mcp.up.railway.app/api/m
 codex mcp list
 ```
 
-Swap in the Mastra Cloud host if you prefer the zero cold start experience.
+Swap in the Mastra Cloud host if you prefer the zero cold start experience:
+
+```diff
+- --url https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/sse
++ --url https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse
+```
 
 </details>
 
@@ -277,6 +308,13 @@ Swap in the Mastra Cloud host if you prefer the zero cold start experience.
    ```
 
 4. Restart the CLI to apply changes. Swap the host for Mastra Cloud when you want instant responses and do not mind the occasional tool visibility hiccup.
+
+You can swap in the Mastra Cloud host if you prefer instant responses:
+
+```diff
+- "https://shadcn-svelte-mcp.up.railway.app/api/mcp/shadcn/mcp"
++ "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+```
 
 </details>
 
@@ -423,8 +461,6 @@ For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
 - Web scraping services are implemented under `src/services/` and use Crawlee (with Playwright) for real-time documentation fetching from JavaScript-heavy pages
 - Intelligent caching is used to improve performance and reduce API calls
 - Tools follow Mastra patterns using `createTool` with proper input/output schemas
-- Tests are located in the `test/` directory at the repository root
-- AI-generated progress docs are stored in `ai-generated-docs/` folder
 
 ## Testing
 
@@ -462,7 +498,6 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 
 For more details:
 
-- **MCP Architecture**: See `ai-generated-docs/MCP_ARCHITECTURE.md` for detailed explanation of MCP server vs client
+- **MCP Architecture**: See [`MCP_ARCHITECTURE.md`](MCP_ARCHITECTURE.md) for detailed explanation of MCP server vs client
 - **Web scraping services**: See `src/services/` for Crawlee-based real-time documentation fetching implementation
-- **Search Enhancement**: See `ai-generated-docs/search-enhancement-summary.md` for details on the advanced search functionality
 - **AI assistant guide**: See `.github/copilot-instructions.md`
