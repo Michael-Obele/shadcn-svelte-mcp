@@ -1,3 +1,10 @@
+## [1.0.18](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.17...v1.0.18) (2025-11-07)
+
+
+### Bug Fixes
+
+* update README to clarify Mastra Cloud reliability and tool discovery issue ([104a49a](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/104a49a4206af77fea865aff8e7649d0a8a23e40))
+
 ## [1.0.17](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.16...v1.0.17) (2025-11-07)
 
 
