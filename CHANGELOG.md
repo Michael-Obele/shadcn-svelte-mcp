@@ -1,3 +1,12 @@
+## [1.0.20](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.19...v1.0.20) (2025-11-08)
+
+
+### Features
+
+* add comprehensive CLI usage and theming guides to shadcn-svelte prompts ([8908563](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/8908563ead8e3c202510fc719b7b580a5216b671))
+* add comprehensive documentation for MCP Prompts and Course System ([cc38624](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/cc38624b9e977946aa8e41a848ab5c845cbd4040))
+* enhance shadcn-svelte agent instructions for clarity and tool usage ([bad1823](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/bad1823ad8c573f633268f70fb6b20efc5a43bef))
+
 ## [1.0.19](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.18...v1.0.19) (2025-11-07)
 
 
