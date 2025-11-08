@@ -1,25 +1,23 @@
-# MCP Prompts and Course System
+# MCP Prompts System
 
-This document describes the comprehensive prompt and course system for the shadcn-svelte MCP server, designed to ensure intelligent CLI command usage, prevent hallucination, and provide a guided learning experience.
+This document describes the comprehensive prompt system for the shadcn-svelte MCP server, designed to ensure intelligent CLI command usage, prevent hallucination, and provide guided workflows.
 
 ## 1. Overview
 
-The MCP server implements a sophisticated system that combines user-triggered guided workflows (MCP Prompts) with an educational framework (Mastra Course) to deliver accurate, context-aware assistance for `shadcn-svelte`.
+The MCP server implements a sophisticated system that combines user-triggered guided workflows (MCP Prompts) to deliver accurate, context-aware assistance for `shadcn-svelte`.
 
 **Key Goals:**
 
 - **Enforce a Tool-First Approach**: All responses must be verified using MCP tools before providing commands.
 - **Prevent Hallucination**: The AI cannot invent components or commands; they must exist in the official documentation.
-- **Provide Guided Learning**: The system integrates with the Mastra course to offer structured educational experiences.
 - **Ensure CLI Intelligence**: The server always fetches current CLI documentation for accurate command suggestions.
 
 ## 2. System Architecture
 
 The system is built on several core components that work together to provide intelligent and reliable guidance.
 
-- **Agent Instructions (`src/mastra/agents/shadcn-svelte-agent.ts`)**: A comprehensive system prompt containing strict directives for the AI, including tool-first verification, anti-hallucination safeguards, and Mastra course integration.
+- **Agent Instructions (`src/mastra/agents/shadcn-svelte-agent.ts`)**: A comprehensive system prompt containing strict directives for the AI, including tool-first verification, anti-hallucination safeguards.
 - **MCP Prompts (`src/mastra/mcp-server.ts`)**: User-triggered guided workflows for common `shadcn-svelte` tasks, such as installing components or setting up theming.
-- **Course Scenarios**: Structured learning modules and response templates for educational scenarios, covering everything from getting started to advanced theming.
 - **Validation System (`test-prompt-validation.js`)**: An automated testing suite to ensure the effectiveness of prompts, tool verification, and anti-hallucination measures.
 
 ## 3. MCP Prompts (Guided Workflows)
@@ -75,39 +73,11 @@ MCP Prompts are defined with a clear structure, including name, description, and
 }
 ```
 
-## 4. Mastra Course Integration
-
-The system integrates educational content from the Mastra course directly into its responses, framing technical tasks as learning opportunities.
-
-### Module 1: Getting Started
-
-- **Keywords**: `install`, `setup`, `init`, `new project`
-- **Learning Objectives**: Understand `shadcn-svelte` fundamentals and set up a new project.
-- **Prompt Example**: `"Welcome to the 'Getting Started' module! Let's walk through setting up shadcn-svelte. First, I'll fetch the official installation docs..."`
-
-### Module 2: Building Your UI
-
-- **Keywords**: `component`, `add`, `button`, `card`, `dialog`
-- **Learning Objectives**: Master component installation, usage, and composition.
-- **Prompt Example**: `"Excellent! Adding components is part of the 'Building Your UI' module. Let me get the details for the button component from the official documentation..."`
-
-### Module 3: Advanced Theming
-
-- **Keywords**: `theme`, `color`, `style`, `customize`, `css`
-- **Learning Objectives**: Understand the theming system, CSS variable customization, and Tailwind CSS integration.
-- **Prompt Example**: `"Customizing your app's appearance is covered in the 'Advanced Theming' module. Let me fetch the theming guide for you..."`
-
-### Module 4: Icons and Assets
-
-- **Keywords**: `icon`, `lucide`, `svg`, `asset`
-- **Learning Objectives**: Master icon usage with `lucide-svelte`, including search and customization.
-- **Prompt Example**: `"Icons are essential for great UI! This is covered in the 'Icons and Assets' module. Let me help you find the perfect icon..."`
-
-## 5. Core Intelligence and Safeguards
+## 4. Core Intelligence and Safeguards
 
 The system's reliability is built on a foundation of strict rules and intelligent processes.
 
-### 5.1. Tool-First Verification
+### 4.1. Tool-First Verification
 
 Before providing any response involving commands or components, the AI **must** call the appropriate MCP tool to verify the information against the official documentation. It will never rely on internal knowledge.
 
@@ -117,7 +87,7 @@ Before providing any response involving commands or components, the AI **must** 
 2.  AI internally calls `shadcnSvelteGetTool(name: "button", type: "component")`.
 3.  AI uses the **exact** command returned by the tool in its response.
 
-### 5.2. Anti-Hallucination Measures
+### 4.2. Anti-Hallucination Measures
 
 Strict rules prevent the AI from inventing information:
 
@@ -130,7 +100,7 @@ Strict rules prevent the AI from inventing information:
 - **User**: "How do I use the `data-grid` component?"
 - **AI**: "Let me check... I couldn't find a `data-grid` component. The available table-related components are `Table` and `DataTable`. Would you like help with one of those?"
 
-### 5.3. CLI Command Intelligence
+### 4.3. CLI Command Intelligence
 
 The system ensures all CLI command suggestions are accurate and up-to-date.
 
@@ -143,9 +113,9 @@ The system ensures all CLI command suggestions are accurate and up-to-date.
 - ✅ **Correct**: `pnpm dlx shadcn-svelte@latest add button` (from official docs)
 - ❌ **Wrong**: `npx shadcn-svelte add button` (invented or outdated)
 
-## 6. Implementation for Developers
+## 5. Implementation for Developers
 
-### 6.1. Agent Instructions Structure
+### 5.1. Agent Instructions Structure
 
 The core logic is defined in a structured prompt within `shadcn-svelte-agent.ts`.
 
@@ -156,48 +126,44 @@ instructions: `
   2. TOOL-FIRST APPROACH: [Verification requirements]
   3. ANTI-HALLUCINATION: [Error handling and correction rules]
   4. CLI COMMAND INTELLIGENCE: [Command validation procedures]
-
-  MASTRA COURSE INTEGRATION: [Learning module triggers and framing]
 `;
 ```
 
-### 6.2. Tool Usage Patterns
+### 5.2. Tool Usage Patterns
 
 - **Component Verification**: Always wrap component-related advice in a tool call to `shadcnSvelteGetTool` to confirm existence first.
 - **CLI Documentation**: Fetch `shadcnSvelteGetTool(name: "cli", type: "doc")` for any questions related to the command-line interface.
 
-### 6.3. Error Handling
+### 5.3. Error Handling
 
 - **Component Not Found**: If a tool call fails to find a component, use `shadcnSvelteListTool` to fetch and suggest available alternatives.
 - **Tool Failures**: Communicate any tool errors clearly to the user and suggest a retry or an alternative approach.
 
-## 7. Testing and Validation
+## 6. Testing and Validation
 
 A combination of automated and manual testing ensures the system's integrity.
 
 - **Automated Tests**: Run the validation suite with `npm run test:prompts`. Tests cover CLI doc access, component verification, non-existent component rejection, and command accuracy.
-- **Manual Checklist**: For each prompt scenario, manually verify that the AI calls tools first, uses exact commands, rejects non-existent components, and provides course context.
+- **Manual Checklist**: For each prompt scenario, manually verify that the AI calls tools first, uses exact commands, rejects non-existent components.
 
-## 8. Usage Examples
+## 7. Usage Examples
 
 ### Adding a Component
 
 - **User**: "Add a button component."
-- **AI**: "Great! Let's add a button. This is part of 'Building Your UI'... [Tool call to verify 'button'] Perfect! Use this exact command: `pnpm dlx shadcn-svelte@latest add button`."
+- **AI**: "Great! Let's add a button. [Tool call to verify 'button'] Perfect! Use this exact command: `pnpm dlx shadcn-svelte@latest add button`."
 
 ### Non-Existent Component Query
 
 - **User**: "How do I use the `data-grid` component?"
 - **AI**: "Let me check if that component exists... [Tool call fails] I couldn't find a 'data-grid' component. Here are the available table components: `Table`, `DataTable`. Would you like help with one of these instead?"
 
-## 9. Future Enhancements
+## 8. Future Enhancements
 
-- Interactive course progress tracking.
-- Personalized learning recommendations.
 - Advanced error recovery patterns.
 - Additional specialized MCP prompts for tasks like migration or debugging.
 
-## 10. Contributing
+## 9. Contributing
 
 When modifying the prompt system:
 
@@ -206,7 +172,7 @@ When modifying the prompt system:
 3.  Update validation tests.
 4.  Run the full automated and manual testing suite.
 
-## 11. Related Files
+## 10. Related Files
 
 - `src/mastra/agents/shadcn-svelte-agent.ts`
 - `src/mastra/mcp-server.ts`
