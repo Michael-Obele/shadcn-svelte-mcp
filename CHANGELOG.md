@@ -1,3 +1,10 @@
+## [1.0.21](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.20...v1.0.21) (2025-11-28)
+
+
+### Features
+
+* add MCP Prompts System documentation and update agent instructions ([db14b32](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/db14b32cee7197137d4367c4fc4f7ec8cf533e1f))
+
 ## [1.0.20](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.19...v1.0.20) (2025-11-08)
 
 
