@@ -498,7 +498,7 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 
 For more details:
 
-- **MCP Prompts and Course System**: See [`MCP_Prompts_and_Course_System.md`](MCP_Prompts_and_Course_System.md) for comprehensive documentation on the MCP prompt system and Mastra course integration
+- **MCP Prompts System**: See [`MCP_Prompts_System.md`](MCP_Prompts_System.md) for comprehensive documentation on the MCP prompt system
 - **MCP Architecture**: See [`MCP_ARCHITECTURE.md`](MCP_ARCHITECTURE.md) for detailed explanation of MCP server vs client
 - **Web scraping services**: See `src/services/` for Crawlee-based real-time documentation fetching implementation
 - **AI assistant guide**: See `.github/copilot-instructions.md`
