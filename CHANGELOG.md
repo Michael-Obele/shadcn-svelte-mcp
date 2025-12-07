@@ -181,7 +181,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Three powerful MCP tools for shadcn-svelte components:
   - `shadcnSvelteListTool` - List all components and documentation
   - `shadcnSvelteGetTool` - Get detailed component documentation
-  - `shadcnSvelteUtilityTool` - Installation, theming, and migration help
+  - `shadcnSvelteIconsTool` - Lucide Svelte icon browsing and search (icons action)
 - Support for multiple AI code editors (Cursor, Windsurf, VS Code, Zed, Claude Code, Codex)
 - HTTP and SSE transport protocols
 - Comprehensive component registry with 59+ components

@@ -29,7 +29,7 @@ Shell command preference
 - Mastra instance (src/index.ts): central entry that composes workflows (src/mastra/workflows), agents (src/mastra/agents), and mcpServers (src/mastra/mcp-server). MCP clients are used directly in agent definitions, not registered here.
 - MCP Server (src/mastra/mcp-server.\*): exposes an object `shadcn` used by `src/dev-server.ts` and `src/server.ts` via startSSE/startHTTP/close. This SERVER exposes YOUR tools to external MCP clients.
 - MCP Client (src/mastra/mcp-client.ts): connects to EXTERNAL MCP servers (like Mastra's official server at mcp.mastra.ai) to USE their tools in your agents. This CLIENT consumes tools from other servers.
-- Tools (src/mastra/tools/\*): each tool is created with `createTool(...)` from `@mastra/core/tools` and follows the pattern: zod input schema, execute({context}) returns result. Example tools: `shadcn-svelte-get`, `shadcn-svelte-list`, `shadcn-svelte-utility`.
+- Tools (src/mastra/tools/\*): each tool is created with `createTool(...)` from `@mastra/core/tools` and follows the pattern: zod input schema, execute({context}) returns result. Example tools: `shadcn-svelte-get`, `shadcn-svelte-list`, `shadcn-svelte-icons`.
 - Web scraping services: `src/services/doc-fetcher.ts` handles real-time documentation fetching from shadcn-svelte.com; `src/services/component-discovery.ts` dynamically discovers available components.
 
 4. Project-specific conventions and gotchas (do not invent alternatives)

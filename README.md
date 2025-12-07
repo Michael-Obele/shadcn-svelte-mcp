@@ -354,7 +354,7 @@ Use this backup when:
 
 ## Available Tools
 
-> Note: Older references to `shadcn-svelte-utility` or `shadcnSvelteUtilityTool` (found in older docs/tests) have been replaced by a dedicated `shadcn-svelte-icons` tool focused on Lucide Svelte icon browsing and search. If you maintain scripts or tests that call `shadcn-svelte-utility`, update them to use `shadcn-svelte-icons` where appropriate.
+> Note: The previous 'utility' tool has been split into dedicated tools. Use `shadcn-svelte-icons` for icon browsing/search, `shadcn-svelte-list` and `shadcn-svelte-get` for discovery and docs, and `shadcn-svelte-search` for fuzzy search.
 
 Once installed, your AI assistant will have access to these tools (IDs exactly as exposed by the MCP server):
 

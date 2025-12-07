@@ -104,11 +104,11 @@ export const myTool = createTool({
 - **Output**: Ranked list of matching components
 - **Technology**: Fuse.js for fuzzy matching
 
-### 4. shadcnSvelteUtilityTool
+### 4. shadcnSvelteIconsTool
 
-- **Purpose**: Installation guides, theming, CLI help, icon search
-- **Input**: Action type and parameters
-- **Output**: Context-specific help and utilities
+- **Purpose**: Lucide Svelte icon browsing and search
+- **Input**: `query?`, `limit?`, `packageManager?`
+- **Output**: Markdown list with icon names, tag summaries, and usage snippet for `@lucide/svelte`
 
 ## Web Scraping Architecture
 
