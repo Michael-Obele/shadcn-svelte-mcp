@@ -40,9 +40,9 @@ This repository contains a Mastra-based MCP server that provides real-time acces
 ## 🎉 What's New
 
 - ✅ Production deployment on Mastra Cloud
-- ✅ Four powerful MCP tools for component discovery and documentation
+- ✅ Four main MCP tools for component discovery, search, and icons (see 'Available Tools')
 - ✅ Advanced fuzzy search with typo tolerance and intelligent suggestions
-- ✅ **Lucide Svelte icon search** - Browse and search 1400+ icons with smart filtering
+- ✅ **Lucide Svelte icon search** - Browse and search ~1,600 icons (dynamic) with smart filtering
 - ✅ Support for all major AI code editors (Cursor, Windsurf, VS Code, Zed, Claude Code, Codex)
 - ✅ HTTP and SSE transport protocols
 - ✅ Real-time web scraping from shadcn-svelte.com
@@ -354,12 +354,21 @@ Use this backup when:
 
 ## Available Tools
 
-Once installed, your AI assistant will have access to these tools:
+> Note: Older references to `shadcn-svelte-utility` or `shadcnSvelteUtilityTool` (found in older docs/tests) have been replaced by a dedicated `shadcn-svelte-icons` tool focused on Lucide Svelte icon browsing and search. If you maintain scripts or tests that call `shadcn-svelte-utility`, update them to use `shadcn-svelte-icons` where appropriate.
 
-1. **shadcnSvelteListTool** - List all available shadcn-svelte components, blocks, charts, and documentation sections
-2. **shadcnSvelteGetTool** - Get detailed documentation for a specific component (installation, usage, props, examples)
-3. **shadcnSvelteUtilityTool** - Access installation guides, theming help, CLI usage, migration assistance, and **Lucide Svelte icon search** (1400+ icons with smart filtering)
-4. **shadcnSvelteSearchTool** ⭐ NEW - Search for components, blocks, charts, and documentation by keyword or phrase with advanced fuzzy matching, typo tolerance, and intelligent suggestions
+Once installed, your AI assistant will have access to these tools (IDs exactly as exposed by the MCP server):
+
+1. `shadcn-svelte-list` — List components, blocks, charts, and docs (returns Markdown lists)
+2. `shadcn-svelte-get` — Retrieve detailed component/block/doc content as structured JSON (content, metadata, codeBlocks)
+3. `shadcn-svelte-icons` — Browse and search Lucide Svelte icons by name/tag (returns Markdown with install + usage snippets; uses dynamic upstream icon data)
+4. `shadcn-svelte-search` — Fuzzy search across components and docs (returns Markdown for display and a `results` array for programmatic use)
+
+### Tool response formats (quick reference)
+
+- `shadcn-svelte-list`: Markdown list intended for human display (component names, docs, blocks)
+- `shadcn-svelte-get`: Structured JSON with `content`, `metadata`, `codeBlocks` (useful for programmatic responses)
+- `shadcn-svelte-icons`: Markdown list with icon names, tag summaries, and an example `@lucide/svelte` usage snippet
+- `shadcn-svelte-search`: An object with `markdown`, `results` (structured), and `totalResults`
 
 ## Example Usage
 
@@ -374,6 +383,8 @@ After installing the MCP server in your editor, you can ask your AI assistant:
 - "Help me migrate from shadcn-svelte v0.x to v1.x"
 - "Search for Lucide icons related to 'user profile'"
 - "Find all arrow icons in Lucide Svelte"
+ - "Search for Lucide icons related to 'user profile'" — uses `shadcn-svelte-icons` tool
+ - "Find components matching 'date picker'" — uses `shadcn-svelte-search` tool (returns markdown and structured results)
 
 ## Local Development
 
@@ -450,7 +461,7 @@ For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
 - **Real-time Documentation**: Always fetches latest content from shadcn-svelte.com
 - **Multi-strategy Fetching**: Handles different page types (SPA, static, JS-heavy)
 - **Intelligent Caching**: Reduces API calls while ensuring freshness
-- **Lucide Icon Search**: Browse and search 1400+ Lucide Svelte icons with smart filtering by name and tags
+- **Lucide Icon Search**: Browse and search ~1,600 Lucide Svelte icons with smart filtering by name and tags
 - **Comprehensive Testing**: Edge case coverage and integration tests
 - **Automated Versioning**: Semantic release with version synchronization
 - **Production Deployment**: Mastra Cloud hosting with monitoring
