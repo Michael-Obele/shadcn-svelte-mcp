@@ -10,6 +10,23 @@ import { z } from "zod";
 import Fuse from "fuse.js";
 import { getAllContent } from "../../services/component-discovery.js";
 
+// Helper: Consistent mapping from package manager to install command prefix
+const getPrefix = (pm?: string) => {
+  if (!pm) return "npx";
+  switch (pm) {
+    case "npm":
+      return "npx";
+    case "yarn":
+      return "yarn dlx";
+    case "pnpm":
+      return "pnpm dlx";
+    case "bun":
+      return "bun x";
+    default:
+      return "npx";
+  }
+};
+
 // Types
 interface SearchResult {
   title: string;
@@ -191,7 +208,7 @@ function buildUrl(item: SearchableItem): string {
  */
 function buildInstallCommand(
   item: SearchableItem,
-  packageManager: "npm" | "yarn" | "pnpm" | "bun" = "npm"
+  packageManager?: "npm" | "yarn" | "pnpm" | "bun"
 ): string | null {
   // Only components, blocks, and charts have install commands
   if (
@@ -199,23 +216,7 @@ function buildInstallCommand(
     item.type === "block" ||
     item.type === "chart"
   ) {
-    let prefix: string;
-    switch (packageManager) {
-      case "npm":
-        prefix = "npx";
-        break;
-      case "yarn":
-        prefix = "yarn dlx";
-        break;
-      case "pnpm":
-        prefix = "pnpm dlx";
-        break;
-      case "bun":
-        prefix = "bun x";
-        break;
-      default:
-        prefix = "npx";
-    }
+    const prefix = getPrefix(packageManager);
     return `${prefix} shadcn-svelte@latest add ${item.name}`;
   }
   return null;
@@ -353,23 +354,7 @@ function formatResults(
         resourceType === "chart"
       ) {
         const itemName = item.title.toLowerCase().replace(/\s+/g, "-");
-        let prefix: string;
-        switch (packageManager) {
-          case "npm":
-            prefix = "npx";
-            break;
-          case "yarn":
-            prefix = "yarn dlx";
-            break;
-          case "pnpm":
-            prefix = "pnpm dlx";
-            break;
-          case "bun":
-            prefix = "bun x";
-            break;
-          default:
-            prefix = "npx";
-        }
+        const prefix = getPrefix(packageManager);
         markdown += `   📦 Install: \`${prefix} shadcn-svelte@latest add ${itemName}\`\n`;
       }
 
@@ -407,9 +392,8 @@ export const shadcnSvelteSearchTool = createTool({
     packageManager: z
       .enum(["npm", "yarn", "pnpm", "bun"])
       .optional()
-      .default("npm")
       .describe(
-        "Package manager for install commands (npm uses npx, others use dlx)"
+        "Optional package manager for install commands. If omitted, defaults to 'npx' for npm-style one-time commands"
       ),
   }),
   execute: async ({ context }) => {

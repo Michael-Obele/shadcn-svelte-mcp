@@ -51,6 +51,8 @@ This repository contains a Mastra-based MCP server that provides real-time acces
 
 - The `shadcn-svelte-icons` tool previously showed an awkward message "No icons found matching \"undefined\"" when explicit `names` were requested and none were found — this has been fixed so the response now shows `No icons found for names: ...` instead. ✅
 - Imports in the `icons` tool are intentionally limited to the first 10 names in the response to keep usage snippets tidy; increase the `limit` if you need more icons returned (the snippet still only imports the first 10). 💡
+- Imports in the `icons` tool are intentionally limited to the first 10 names in the response to keep usage snippets tidy; increase the `limit` if you need more icons returned (the snippet still only imports the first 10). 💡
+- The icons tool now supports `importLimit` (default 10) and `limit` (default 100) to control how many icons are returned, and how many are included in `import` statements.
 - The `shadcn-svelte-get` tool now respects an optional `packageManager` parameter and adjusts the installation snippet accordingly (`pnpm dlx`, `yarn dlx`, `npx`, `bunx`). ✅
 - If you notice any remaining odd messages or install command inconsistencies, please file an issue — we keep the MCP server behavior stable but will gladly refine UX in following pull requests.
 
@@ -367,7 +369,7 @@ Once installed, your AI assistant will have access to these tools (IDs exactly a
 
 1. `shadcn-svelte-list` — List components, blocks, charts, and docs (returns Markdown lists)
 2. `shadcn-svelte-get` — Retrieve detailed component/block/doc content as structured JSON (content, metadata, codeBlocks)
-3. `shadcn-svelte-icons` — Browse and search Lucide Svelte icons by name/tag (returns Markdown with install + usage snippets; accepts an optional `names` array for explicit icon selection; uses dynamic upstream icon data)
+3. `shadcn-svelte-icons` — Browse and search Lucide Svelte icons by name/tag (returns Markdown with install + usage snippets; accepts an optional `names` array for explicit icon selection; supports `limit` (total returned) and `importLimit` (how many to include in imports); uses dynamic upstream icon data)
 4. `shadcn-svelte-search` — Fuzzy search across components and docs (returns Markdown for display and a `results` array for programmatic use)
 
 ### Tool response formats (quick reference)
@@ -391,8 +393,8 @@ After installing the MCP server in your editor, you can ask your AI assistant:
 - "Find all arrow icons in Lucide Svelte"
 - "Search for Lucide icons related to 'user profile'" — uses `shadcn-svelte-icons` tool
 - "Find components matching 'date picker'" — uses `shadcn-svelte-search` tool (returns markdown and structured results)
- - "Get specific icons 'arrow-right' and 'user' with pnpm as package manager" — `{ names: ['arrow-right','user'], packageManager: 'pnpm' }` (call `shadcn-svelte-icons`)
- - "Get the installation docs for dashboard-01 using yarn" — `{ name: 'dashboard-01', type: 'component', packageManager: 'yarn' }` (call `shadcn-svelte-get`)
+- "Get specific icons 'arrow-right' and 'user' with pnpm as package manager" — `{ names: ['arrow-right','user'], packageManager: 'pnpm' }` (call `shadcn-svelte-icons`)
+- "Get the installation docs for dashboard-01 using yarn" — `{ name: 'dashboard-01', type: 'component', packageManager: 'yarn' }` (call `shadcn-svelte-get`)
 
 ## Local Development
 
@@ -480,16 +482,6 @@ For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
 - Web scraping services are implemented under `src/services/` and use Crawlee (with Playwright) for real-time documentation fetching from JavaScript-heavy pages
 - Intelligent caching is used to improve performance and reduce API calls
 - Tools follow Mastra patterns using `createTool` with proper input/output schemas
-
-## Testing
-
-The project includes a comprehensive test suite covering:
-
-- **Tool Integration Tests**: Verify all MCP tools work correctly
-- **Service Tests**: Test web scraping and caching functionality
-- **Edge Case Tests**: Fuzzy search, typos, and error handling
-- **Package Manager Tests**: Cross-platform compatibility
-- **Crawlee Tests**: Web scraping reliability
 
 ## Development tips
 

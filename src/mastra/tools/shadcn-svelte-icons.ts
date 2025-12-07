@@ -17,19 +17,23 @@ export const shadcnSvelteIconsTool = createTool({
       .array(z.string())
       .optional()
       .describe("Specific icon names to return (e.g., ['arrow-left', 'user'])"),
+    importLimit: z
+      .number()
+      .optional()
+      .default(10)
+      .describe("Maximum number of icon imports to show in the snippet (default: 10). This prevents long import lines but can be increased if needed."),
     limit: z
       .number()
       .optional()
-      .default(50)
+      .default(100)
       .describe("Maximum number of icons to return (default: 50)"),
     packageManager: z
       .enum(["npm", "yarn", "pnpm", "bun"])
       .optional()
-      .default("npm")
-      .describe("Package manager for install commands"),
+      .describe("Optional package manager for install commands. If omitted, the tool will use a recommended default (npx/PNPM/Yarn/bun as appropriate)."),
   }),
   execute: async ({ context }) => {
-    const { query, limit = 50, packageManager = "npm" } = context;
+    const { query, limit = 100, importLimit = 10, packageManager } = context;
     const { names } = context;
 
     try {
@@ -137,7 +141,14 @@ export const shadcnSvelteIconsTool = createTool({
         iconList += `\n\n## Usage\n\n`;
         iconList += `\`\`\`bash\n`;
         iconList += `# Install @lucide/svelte (only if not already installed)\n`;
-        iconList += `${packageManager === "npm" ? "npm install" : packageManager === "yarn" ? "yarn add" : packageManager === "bun" ? "bun add" : "pnpm add"} @lucide/svelte\n`;
+        iconList += `${(() => {
+          if (!packageManager) return "npm install";
+          if (packageManager === "npm") return "npm install";
+          if (packageManager === "yarn") return "yarn add";
+          if (packageManager === "pnpm") return "pnpm add";
+          if (packageManager === "bun") return "bun add";
+          return "npm install";
+        })()} @lucide/svelte\n`;
         iconList += `\`\`\`\n\n`;
         iconList += `\`\`\`svelte\n`;
         iconList += `<script>\n`;
@@ -147,7 +158,7 @@ export const shadcnSvelteIconsTool = createTool({
             .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
             .join("");
         // Import multiple icons if requested (respect limit)
-        const importIcons = limitedIcons.slice(0, 10).map(pascalize); // limit import length for readability
+        const importIcons = limitedIcons.slice(0, importLimit).map(pascalize); // limit import length for readability
         iconList += `  import { ${importIcons.join(", ")} } from '@lucide/svelte';\n`;
         iconList += `</script>\n\n`;
         for (const iconName of importIcons) {
@@ -160,6 +171,44 @@ export const shadcnSvelteIconsTool = createTool({
 
       if (missingIcons.length) {
         iconList += `\n**Missing icons:** ${missingIcons.join(", ")}\n`;
+      }
+
+      // Heuristic & recommendation: if many matches, recommend the best candidate
+      if (!names && limitedIcons.length > 1) {
+        const scoreIcon = (iconName: string) => {
+          const nameLower = iconName.toLowerCase();
+          let score = 0;
+          if (query && query.toLowerCase() === nameLower) score += 100; // exact match
+          if (query && nameLower.startsWith(query.toLowerCase())) score += 50; // prefix
+          if (query && nameLower.includes(query.toLowerCase())) score += 30; // substring
+          // add tag overlap
+          const tags = tagsData[iconName] || [];
+          if (query) {
+            const q = query.toLowerCase();
+            const commonTags = tags.filter((t) => t.toLowerCase().includes(q)).length;
+            score += commonTags * 10;
+          }
+          return score;
+        };
+        let recommendedIcon: string | null = null;
+        let recommendedReason = "";
+        let bestScore = -1;
+        for (const ic of limitedIcons) {
+          const sc = scoreIcon(ic);
+          if (sc > bestScore) {
+            bestScore = sc;
+            recommendedIcon = ic;
+          }
+        }
+        if (recommendedIcon && bestScore > 0) {
+          // determine simple reason label
+          if (query && query.toLowerCase() === recommendedIcon.toLowerCase()) recommendedReason = "exact match";
+          else if (query && recommendedIcon.toLowerCase().startsWith(query.toLowerCase())) recommendedReason = "name starts with query";
+          else recommendedReason = "highest relevance based on tags and name";
+          iconList += `\n**Recommended icon:** **${recommendedIcon}** (${recommendedReason}).\n`;
+          iconList += `If you only need one icon, request it by passing the name in the \`names\` parameter or set \`limit: 1\`.\n`;
+          iconList += `\n**Heuristics used:**\n- Exact name match\n- Name prefix\n- Tag overlap\n- Highest relevance score\n`;
+        }
       }
 
       return iconList;

@@ -29,7 +29,7 @@ function isBlock(name: string): boolean {
  */
 async function fetchBlockCode(
   name: string,
-  packageManager: "npm" | "yarn" | "pnpm" | "bun" = "npm"
+  packageManager?: "npm" | "yarn" | "pnpm" | "bun"
 ): Promise<{ success: boolean; code?: string; error?: string }> {
   try {
     const url = `https://shadcn-svelte.com/api/block/${name}`;
@@ -67,14 +67,15 @@ async function fetchBlockCode(
     }
 
     codeOutput += `**Type:** ${data.type}\n\n`;
-    const installPrefix =
-      packageManager === "npm"
-        ? "npx"
-        : packageManager === "yarn"
-          ? "yarn dlx"
-          : packageManager === "pnpm"
-            ? "pnpm dlx"
-            : "bunx";
+    const getInstallPrefix = (pm?: string) => {
+      if (!pm) return "npx";
+      if (pm === "npm") return "npx";
+      if (pm === "yarn") return "yarn dlx";
+      if (pm === "pnpm") return "pnpm dlx";
+      if (pm === "bun") return "bunx";
+      return "npx";
+    };
+    const installPrefix = getInstallPrefix(packageManager);
     codeOutput += `**Installation:**\n\`\`\`bash\n${installPrefix} shadcn-svelte@latest add ${name}\n\`\`\`\n\n`;
 
     // Process each file
@@ -176,10 +177,7 @@ export const shadcnSvelteGetTool = createTool({
           console.log(
             `[Tool] Detected block/chart pattern for "${name}", using /api/block/ endpoint`
           );
-          const blockResult = await fetchBlockCode(
-            name,
-            context.packageManager
-          );
+          const blockResult = await fetchBlockCode(name, context.packageManager);
 
           if (!blockResult.success) {
             const response: ToolResponse = {
@@ -239,15 +237,17 @@ export const shadcnSvelteGetTool = createTool({
 
         // If a packageManager was provided, replace common installer patterns in result.content
         let content = result.content;
-        if (content && context.packageManager) {
-          const prefix =
-            context.packageManager === "npm"
-              ? "npx"
-              : context.packageManager === "yarn"
-                ? "yarn dlx"
-                : context.packageManager === "pnpm"
-                  ? "pnpm dlx"
-                  : "bunx";
+        // Always replace examples in the content with the selected package manager prefix
+        const getPrefix = (pm?: string) => {
+          if (!pm) return "npx";
+          if (pm === "npm") return "npx";
+          if (pm === "yarn") return "yarn dlx";
+          if (pm === "pnpm") return "pnpm dlx";
+          if (pm === "bun") return "bunx";
+          return "npx";
+        };
+        const prefix = getPrefix(context.packageManager);
+        if (content) {
           content = content.replace(
             /(?:npx|yarn dlx|pnpm dlx|bunx|bun x)\s+shadcn-svelte@latest\s+add/gi,
             `${prefix} shadcn-svelte@latest add`
