@@ -1,3 +1,10 @@
+## [1.0.24](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.23...v1.0.24) (2025-12-07)
+
+
+### Bug Fixes
+
+* update release rule for feat type to minor ([5497d84](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/5497d844b05fd6688b01193f47f45b7af9f000a6))
+
 ## [1.0.23](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.22...v1.0.23) (2025-12-07)
 
 
