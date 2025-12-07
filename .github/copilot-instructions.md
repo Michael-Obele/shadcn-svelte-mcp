@@ -43,6 +43,10 @@ Shell command preference
 
 Important runtime smoke-test: when running AI-driven tests or validations, always use the MCP testing channel `#test-mcp` rather than executing repository test scripts directly. Do NOT start or run `bun run dev` from within AI tests — the development server is expected to already be running. If a local manual smoke-test is required by a developer, run `bun run dev` locally for 10–15s, but AI agents must not start it.
 
+IMPORTANT (strict): DO NOT run local test scripts (files under `test/`) from within AI-driven workflows. This rule prevents accidental process execution, environment changes, or side effects caused by automated agents.
+
+If you need to validate tools programmatically, use the `#test-mcp` MCP channel (or instrumented CI jobs that call tools via the MCP protocol). Reserve direct execution of `test/*.ts` scripts for manual local debugging only.
+
 **MCP Tool Testing Rule**: When testing or validating MCP tools, ALWAYS use the dedicated MCP test tools (e.g., `#mcp_test-mcp_shadcnSvelteGetTool`) instead of running JavaScript test files directly. The MCP test tools provide proper integration testing through the MCP protocol and ensure tools work correctly in the actual MCP environment.
 
 Caching: component analysis tools use an in-memory cache (`componentCache`) with a 3-day timeout — expect stale cached results when iterating; clear cache or restart the process during development if necessary.
