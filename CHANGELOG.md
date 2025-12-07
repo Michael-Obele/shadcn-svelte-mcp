@@ -1,3 +1,10 @@
+## [1.0.23](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.22...v1.0.23) (2025-12-07)
+
+
+### Features
+
+* enhance shadcn-svelte tools with improved package manager support and icon import limits ([641fee8](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/641fee82e66956723b92828d56043c505f50ad65))
+
 ## [1.0.22](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.21...v1.0.22) (2025-12-07)
 
 
