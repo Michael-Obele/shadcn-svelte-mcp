@@ -12,6 +12,11 @@ export const shadcnSvelteIconsTool = createTool({
       .string()
       .optional()
       .describe("Search term to filter icons (searches icon names and tags)"),
+    // `names` allows an agent to request a specific set of icons by name
+    names: z
+      .array(z.string())
+      .optional()
+      .describe("Specific icon names to return (e.g., ['arrow-left', 'user'])"),
     limit: z
       .number()
       .optional()
@@ -25,6 +30,7 @@ export const shadcnSvelteIconsTool = createTool({
   }),
   execute: async ({ context }) => {
     const { query, limit = 50, packageManager = "npm" } = context;
+    const { names } = context;
 
     try {
       // URLs for Lucide data
@@ -47,7 +53,7 @@ export const shadcnSvelteIconsTool = createTool({
 
       // Fetch tags data with caching (only if searching)
       let tagsData: Record<string, string[]> = {};
-      if (query) {
+      if (query || (names && names.length > 0)) {
         tagsData =
           (await getFromCache<Record<string, string[]>>(tagsUrl)) || {};
         if (Object.keys(tagsData).length === 0) {
@@ -62,7 +68,10 @@ export const shadcnSvelteIconsTool = createTool({
 
       // Filter icons if query provided
       let filteredIcons = allIcons;
-      if (query) {
+      if (names && names.length > 0) {
+        const nameSet = new Set(names.map((n) => n.toLowerCase()));
+        filteredIcons = allIcons.filter((iconName) => nameSet.has(iconName.toLowerCase()));
+      } else if (query) {
         const searchLower = query.toLowerCase();
         filteredIcons = allIcons.filter((iconName) => {
           // Search in icon name
@@ -84,8 +93,24 @@ export const shadcnSvelteIconsTool = createTool({
       iconList += `Found **${filteredIcons.length}** icon${filteredIcons.length !== 1 ? "s" : ""}`;
       iconList += ` (showing ${limitedIcons.length})${hasMore ? ` — showing first ${limit}` : ""}\n\n`;
 
+      const missingIcons: string[] = [];
+      if (names && names.length > 0) {
+        // Determine missing names
+        for (const nm of names) {
+          if (!allIcons.some((a) => a.toLowerCase() === nm.toLowerCase())) {
+            missingIcons.push(nm);
+          }
+        }
+      }
       if (limitedIcons.length === 0) {
-        iconList += `No icons found matching "${query}".\n\n`;
+        // Build friendly message depending on query/names provided
+        if (names && names.length > 0) {
+          iconList += `No icons found for names: ${names.join(", ")}.\n\n`;
+        } else if (query) {
+          iconList += `No icons found matching "${query}".\n\n`;
+        } else {
+          iconList += `No icons found.\n\n`;
+        }
         iconList += `**Tips:**\n`;
         iconList += `- Try different keywords (e.g., "arrow", "user", "file")\n`;
         iconList += `- Use singular form (e.g., "star" instead of "stars")\n`;
@@ -116,18 +141,26 @@ export const shadcnSvelteIconsTool = createTool({
         iconList += `\`\`\`\n\n`;
         iconList += `\`\`\`svelte\n`;
         iconList += `<script>\n`;
-        const firstIconPascal = limitedIcons[0]
-          .split("-")
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join("");
-        iconList += `  import { ${firstIconPascal} } from '@lucide/svelte';\n`;
+        const pascalize = (name: string) =>
+          name
+            .split("-")
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join("");
+        // Import multiple icons if requested (respect limit)
+        const importIcons = limitedIcons.slice(0, 10).map(pascalize); // limit import length for readability
+        iconList += `  import { ${importIcons.join(", ")} } from '@lucide/svelte';\n`;
         iconList += `</script>\n\n`;
-        iconList += `<${firstIconPascal} />\n`;
-        iconList += `\`\`\`\n`;
+        for (const iconName of importIcons) {
+          iconList += `<${iconName} /> `;
+        }
+        iconList += `\n`;
       }
-
       iconList += `\n**Total icons available:** ${allIcons.length}\n`;
       iconList += `**Search tips:** Try keywords like "arrow", "user", "file", "check", "heart", "star", etc.\n`;
+
+      if (missingIcons.length) {
+        iconList += `\n**Missing icons:** ${missingIcons.join(", ")}\n`;
+      }
 
       return iconList;
     } catch (error) {

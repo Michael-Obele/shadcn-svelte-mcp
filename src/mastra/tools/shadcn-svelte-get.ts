@@ -28,7 +28,8 @@ function isBlock(name: string): boolean {
  * Fetches block/chart code from the /api/block/ endpoint
  */
 async function fetchBlockCode(
-  name: string
+  name: string,
+  packageManager: "npm" | "yarn" | "pnpm" | "bun" = "npm"
 ): Promise<{ success: boolean; code?: string; error?: string }> {
   try {
     const url = `https://shadcn-svelte.com/api/block/${name}`;
@@ -66,7 +67,15 @@ async function fetchBlockCode(
     }
 
     codeOutput += `**Type:** ${data.type}\n\n`;
-    codeOutput += `**Installation:**\n\`\`\`bash\npnpm dlx shadcn-svelte@latest add ${name}\n\`\`\`\n\n`;
+    const installPrefix =
+      packageManager === "npm"
+        ? "npx"
+        : packageManager === "yarn"
+          ? "yarn dlx"
+          : packageManager === "pnpm"
+            ? "pnpm dlx"
+            : "bunx";
+    codeOutput += `**Installation:**\n\`\`\`bash\n${installPrefix} shadcn-svelte@latest add ${name}\n\`\`\`\n\n`;
 
     // Process each file
     for (const file of files) {
@@ -150,6 +159,12 @@ export const shadcnSvelteGetTool = createTool({
       .describe(
         "Type: 'component' for UI components/blocks/charts, 'doc' for documentation"
       ),
+    packageManager: z
+      .enum(["npm", "yarn", "pnpm", "bun"]) // optional package manager override for generated snippets
+      .optional()
+      .describe(
+        "Preferred package manager to use when rendering installation commands"
+      ),
   }),
   execute: async ({ context }): Promise<string> => {
     const { name, type } = context;
@@ -161,7 +176,10 @@ export const shadcnSvelteGetTool = createTool({
           console.log(
             `[Tool] Detected block/chart pattern for "${name}", using /api/block/ endpoint`
           );
-          const blockResult = await fetchBlockCode(name);
+          const blockResult = await fetchBlockCode(
+            name,
+            context.packageManager
+          );
 
           if (!blockResult.success) {
             const response: ToolResponse = {
@@ -173,10 +191,16 @@ export const shadcnSvelteGetTool = createTool({
           }
 
           // Extract code blocks from the markdown-formatted code
-          const codeBlocks: Array<{ language?: string; code: string; title?: string }> = [];
+          const codeBlocks: Array<{
+            language?: string;
+            code: string;
+            title?: string;
+          }> = [];
           const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
           let match;
-          while ((match = codeBlockRegex.exec(blockResult.code || "")) !== null) {
+          while (
+            (match = codeBlockRegex.exec(blockResult.code || "")) !== null
+          ) {
             codeBlocks.push({
               language: match[1] || undefined,
               code: match[2].trim(),
@@ -213,9 +237,26 @@ export const shadcnSvelteGetTool = createTool({
           return JSON.stringify(response, null, 2);
         }
 
+        // If a packageManager was provided, replace common installer patterns in result.content
+        let content = result.content;
+        if (content && context.packageManager) {
+          const prefix =
+            context.packageManager === "npm"
+              ? "npx"
+              : context.packageManager === "yarn"
+                ? "yarn dlx"
+                : context.packageManager === "pnpm"
+                  ? "pnpm dlx"
+                  : "bunx";
+          content = content.replace(
+            /(?:npx|yarn dlx|pnpm dlx|bunx|bun x)\s+shadcn-svelte@latest\s+add/gi,
+            `${prefix} shadcn-svelte@latest add`
+          );
+        }
+
         const response: ToolResponse = {
           success: true,
-          content: result.content,
+          content: content || result.content,
           metadata: result.metadata || {
             title: `${name} Component`,
             url: `https://shadcn-svelte.com/docs/components/${name}`,
@@ -284,7 +325,9 @@ export const shadcnSvelteGetTool = createTool({
           const response: ToolResponse = {
             success: false,
             error: result?.error || `Documentation "${name}" not found`,
-            notes: ["Use the list tool to see available documentation sections."],
+            notes: [
+              "Use the list tool to see available documentation sections.",
+            ],
           };
           return JSON.stringify(response, null, 2);
         }

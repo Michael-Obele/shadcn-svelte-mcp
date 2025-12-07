@@ -47,6 +47,13 @@ This repository contains a Mastra-based MCP server that provides real-time acces
 - ✅ HTTP and SSE transport protocols
 - ✅ Real-time web scraping from shadcn-svelte.com
 
+## 🔧 Observations & Minor UX Suggestions
+
+- The `shadcn-svelte-icons` tool previously showed an awkward message "No icons found matching \"undefined\"" when explicit `names` were requested and none were found — this has been fixed so the response now shows `No icons found for names: ...` instead. ✅
+- Imports in the `icons` tool are intentionally limited to the first 10 names in the response to keep usage snippets tidy; increase the `limit` if you need more icons returned (the snippet still only imports the first 10). 💡
+- The `shadcn-svelte-get` tool now respects an optional `packageManager` parameter and adjusts the installation snippet accordingly (`pnpm dlx`, `yarn dlx`, `npx`, `bunx`). ✅
+- If you notice any remaining odd messages or install command inconsistencies, please file an issue — we keep the MCP server behavior stable but will gladly refine UX in following pull requests.
+
 ## Editor Setup
 
 **Mastra Cloud is the recommended primary deployment** for all editors. It offers zero cold start and maximum responsiveness. SSE works best for editors that keep a persistent connection, while HTTP is handy for one-off requests and scripts. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add server` to paste either URL.
@@ -360,14 +367,14 @@ Once installed, your AI assistant will have access to these tools (IDs exactly a
 
 1. `shadcn-svelte-list` — List components, blocks, charts, and docs (returns Markdown lists)
 2. `shadcn-svelte-get` — Retrieve detailed component/block/doc content as structured JSON (content, metadata, codeBlocks)
-3. `shadcn-svelte-icons` — Browse and search Lucide Svelte icons by name/tag (returns Markdown with install + usage snippets; uses dynamic upstream icon data)
+3. `shadcn-svelte-icons` — Browse and search Lucide Svelte icons by name/tag (returns Markdown with install + usage snippets; accepts an optional `names` array for explicit icon selection; uses dynamic upstream icon data)
 4. `shadcn-svelte-search` — Fuzzy search across components and docs (returns Markdown for display and a `results` array for programmatic use)
 
 ### Tool response formats (quick reference)
 
 - `shadcn-svelte-list`: Markdown list intended for human display (component names, docs, blocks)
-- `shadcn-svelte-get`: Structured JSON with `content`, `metadata`, `codeBlocks` (useful for programmatic responses)
-- `shadcn-svelte-icons`: Markdown list with icon names, tag summaries, and an example `@lucide/svelte` usage snippet
+- `shadcn-svelte-get`: Structured JSON with `content`, `metadata`, `codeBlocks` (useful for programmatic responses). You can pass an optional `packageManager` (`npm`|`yarn`|`pnpm`|`bun`) to render install commands using a preferred package manager.
+- `shadcn-svelte-icons`: Markdown list with icon names, tag summaries, and an example `@lucide/svelte` usage snippet. Accepts `names: string[]` for explicit selection and returns multi-import usage snippets.
 - `shadcn-svelte-search`: An object with `markdown`, `results` (structured), and `totalResults`
 
 ## Example Usage
@@ -380,11 +387,12 @@ After installing the MCP server in your editor, you can ask your AI assistant:
 - "Find all chart components with 'line' in the name"
 - "How do I customize the theme for shadcn-svelte?"
 - "What are the props for the Dialog component?"
-- "Help me migrate from shadcn-svelte v0.x to v1.x"
 - "Search for Lucide icons related to 'user profile'"
 - "Find all arrow icons in Lucide Svelte"
- - "Search for Lucide icons related to 'user profile'" — uses `shadcn-svelte-icons` tool
- - "Find components matching 'date picker'" — uses `shadcn-svelte-search` tool (returns markdown and structured results)
+- "Search for Lucide icons related to 'user profile'" — uses `shadcn-svelte-icons` tool
+- "Find components matching 'date picker'" — uses `shadcn-svelte-search` tool (returns markdown and structured results)
+ - "Get specific icons 'arrow-right' and 'user' with pnpm as package manager" — `{ names: ['arrow-right','user'], packageManager: 'pnpm' }` (call `shadcn-svelte-icons`)
+ - "Get the installation docs for dashboard-01 using yarn" — `{ name: 'dashboard-01', type: 'component', packageManager: 'yarn' }` (call `shadcn-svelte-get`)
 
 ## Local Development
 
