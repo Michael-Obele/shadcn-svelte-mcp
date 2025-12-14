@@ -208,7 +208,7 @@ The same base URLs work across CLIs. **Mastra Cloud is the recommended primary d
 - **Command palette alternative:**
 
   ```bash
-  claude mcp add shadcn-svelte --url https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp
+  claude mcp add --transport http shadcn-svelte https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp
   ```
 
 - Use `/permissions` inside Claude Code to grant tool access if prompted.
