@@ -6,12 +6,14 @@ import { getFromCache, saveToCache } from "../../services/cache-manager.js";
 export const shadcnSvelteIconsTool = createTool({
   id: "shadcn-svelte-icons",
   description:
-    "Search and browse Lucide icons available for use with lucide-svelte. Browse all 1600+ Lucide icons with search by name and tags. No AI hallucination - returns only real icons that exist.",
+    "Search and browse Lucide icons available for use with lucide-svelte. Browse all 1600+ Lucide icons with search by name and tags. No AI hallucination - returns only real icons that exist. Can handle multiple icon names: pass comma-separated names like 'truck, package, dashboard' or space-separated names like 'truck package dashboard' in the query parameter.",
   inputSchema: z.object({
     query: z
       .string()
       .optional()
-      .describe("Search term to filter icons (searches icon names and tags)"),
+      .describe(
+        "Search term to filter icons (searches icon names and tags), or multiple icon names separated by commas or spaces (e.g., 'truck, package, dashboard' or 'truck package dashboard')"
+      ),
     // `names` allows an agent to request a specific set of icons by name
     names: z
       .array(z.string())
@@ -21,7 +23,9 @@ export const shadcnSvelteIconsTool = createTool({
       .number()
       .optional()
       .default(10)
-      .describe("Maximum number of icon imports to show in the snippet (default: 10). This prevents long import lines but can be increased if needed."),
+      .describe(
+        "Maximum number of icon imports to show in the snippet (default: 10). This prevents long import lines but can be increased if needed."
+      ),
     limit: z
       .number()
       .optional()
@@ -30,11 +34,40 @@ export const shadcnSvelteIconsTool = createTool({
     packageManager: z
       .enum(["npm", "yarn", "pnpm", "bun"])
       .optional()
-      .describe("Optional package manager for install commands. If omitted, the tool will use a recommended default (npx/PNPM/Yarn/bun as appropriate)."),
+      .describe(
+        "Optional package manager for install commands. If omitted, the tool will use a recommended default (npx/PNPM/Yarn/bun as appropriate)."
+      ),
   }),
   execute: async ({ context }) => {
     const { query, limit = 100, importLimit = 10, packageManager } = context;
-    const { names } = context;
+    let { names } = context;
+
+    // Parse query to detect multiple icon names
+    if (query && !names) {
+      // Check if query contains commas (comma-separated names)
+      if (query.includes(",")) {
+        names = query
+          .split(",")
+          .map((name) => name.trim())
+          .filter((name) => name.length > 0);
+      } else {
+        // Check if query contains multiple space-separated words that look like icon names
+        const words = query.split(/\s+/).filter((word) => word.length > 0);
+        if (words.length > 1) {
+          // Heuristic: if all words are reasonable icon name length (2-30 chars, no spaces)
+          const looksLikeIconNames = words.every(
+            (word) =>
+              word.length >= 2 &&
+              word.length <= 30 &&
+              !word.includes(" ") &&
+              /^[a-zA-Z0-9_-]+$/.test(word)
+          );
+          if (looksLikeIconNames) {
+            names = words;
+          }
+        }
+      }
+    }
 
     try {
       // URLs for Lucide data
@@ -74,7 +107,9 @@ export const shadcnSvelteIconsTool = createTool({
       let filteredIcons = allIcons;
       if (names && names.length > 0) {
         const nameSet = new Set(names.map((n) => n.toLowerCase()));
-        filteredIcons = allIcons.filter((iconName) => nameSet.has(iconName.toLowerCase()));
+        filteredIcons = allIcons.filter((iconName) =>
+          nameSet.has(iconName.toLowerCase())
+        );
       } else if (query) {
         const searchLower = query.toLowerCase();
         filteredIcons = allIcons.filter((iconName) => {
@@ -150,21 +185,28 @@ export const shadcnSvelteIconsTool = createTool({
           return "npm install";
         })()} @lucide/svelte\n`;
         iconList += `\`\`\`\n\n`;
-        iconList += `\`\`\`svelte\n`;
-        iconList += `<script>\n`;
+
+        // Show individual examples for each icon (up to importLimit)
+        const exampleIcons = limitedIcons.slice(0, importLimit);
         const pascalize = (name: string) =>
           name
             .split("-")
             .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
             .join("");
-        // Import multiple icons if requested (respect limit)
-        const importIcons = limitedIcons.slice(0, importLimit).map(pascalize); // limit import length for readability
-        iconList += `  import { ${importIcons.join(", ")} } from '@lucide/svelte';\n`;
-        iconList += `</script>\n\n`;
-        for (const iconName of importIcons) {
-          iconList += `<${iconName} /> `;
+        for (const iconName of exampleIcons) {
+          const pascalName = pascalize(iconName);
+          iconList += `\`\`\`svelte\n`;
+          iconList += `<script>\n`;
+          iconList += `  import { ${pascalName} } from '@lucide/svelte';\n`;
+          iconList += `</script>\n\n`;
+          iconList += `<${pascalName} />\n`;
+          iconList += `\`\`\`\n\n`;
         }
-        iconList += `\n`;
+
+        if (limitedIcons.length > importLimit) {
+          const remaining = limitedIcons.length - importLimit;
+          iconList += `*...and ${remaining} more icon${remaining !== 1 ? "s" : ""}. Increase \`importLimit\` to see more examples.*\n\n`;
+        }
       }
       iconList += `\n**Total icons available:** ${allIcons.length}\n`;
       iconList += `**Search tips:** Try keywords like "arrow", "user", "file", "check", "heart", "star", etc.\n`;
@@ -185,7 +227,9 @@ export const shadcnSvelteIconsTool = createTool({
           const tags = tagsData[iconName] || [];
           if (query) {
             const q = query.toLowerCase();
-            const commonTags = tags.filter((t) => t.toLowerCase().includes(q)).length;
+            const commonTags = tags.filter((t) =>
+              t.toLowerCase().includes(q)
+            ).length;
             score += commonTags * 10;
           }
           return score;
@@ -202,8 +246,13 @@ export const shadcnSvelteIconsTool = createTool({
         }
         if (recommendedIcon && bestScore > 0) {
           // determine simple reason label
-          if (query && query.toLowerCase() === recommendedIcon.toLowerCase()) recommendedReason = "exact match";
-          else if (query && recommendedIcon.toLowerCase().startsWith(query.toLowerCase())) recommendedReason = "name starts with query";
+          if (query && query.toLowerCase() === recommendedIcon.toLowerCase())
+            recommendedReason = "exact match";
+          else if (
+            query &&
+            recommendedIcon.toLowerCase().startsWith(query.toLowerCase())
+          )
+            recommendedReason = "name starts with query";
           else recommendedReason = "highest relevance based on tags and name";
           iconList += `\n**Recommended icon:** **${recommendedIcon}** (${recommendedReason}).\n`;
           iconList += `If you only need one icon, request it by passing the name in the \`names\` parameter or set \`limit: 1\`.\n`;

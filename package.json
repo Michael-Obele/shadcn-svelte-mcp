@@ -6,6 +6,7 @@
     "dev": "mastra dev",
     "build": "mastra build",
     "start": "mastra start",
+    "check": "tsc --noEmit",
     "check-versions": "node scripts/check-versions.js",
     "sync-versions": "node scripts/sync-versions.js",
     "sync-versions-auto": "node scripts/sync-versions-auto.js"

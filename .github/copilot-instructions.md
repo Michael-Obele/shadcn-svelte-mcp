@@ -13,6 +13,7 @@ This file gives concise, actionable instructions for an AI coding agent to be pr
 
 - Node engine: use Node >= 20.9.0 (see `package.json` "engines").
 - Development (app-level): bun run dev (calls `mastra dev`).
+- Type checking: bun run check (runs `tsc --noEmit` to check for TypeScript errors across the entire project).
 - Note: for quick smoke-tests and CI checks, we use `bun run dev` only (see the smoke-test guideline below). Other MCP helper scripts exist in `package.json` but the canonical developer workflow relies on `bun run dev` for early error detection.
 
 Important: AI-generated/progress documentation and ephemeral notes

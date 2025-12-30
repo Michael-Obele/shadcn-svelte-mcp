@@ -46,10 +46,13 @@ export const bitsUiGetTool = createTool({
   execute: async ({ context }): Promise<string> => {
     const { name } = context;
 
+    // Normalize component name to lowercase for Bits UI
+    const normalizedName = name.toLowerCase();
+
     try {
       // Fetch from Bits UI LLM docs
       const result = await fetchGeneralDocs(
-        `/docs/components/${name}/llms.txt`,
+        `/docs/components/${normalizedName}/llms.txt`,
         {
           useCache: true,
           baseUrl: "https://bits-ui.com",
@@ -59,7 +62,8 @@ export const bitsUiGetTool = createTool({
       if (!result.success || !result.content) {
         const response: ToolResponse = {
           success: false,
-          error: result.error || `Bits UI component "${name}" not found`,
+          error:
+            result.error || `Bits UI component "${normalizedName}" not found`,
           notes: [
             "Bits UI provides the underlying components for shadcn-svelte.",
             "Use this tool for detailed API documentation and implementation details.",
@@ -91,7 +95,7 @@ export const bitsUiGetTool = createTool({
         content: content || result.content,
         metadata: result.metadata || {
           title: `${name} Component`,
-          url: `https://bits-ui.com/docs/components/${name}/llms.txt`,
+          url: `https://bits-ui.com/docs/components/${normalizedName}/llms.txt`,
         },
         warnings: [
           "This is a Bits UI component documentation. Bits UI is the underlying library for shadcn-svelte.",
@@ -104,7 +108,7 @@ export const bitsUiGetTool = createTool({
     } catch (error) {
       const response: ToolResponse = {
         success: false,
-        error: `Error retrieving Bits UI component "${name}": ${error}`,
+        error: `Error retrieving Bits UI component "${normalizedName}": ${error}`,
       };
       return JSON.stringify(response, null, 2);
     }

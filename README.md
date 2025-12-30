@@ -44,7 +44,7 @@ This repository contains a Mastra-based MCP server that provides real-time acces
 - ✅ HTTP and SSE transport protocols
 - ✅ Real-time web scraping from shadcn-svelte.com and bits-ui.com
 
-## � Bits UI Integration
+## Bits UI Integration
 
 shadcn-svelte components are built on top of [Bits UI](https://bits-ui.com), the underlying component library that provides the core functionality. This MCP server provides direct access to Bits UI's comprehensive API documentation through AI-optimized content endpoints.
 
@@ -60,7 +60,7 @@ The `bits-ui-get` tool fetches content from Bits UI's dedicated `/llms.txt` endp
 
 This ensures that AI assistants receive the most relevant and well-structured information for implementing shadcn-svelte components correctly.
 
-## �🔧 Observations & Minor UX Suggestions
+## 🔧 Observations & Minor UX Suggestions
 
 - The `shadcn-svelte-icons` tool previously showed an awkward message "No icons found matching \"undefined\"" when explicit `names` were requested and none were found — this has been fixed so the response now shows `No icons found for names: ...` instead. ✅
 - Imports in the `icons` tool are intentionally limited to the first 10 names in the response to keep usage snippets tidy; increase the `limit` if you need more icons returned (the snippet still only imports the first 10). 💡
