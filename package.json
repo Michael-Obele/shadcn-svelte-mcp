@@ -1,6 +1,6 @@
 {
   "name": "shadcn-svelte-mcp",
-  "version": "1.0.24",
+  "version": "1.1.0",
   "main": "index.js",
   "scripts": {
     "dev": "mastra dev",

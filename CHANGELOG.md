@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.24...v1.1.0) (2025-12-30)
+
+
+### Features
+
+* integrate Bits UI API documentation and enhance component discovery ([9260309](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/9260309acb3fee124c4a3808ae6d8c2d9d4d6ce9))
+
 ## [1.0.24](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.23...v1.0.24) (2025-12-07)
 
 
