@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   fetchComponentDocs,
   fetchGeneralDocs,
+  fetchSvelteSonnerDocs,
   type FetchResult,
 } from "../../services/doc-fetcher.js";
 
@@ -137,6 +138,8 @@ interface ToolResponse {
     url?: string;
     keywords?: string[];
   };
+  bitsUiUrl?: string;
+  bitsUiLlmUrl?: string;
   warnings?: string[];
   notes?: string[];
   type?: "component" | "block" | "chart" | "doc" | "theme" | "unknown";
@@ -152,13 +155,13 @@ interface ToolResponse {
 export const shadcnSvelteGetTool = createTool({
   id: "shadcn-svelte-get",
   description:
-    "Get detailed information about any shadcn-svelte component, block, chart, or documentation section from the live website. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), and charts. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. Svelte has different APIs and patterns than React.",
+    "Get detailed information about any shadcn-svelte component, block, chart, documentation section, or Svelte Sonner docs from the live websites. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), charts, docs, and sonner. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. Svelte has different APIs and patterns than React.",
   inputSchema: z.object({
-    name: z.string().describe("Name of the component or documentation section"),
+    name: z.string().describe("Name of the component, documentation section, or 'sonner' for Svelte Sonner docs"),
     type: z
-      .enum(["component", "doc"])
+      .enum(["component", "doc", "sonner"])
       .describe(
-        "Type: 'component' for UI components/blocks/charts, 'doc' for documentation"
+        "Type: 'component' for UI components/blocks/charts, 'doc' for documentation, 'sonner' for Svelte Sonner docs"
       ),
     packageManager: z
       .enum(["npm", "yarn", "pnpm", "bun"]) // optional package manager override for generated snippets
@@ -177,7 +180,10 @@ export const shadcnSvelteGetTool = createTool({
           console.log(
             `[Tool] Detected block/chart pattern for "${name}", using /api/block/ endpoint`
           );
-          const blockResult = await fetchBlockCode(name, context.packageManager);
+          const blockResult = await fetchBlockCode(
+            name,
+            context.packageManager
+          );
 
           if (!blockResult.success) {
             const response: ToolResponse = {
@@ -261,6 +267,8 @@ export const shadcnSvelteGetTool = createTool({
             title: `${name} Component`,
             url: `https://shadcn-svelte.com/docs/components/${name}`,
           },
+          bitsUiUrl: result.bitsUiUrl,
+          bitsUiLlmUrl: result.metadata?.bitsUiLlmUrl,
           warnings: [
             "This is a SVELTE component. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.).",
             "Always follow the Svelte examples shown in the documentation.",
@@ -338,9 +346,32 @@ export const shadcnSvelteGetTool = createTool({
           metadata: result.metadata || {
             title: name,
           },
+          bitsUiUrl: result.bitsUiUrl,
+          bitsUiLlmUrl: result.metadata?.bitsUiLlmUrl,
           notes: result.notes,
           warnings: result.warnings,
           type: result.type || "doc",
+          codeBlocks: result.codeBlocks,
+        };
+        return JSON.stringify(response, null, 2);
+      } else if (type === "sonner") {
+        const result = await fetchSvelteSonnerDocs({ useCache: true });
+
+        if (!result.success || !result.content) {
+          const response: ToolResponse = {
+            success: false,
+            error: result.error || "Failed to fetch Svelte Sonner documentation",
+          };
+          return JSON.stringify(response, null, 2);
+        }
+
+        const response: ToolResponse = {
+          success: true,
+          content: result.content,
+          metadata: result.metadata,
+          notes: result.notes,
+          warnings: result.warnings,
+          type: "doc",
           codeBlocks: result.codeBlocks,
         };
         return JSON.stringify(response, null, 2);
@@ -348,7 +379,7 @@ export const shadcnSvelteGetTool = createTool({
 
       const response: ToolResponse = {
         success: false,
-        error: `Invalid type "${type}". Use "component" or "doc".`,
+        error: `Invalid type "${type}". Use "component", "doc", or "sonner".`,
       };
       return JSON.stringify(response, null, 2);
     } catch (error) {

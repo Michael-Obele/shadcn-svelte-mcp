@@ -3,17 +3,19 @@ import { shadcnSvelteListTool } from "./tools/shadcn-svelte-list";
 import { shadcnSvelteGetTool } from "./tools/shadcn-svelte-get";
 import { shadcnSvelteIconsTool } from "./tools/shadcn-svelte-icons";
 import { shadcnSvelteSearchTool } from "./tools/shadcn-svelte-search";
+import { bitsUiGetTool } from "./tools/bits-ui-get";
 
 export const shadcn = new MCPServer({
   name: "Shadcn Svelte Docs",
   version: "1.0.24",
   description:
-    "Access shadcn-svelte component documentation and guides. IMPORTANT: This is for SVELTE components only, NOT React. Do not confuse with shadcn/ui (React version).",
+    "Access shadcn-svelte component documentation, Bits UI API docs, and guides. IMPORTANT: This is for SVELTE components only, NOT React. Do not confuse with shadcn/ui (React version). Bits UI provides the underlying components for shadcn-svelte.",
   tools: {
     shadcnSvelteListTool,
     shadcnSvelteGetTool,
     shadcnSvelteIconsTool,
     shadcnSvelteSearchTool,
+    bitsUiGetTool,
   },
   prompts: {
     listPrompts: async () => [

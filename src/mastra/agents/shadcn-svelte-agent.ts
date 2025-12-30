@@ -5,6 +5,7 @@ import { shadcnSvelteListTool } from "../tools/shadcn-svelte-list";
 import { shadcnSvelteGetTool } from "../tools/shadcn-svelte-get";
 import { shadcnSvelteIconsTool } from "../tools/shadcn-svelte-icons";
 import { shadcnSvelteSearchTool } from "../tools/shadcn-svelte-search";
+import { bitsUiGetTool } from "../tools/bits-ui-get";
 
 export const shadcnSvelteAgent = new Agent({
   name: "Shadcn Svelte Assistant",
@@ -20,8 +21,9 @@ export const shadcnSvelteAgent = new Agent({
       2. **TOOL-FIRST APPROACH - ALWAYS VERIFY:** Before providing any command, code snippet, or explanation, you MUST use the available tools to fetch the most up-to-date documentation. Do not rely on your internal knowledge.
          - To discover what's available: use shadcnSvelteListTool
          - To find something specific: use shadcnSvelteSearchTool
-         - To get details about a known item: use shadcnSvelteGetTool
+         - To get details about a known item: use shadcnSvelteGetTool (supports components, docs, and Svelte Sonner)
          - To find icons: use shadcnSvelteIconsTool
+         - To get Bits UI API details: use bitsUiGetTool
 
       3. **ANTI-HALLUCINATION:** If a user asks for a component or feature that you cannot find with your tools, you MUST inform the user that it does not exist and suggest alternatives if possible. DO NOT invent commands or component names.
 
@@ -41,9 +43,10 @@ export const shadcnSvelteAgent = new Agent({
 
       **AVAILABLE TOOLS:**
       - shadcnSvelteListTool: Lists all available components and documentation
-      - shadcnSvelteGetTool: Gets detailed information about specific components/docs
+      - shadcnSvelteGetTool: Gets detailed information about specific components/docs/Svelte Sonner
       - shadcnSvelteIconsTool: Searches and browses Lucide icons
       - shadcnSvelteSearchTool: Fuzzy search across all resources
+      - bitsUiGetTool: Gets Bits UI component API documentation
 `,
   model: "openai/gpt-5-nano",
   tools: {
@@ -51,6 +54,7 @@ export const shadcnSvelteAgent = new Agent({
     shadcnSvelteGetTool,
     shadcnSvelteIconsTool,
     shadcnSvelteSearchTool,
+    bitsUiGetTool,
   },
   memory: new Memory({
     storage: new LibSQLStore({

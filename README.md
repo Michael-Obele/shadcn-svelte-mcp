@@ -11,9 +11,9 @@ Mastra MCP server and tooling that provides real-time access to shadcn-svelte co
 
 Choose the base host that fits your workflow — both expose the same toolset, but their runtime characteristics differ:
 
-| Host         | Base URL                                 | Highlights                                                                                                                                                                                                         |
-| ------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Mastra Cloud | https://shadcn-svelte.mastra.cloud       | **Primary choice** - Zero cold start, maximum responsiveness, and consistently reliable performance. Tool discovery issue has been fixed.                                                                          |
+| Host         | Base URL                           | Highlights                                                                                                                                |
+| ------------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Mastra Cloud | https://shadcn-svelte.mastra.cloud | **Primary choice** - Zero cold start, maximum responsiveness, and consistently reliable performance. Tool discovery issue has been fixed. |
 
 - Append `/api/mcp/shadcn/sse` for the SSE transport (best for editors that keep long-lived connections).
 - Append `/api/mcp/shadcn/mcp` for the HTTP transport (handy for CLIs and quick one-off calls).
@@ -36,14 +36,31 @@ This repository contains a Mastra-based MCP server that provides real-time acces
 ## 🎉 What's New
 
 - ✅ Production deployment on Mastra Cloud
-- ✅ Four main MCP tools for component discovery, search, and icons (see 'Available Tools')
+- ✅ **Five main MCP tools** for comprehensive shadcn-svelte ecosystem support (see 'Available Tools')
+- ✅ **Bits UI API documentation** - Direct access to underlying component library API docs with AI-optimized content
 - ✅ Advanced fuzzy search with typo tolerance and intelligent suggestions
 - ✅ **Lucide Svelte icon search** - Browse and search ~1,600 icons (dynamic) with smart filtering
 - ✅ Support for all major AI code editors (Cursor, Windsurf, VS Code, Zed, Claude Code, Codex)
 - ✅ HTTP and SSE transport protocols
-- ✅ Real-time web scraping from shadcn-svelte.com
+- ✅ Real-time web scraping from shadcn-svelte.com and bits-ui.com
 
-## 🔧 Observations & Minor UX Suggestions
+## � Bits UI Integration
+
+shadcn-svelte components are built on top of [Bits UI](https://bits-ui.com), the underlying component library that provides the core functionality. This MCP server provides direct access to Bits UI's comprehensive API documentation through AI-optimized content endpoints.
+
+### AI-Optimized Content
+
+The `bits-ui-get` tool fetches content from Bits UI's dedicated `/llms.txt` endpoints, which provide:
+
+- **Structured API reference tables** with Property/Type/Description/Details columns
+- **Clean markdown formatting** optimized for AI consumption
+- **Implementation details** and usage examples
+- **Data attributes and event handlers** documentation
+- **Navigation links** to related components
+
+This ensures that AI assistants receive the most relevant and well-structured information for implementing shadcn-svelte components correctly.
+
+## �🔧 Observations & Minor UX Suggestions
 
 - The `shadcn-svelte-icons` tool previously showed an awkward message "No icons found matching \"undefined\"" when explicit `names` were requested and none were found — this has been fixed so the response now shows `No icons found for names: ...` instead. ✅
 - Imports in the `icons` tool are intentionally limited to the first 10 names in the response to keep usage snippets tidy; increase the `limit` if you need more icons returned (the snippet still only imports the first 10). 💡
@@ -289,7 +306,7 @@ Claude Code may prompt for tool permissions — use `/permissions` or set `allow
 
 ## Available Tools
 
-> Note: The previous 'utility' tool has been split into dedicated tools. Use `shadcn-svelte-icons` for icon browsing/search, `shadcn-svelte-list` and `shadcn-svelte-get` for discovery and docs, and `shadcn-svelte-search` for fuzzy search.
+> Note: The previous 'utility' tool has been split into dedicated tools. Use `shadcn-svelte-icons` for icon browsing/search, `shadcn-svelte-list` and `shadcn-svelte-get` for discovery and docs, `shadcn-svelte-search` for fuzzy search, and `bits-ui-get` for underlying API details.
 
 Once installed, your AI assistant will have access to these tools (IDs exactly as exposed by the MCP server):
 
@@ -297,6 +314,7 @@ Once installed, your AI assistant will have access to these tools (IDs exactly a
 2. `shadcn-svelte-get` — Retrieve detailed component/block/doc content as structured JSON (content, metadata, codeBlocks)
 3. `shadcn-svelte-icons` — Browse and search Lucide Svelte icons by name/tag (returns Markdown with install + usage snippets; accepts an optional `names` array for explicit icon selection; supports `limit` (total returned) and `importLimit` (how many to include in imports); uses dynamic upstream icon data)
 4. `shadcn-svelte-search` — Fuzzy search across components and docs (returns Markdown for display and a `results` array for programmatic use)
+5. `bits-ui-get` — Access Bits UI component API documentation with AI-optimized content from llms.txt endpoints (provides structured API reference tables, implementation details, and clean markdown formatting)
 
 ### Tool response formats (quick reference)
 
@@ -304,6 +322,7 @@ Once installed, your AI assistant will have access to these tools (IDs exactly a
 - `shadcn-svelte-get`: Structured JSON with `content`, `metadata`, `codeBlocks` (useful for programmatic responses). You can pass an optional `packageManager` (`npm`|`yarn`|`pnpm`|`bun`) to render install commands using a preferred package manager.
 - `shadcn-svelte-icons`: Markdown list with icon names, tag summaries, and an example `@lucide/svelte` usage snippet. Accepts `names: string[]` for explicit selection and returns multi-import usage snippets.
 - `shadcn-svelte-search`: An object with `markdown`, `results` (structured), and `totalResults`
+- `bits-ui-get`: Structured JSON with AI-optimized content from Bits UI's llms.txt endpoints, including API reference tables and implementation details
 
 ## Example Usage
 
@@ -321,6 +340,8 @@ After installing the MCP server in your editor, you can ask your AI assistant:
 - "Find components matching 'date picker'" — uses `shadcn-svelte-search` tool (returns markdown and structured results)
 - "Get specific icons 'arrow-right' and 'user' with pnpm as package manager" — `{ names: ['arrow-right','user'], packageManager: 'pnpm' }` (call `shadcn-svelte-icons`)
 - "Get the installation docs for dashboard-01 using yarn" — `{ name: 'dashboard-01', type: 'component', packageManager: 'yarn' }` (call `shadcn-svelte-get`)
+- "What are the API details for the Button component?" — uses `bits-ui-get` tool for underlying Bits UI implementation details
+- "Show me the Button component's props and events" — uses `bits-ui-get` tool with AI-optimized content from llms.txt
 
 ## Local Development
 
@@ -385,7 +406,8 @@ For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
 - **Mastra Framework**: Orchestrates agents, workflows, and MCP servers
 - **MCP Server**: Exposes tools to AI code editors via HTTP/SSE protocols
 - **Web Scraping Services**: Multi-strategy approach for fetching documentation:
-  - Direct `.md` endpoint fetching for components
+  - Direct `.md` endpoint fetching for shadcn-svelte components
+  - AI-optimized `/llms.txt` endpoint fetching for Bits UI API documentation
   - Crawlee (Playwright) for JavaScript-heavy pages (charts, themes, blocks)
   - Cheerio + Turndown for simple HTML pages
 - **Intelligent Caching**: 3-day TTL cache with memory and disk storage
@@ -394,7 +416,8 @@ For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
 
 ### Key Features
 
-- **Real-time Documentation**: Always fetches latest content from shadcn-svelte.com
+- **Real-time Documentation**: Always fetches latest content from shadcn-svelte.com and bits-ui.com
+- **Bits UI API Access**: Direct integration with underlying component library documentation via AI-optimized llms.txt endpoints
 - **Multi-strategy Fetching**: Handles different page types (SPA, static, JS-heavy)
 - **Intelligent Caching**: Reduces API calls while ensuring freshness
 - **Lucide Icon Search**: Browse and search ~1,600 Lucide Svelte icons with smart filtering by name and tags

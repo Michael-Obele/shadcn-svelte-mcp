@@ -1,6 +1,6 @@
 /**
  * Component Discovery Service
- * Discovers components by scraping the components index page
+ * Discovers components by scraping the components index page or llms.txt
  */
 
 import { fetchUrl } from "./doc-fetcher.js";
@@ -12,7 +12,7 @@ export interface ComponentInfo {
 }
 
 /**
- * Discovers all components by scraping the components index page
+ * Discovers all components by fetching llms.txt or scraping the components index page
  */
 export async function discoverComponents(): Promise<ComponentInfo[]> {
   const cacheKey = "component-list";
@@ -26,55 +26,81 @@ export async function discoverComponents(): Promise<ComponentInfo[]> {
     return cached;
   }
 
-  console.log("[Discovery] Fetching component list from website...");
+  console.log("[Discovery] Fetching component list from llms.txt...");
 
-  // Fetch the components index page (caching handled internally)
-  const result = await fetchUrl(
-    "https://www.shadcn-svelte.com/docs/components",
-    {
-      useCache: true,
-    }
-  );
+  // Try llms.txt first as it's more reliable for AI
+  const llmsResult = await fetchUrl("https://shadcn-svelte.com/llms.txt", {
+    useCache: true,
+  });
 
-  if (!result.success || !result.markdown) {
-    console.error("[Discovery] Failed to fetch components page");
-    return [];
-  }
-
-  // Extract component links from markdown
-  // Pattern: [Component Name](https://www.shadcn-svelte.com/docs/components/component-name)
-  // or [Component Name](/docs/components/component-name)
-  const componentRegex =
-    /\[([^\]]+)\]\((?:https?:\/\/[^\/]+)?\/docs\/components\/([a-z-]+)\)/g;
   const components: ComponentInfo[] = [];
   const seen = new Set<string>();
 
-  let match;
-  while ((match = componentRegex.exec(result.markdown)) !== null) {
-    const name = match[2];
-    const displayName = match[1];
-
-    if (!seen.has(name)) {
-      seen.add(name);
-      components.push({
-        name,
-        category: "component",
-      });
+  if (llmsResult.success && llmsResult.markdown) {
+    // Extract components from ## Components section in llms.txt
+    const componentsSection = llmsResult.markdown
+      .split("## Components")[1]
+      ?.split("##")[0];
+    if (componentsSection) {
+      const componentRegex =
+        /\[([^\]]+)\]\(https?:\/\/[^\/]+\/docs\/components\/([a-z-]+)(?:\.md)?\)/g;
+      let match;
+      while ((match = componentRegex.exec(componentsSection)) !== null) {
+        const name = match[2];
+        if (!seen.has(name)) {
+          seen.add(name);
+          components.push({
+            name,
+            category: "component",
+          });
+        }
+      }
     }
   }
 
-  // Also try to extract from the actual links if available
-  // This is a fallback in case the markdown doesn't have the right format
-  if (components.length === 0 && result.html) {
-    const linkRegex = /href="\/docs\/components\/([a-z-]+)"/g;
-    while ((match = linkRegex.exec(result.html)) !== null) {
-      const name = match[1];
-      if (!seen.has(name)) {
-        seen.add(name);
-        components.push({
-          name,
-          category: "component",
-        });
+  // Fallback to scraping the components index page if llms.txt failed or returned nothing
+  if (components.length === 0) {
+    console.log(
+      "[Discovery] Falling back to scraping components index page..."
+    );
+    const result = await fetchUrl(
+      "https://www.shadcn-svelte.com/docs/components",
+      {
+        useCache: true,
+      }
+    );
+
+    if (result.success && result.markdown) {
+      const componentRegex =
+        /\[([^\]]+)\]\((?:https?:\/\/[^\/]+)?\/docs\/components\/([a-z-]+)\)/g;
+
+      let match;
+      while ((match = componentRegex.exec(result.markdown)) !== null) {
+        const name = match[2];
+
+        if (!seen.has(name)) {
+          seen.add(name);
+          components.push({
+            name,
+            category: "component",
+          });
+        }
+      }
+    }
+
+    // Also try to extract from the actual links if available
+    if (components.length === 0 && result.html) {
+      const linkRegex = /href="\/docs\/components\/([a-z-]+)"/g;
+      let match;
+      while ((match = linkRegex.exec(result.html)) !== null) {
+        const name = match[1];
+        if (!seen.has(name)) {
+          seen.add(name);
+          components.push({
+            name,
+            category: "component",
+          });
+        }
       }
     }
   }

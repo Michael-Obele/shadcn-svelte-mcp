@@ -32,6 +32,7 @@ export interface FetchOptions {
   timeout?: number;
   includeMetadata?: boolean;
   includeCodeBlocks?: boolean;
+  baseUrl?: string;
 }
 
 export interface DocumentMetadata {
@@ -42,6 +43,8 @@ export interface DocumentMetadata {
   ogImage?: string;
   url?: string;
   lastModified?: string;
+  bitsUiUrl?: string;
+  bitsUiLlmUrl?: string;
 }
 
 export interface FetchResult {
@@ -50,6 +53,8 @@ export interface FetchResult {
   markdown?: string; // Deprecated: use content instead
   html?: string;
   metadata?: DocumentMetadata;
+  bitsUiUrl?: string; // Link to Bits UI version
+  bitsUiLlmUrl?: string; // Link to Bits UI llms.txt
   warnings?: string[];
   notes?: string[];
   type?: "component" | "doc" | "block" | "chart" | "theme" | "unknown";
@@ -122,6 +127,17 @@ async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
       const titleMatch = markdown.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1] : undefined;
 
+      // Extract Bits UI link from markdown if present
+      const bitsUiMatch = markdown.match(
+        /https:\/\/bits-ui\.com\/docs\/components\/[a-z-]+/
+      );
+      const bitsUiUrl = bitsUiMatch ? bitsUiMatch[0] : undefined;
+      const bitsUiLlmUrl = bitsUiUrl
+        ? bitsUiUrl.endsWith("/")
+          ? `${bitsUiUrl}llms.txt`
+          : `${bitsUiUrl}/llms.txt`
+        : undefined;
+
       console.log(`[Fetcher] ✓ Direct .md fetch successful: ${mdUrl}`);
       return {
         success: true,
@@ -130,7 +146,10 @@ async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
         metadata: {
           title,
           url: mdUrl,
+          bitsUiUrl,
+          bitsUiLlmUrl,
         },
+        bitsUiUrl,
         type: "component",
         source: "md",
       };
@@ -220,6 +239,8 @@ async function fetchHtmlAndConvert(url: string): Promise<FetchResult> {
       markdown, // Deprecated: keep for backward compatibility
       html: content,
       metadata,
+      bitsUiUrl: metadata.bitsUiUrl,
+      bitsUiLlmUrl: metadata.bitsUiLlmUrl,
       type,
       codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
       source: "html",
@@ -322,6 +343,8 @@ async function tryFetchWithCrawlee(url: string): Promise<FetchResult | null> {
             markdown,
             html: content,
             metadata,
+            bitsUiUrl: metadata.bitsUiUrl,
+            bitsUiLlmUrl: metadata.bitsUiLlmUrl,
             type,
             codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
             source: "crawlee",
@@ -390,6 +413,16 @@ function extractMetadata($: cheerio.CheerioAPI, url: string): DocumentMetadata {
     ? keywordsStr.split(",").map((k) => k.trim())
     : undefined;
 
+  // Extract Bits UI link if present
+  const bitsUiUrl = $('a[href*="bits-ui.com/docs/components/"]')
+    .first()
+    .attr("href");
+  const bitsUiLlmUrl = bitsUiUrl
+    ? bitsUiUrl.endsWith("/")
+      ? `${bitsUiUrl}llms.txt`
+      : `${bitsUiUrl}/llms.txt`
+    : undefined;
+
   return {
     title,
     description,
@@ -397,6 +430,8 @@ function extractMetadata($: cheerio.CheerioAPI, url: string): DocumentMetadata {
     ogImage,
     url,
     keywords,
+    bitsUiUrl,
+    bitsUiLlmUrl,
   };
 }
 
@@ -479,6 +514,16 @@ export async function fetchComponentDocs(
 }
 
 /**
+ * Fetches Svelte Sonner documentation from the official website
+ */
+export async function fetchSvelteSonnerDocs(
+  options?: FetchOptions
+): Promise<FetchResult> {
+  const url = "https://svelte-sonner.vercel.app/";
+  return fetchUrl(url, options);
+}
+
+/**
  * Fetches installation guide documentation
  */
 export async function fetchInstallationDocs(
@@ -499,7 +544,8 @@ export async function fetchGeneralDocs(
   path: string,
   options?: FetchOptions
 ): Promise<FetchResult> {
-  const url = `${SHADCN_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const baseUrl = options?.baseUrl || SHADCN_BASE_URL;
+  const url = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
   return fetchUrl(url, options);
 }
 
