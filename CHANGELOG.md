@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.1.0...v1.2.0) (2025-12-30)
+
+
+### Features
+
+* enhance AI assistant instructions and improve Bits UI integration ([1d2f7c9](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/1d2f7c99c876667028eb18735626ed83ebcf832d))
+
 # [1.1.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.0.24...v1.1.0) (2025-12-30)
 
 
