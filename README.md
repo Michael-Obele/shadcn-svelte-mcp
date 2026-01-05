@@ -173,6 +173,63 @@ Use the HTTP variant if you need it:
 
 </details>
 
+<details>
+<summary>VS Code</summary>
+
+VS Code supports MCP servers through both the MCP gallery and manual configuration. **Mastra Cloud is recommended** for zero cold start and maximum responsiveness.
+
+#### Global Configuration (User Settings)
+
+Use the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and run `MCP: Add Server`, then paste either URL:
+
+- **Mastra Cloud SSE**: `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse`
+- **Mastra Cloud HTTP**: `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
+
+#### Workspace Configuration (Project-specific)
+
+Create a `.vscode/mcp.json` file in your workspace root:
+
+```json
+{
+  "mcpServers": {
+    "shadcn-svelte": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
+      ]
+    }
+  }
+}
+```
+
+For HTTP transport, use:
+
+```json
+{
+  "mcpServers": {
+    "shadcn-svelte": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+      ]
+    }
+  }
+}
+```
+
+### Verification
+
+- Use Command Palette and run `MCP: List Servers` to view configured servers
+- Use `MCP: List Servers > Configure Model Access` to manage which models can use MCP servers
+
+<!-- Mastra Cloud is the recommended deployment for most users. -->
+
+</details>
+
 ## CLI & Agent Configuration
 
 The same base URLs work across CLIs. **Mastra Cloud is the recommended primary deployment** for the fastest responses with zero cold start.
