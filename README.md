@@ -11,9 +11,9 @@ Mastra MCP server and tooling that provides real-time access to shadcn-svelte co
 
 Choose the base host that fits your workflow — both expose the same toolset, but their runtime characteristics differ:
 
-| Host         | Base URL                           | Highlights                                                                                                                                |
-| ------------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Mastra Cloud | https://shadcn-svelte.mastra.cloud | **Primary choice** - Zero cold start, maximum responsiveness, and consistently reliable performance. Tool discovery issue has been fixed. |
+| Host         | Base URL                           | Highlights                                                                                           |
+| ------------ | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Mastra Cloud | https://shadcn-svelte.mastra.cloud | **Primary choice** - Zero cold start, maximum responsiveness, and consistently reliable performance. |
 
 - Append `/api/mcp/shadcn/sse` for the SSE transport (best for editors that keep long-lived connections).
 - Append `/api/mcp/shadcn/mcp` for the HTTP transport (handy for CLIs and quick one-off calls).
@@ -33,7 +33,27 @@ Choose the base host that fits your workflow — both expose the same toolset, b
 
 This repository contains a Mastra-based MCP server that provides real-time access to shadcn-svelte component documentation using web scraping. Use it in your AI-powered code editor to get instant access to the latest shadcn-svelte component information directly from the official website.
 
-## 🎉 What's New
+## Table of Contents
+
+- [Production Deployments](#production-deployments)
+- [Features](#-features)
+- [Bits UI Integration](#bits-ui-integration)
+- [Observations & Minor UX Suggestions](#-observations--minor-ux-suggestions)
+- [Editor Setup](#editor-setup)
+- [CLI & Agent Configuration](#cli--agent-configuration)
+- [Verification & Quick Tests](#verification--quick-tests)
+- [Available Tools](#available-tools)
+- [Example Usage](#example-usage)
+
+- [Local Development](#local-development)
+- [Developer Scripts](#developer-scripts)
+- [MCP Architecture](#mcp-architecture)
+- [Project Architecture](#project-architecture)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+
+## 🎉 Features
 
 - ✅ Production deployment on Mastra Cloud
 - ✅ **Five main MCP tools** for comprehensive shadcn-svelte ecosystem support (see 'Available Tools')
@@ -60,10 +80,9 @@ The `bits-ui-get` tool fetches content from Bits UI's dedicated `/llms.txt` endp
 
 This ensures that AI assistants receive the most relevant and well-structured information for implementing shadcn-svelte components correctly.
 
-## 🔧 Observations & Minor UX Suggestions
+## 🔧 UX Observations & Suggestions
 
 - The `shadcn-svelte-icons` tool previously showed an awkward message "No icons found matching \"undefined\"" when explicit `names` were requested and none were found — this has been fixed so the response now shows `No icons found for names: ...` instead. ✅
-- Imports in the `icons` tool are intentionally limited to the first 10 names in the response to keep usage snippets tidy; increase the `limit` if you need more icons returned (the snippet still only imports the first 10). 💡
 - Imports in the `icons` tool are intentionally limited to the first 10 names in the response to keep usage snippets tidy; increase the `limit` if you need more icons returned (the snippet still only imports the first 10). 💡
 - The icons tool now supports `importLimit` (default 10) and `limit` (default 100) to control how many icons are returned, and how many are included in `import` statements.
 - The `shadcn-svelte-get` tool now respects an optional `packageManager` parameter and adjusts the installation snippet accordingly (`pnpm dlx`, `yarn dlx`, `npx`, `bunx`). ✅
@@ -176,57 +195,54 @@ Use the HTTP variant if you need it:
 <details>
 <summary>VS Code</summary>
 
-VS Code supports MCP servers through both the MCP gallery and manual configuration. **Mastra Cloud is recommended** for zero cold start and maximum responsiveness.
+Two supported workflows (both work for either user/global settings or workspace/project settings):
 
-#### Global Configuration (User Settings)
+- **Option A — Command Palette (quick):** Run `MCP: Add Server` (Ctrl/Cmd+Shift+P) and paste the SSE or HTTP URL. This is the simplest interactive flow and can be used from the global (user) or workspace context.
 
-Use the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and run `MCP: Add Server`, then paste either URL:
+  Examples to paste:
+  - SSE: `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse`
+  - HTTP: `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
 
-- **Mastra Cloud SSE**: `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse`
-- **Mastra Cloud HTTP**: `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
+- **Option B — mcp-remote JSON (scriptable):** Create or update `.vscode/mcp.json` (or your user-level MCP config) to use the `mcp-remote` helper. This works equally well as a workspace or global config and is handy for reproducible setups.
 
-#### Workspace Configuration (Project-specific)
+  Example `.vscode/mcp.json` using `mcp-remote` (SSE):
 
-Create a `.vscode/mcp.json` file in your workspace root:
-
-```json
-{
-  "mcpServers": {
-    "shadcn-svelte": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
-      ]
+  ```json
+  {
+    "mcpServers": {
+      "shadcn-svelte": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "mcp-remote",
+          "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
+        ]
+      }
     }
   }
-}
-```
+  ```
 
-For HTTP transport, use:
+  And for the HTTP transport replace the URL with the `/mcp` endpoint:
 
-```json
-{
-  "mcpServers": {
-    "shadcn-svelte": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
-      ]
+  ```json
+  {
+    "mcpServers": {
+      "shadcn-svelte": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "mcp-remote",
+          "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+        ]
+      }
     }
   }
-}
-```
+  ```
 
 ### Verification
 
-- Use Command Palette and run `MCP: List Servers` to view configured servers
-- Use `MCP: List Servers > Configure Model Access` to manage which models can use MCP servers
-
-<!-- Mastra Cloud is the recommended deployment for most users. -->
+- Use the Command Palette and run `MCP: List Servers` to view configured servers.
+- Use `MCP: List Servers > Configure Model Access` to manage which models can use MCP servers.
 
 </details>
 
@@ -434,7 +450,7 @@ pnpm install
 npm run dev
 ```
 
-## Useful scripts
+## Developer Scripts
 
 - `npm run dev` - Start Mastra in development mode (recommended smoke-test).
 - `npm run build` - Build the Mastra project for production.
