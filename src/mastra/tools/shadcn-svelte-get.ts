@@ -39,7 +39,7 @@ async function fetchBlockCode(
     const response = await fetch(url, {
       headers: {
         "User-Agent":
-          "shadcn-svelte-mcp/1.0.0 (Block Fetcher; +https://github.com/your-repo)",
+          "shadcn-svelte-mcp/1.0.0 (Block Fetcher; +https://github.com/Michael-Obele/shadcn-svelte-mcp)",
       },
     });
 
@@ -137,9 +137,9 @@ interface ToolResponse {
     author?: string;
     url?: string;
     keywords?: string[];
+    bitsUiUrl?: string;
+    bitsUiLlmUrl?: string;
   };
-  bitsUiUrl?: string;
-  bitsUiLlmUrl?: string;
   warnings?: string[];
   notes?: string[];
   type?: "component" | "block" | "chart" | "doc" | "theme" | "unknown";
@@ -148,8 +148,52 @@ interface ToolResponse {
     code: string;
     title?: string;
   }>;
+  cliCommands?: {
+    add: {
+      description: string;
+      usage: string[];
+      options: Array<{ flag: string; description: string }>;
+    };
+  };
   error?: string;
 }
+
+// CLI commands information for AI automation
+const CLI_COMMANDS = {
+  add: {
+    description:
+      "Add components and dependencies to your project. Use -y flag for automated, non-interactive installation.",
+    usage: [
+      "npx shadcn-svelte@latest add <component>",
+      "pnpm dlx shadcn-svelte@latest add <component>",
+      "yarn dlx shadcn-svelte@latest add <component>",
+      "bun x shadcn-svelte@latest add <component>",
+    ],
+    options: [
+      {
+        flag: "--no-deps",
+        description: "skips adding & installing package dependencies",
+      },
+      {
+        flag: "--skip-preflight",
+        description: "ignore preflight checks and continue (default: false)",
+      },
+      {
+        flag: "-y, --yes",
+        description:
+          "skip confirmation prompt - USE THIS FOR AUTOMATION (default: false)",
+      },
+      {
+        flag: "-o, --overwrite",
+        description: "overwrite existing files (default: false)",
+      },
+      {
+        flag: "-a, --all",
+        description: "install all components to your project (default: false)",
+      },
+    ],
+  },
+};
 
 // Tool for getting detailed information about components or documentation
 export const shadcnSvelteGetTool = createTool({
@@ -157,7 +201,11 @@ export const shadcnSvelteGetTool = createTool({
   description:
     "Get detailed information about any shadcn-svelte component, block, chart, documentation section, or Svelte Sonner docs from the live websites. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), charts, docs, and sonner. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. Svelte has different APIs and patterns than React.",
   inputSchema: z.object({
-    name: z.string().describe("Name of the component, documentation section, or 'sonner' for Svelte Sonner docs"),
+    name: z
+      .string()
+      .describe(
+        "Name of the component, documentation section, or 'sonner' for Svelte Sonner docs"
+      ),
     type: z
       .enum(["component", "doc", "sonner"])
       .describe(
@@ -222,9 +270,12 @@ export const shadcnSvelteGetTool = createTool({
             warnings: [
               "This is a SVELTE block/chart. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.).",
               "Always follow the Svelte examples shown in the code blocks.",
+              "Note: Project should already be initialized with shadcn-svelte before adding components.",
+              "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
             ],
             type: name.startsWith("chart-") ? "chart" : "block",
             codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
+            cliCommands: CLI_COMMANDS,
           };
           return JSON.stringify(response, null, 2);
         }
@@ -263,18 +314,23 @@ export const shadcnSvelteGetTool = createTool({
         const response: ToolResponse = {
           success: true,
           content: content || result.content,
-          metadata: result.metadata || {
-            title: `${name} Component`,
-            url: `https://shadcn-svelte.com/docs/components/${name}`,
+          metadata: {
+            ...(result.metadata || {
+              title: `${name} Component`,
+              url: `https://shadcn-svelte.com/docs/components/${name}`,
+            }),
+            bitsUiUrl: result.bitsUiUrl,
+            bitsUiLlmUrl: result.metadata?.bitsUiLlmUrl,
           },
-          bitsUiUrl: result.bitsUiUrl,
-          bitsUiLlmUrl: result.metadata?.bitsUiLlmUrl,
           warnings: [
             "This is a SVELTE component. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.).",
             "Always follow the Svelte examples shown in the documentation.",
+            "Note: Project should already be initialized with shadcn-svelte before adding components.",
+            "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
           ],
           type: "component",
           codeBlocks: result.codeBlocks,
+          cliCommands: CLI_COMMANDS,
         };
         return JSON.stringify(response, null, 2);
       } else if (type === "doc") {
@@ -343,15 +399,27 @@ export const shadcnSvelteGetTool = createTool({
         const response: ToolResponse = {
           success: true,
           content: result.content,
-          metadata: result.metadata || {
-            title: name,
+          metadata: {
+            ...(result.metadata || {
+              title: name,
+            }),
+            bitsUiUrl: result.bitsUiUrl,
+            bitsUiLlmUrl: result.metadata?.bitsUiLlmUrl,
           },
-          bitsUiUrl: result.bitsUiUrl,
-          bitsUiLlmUrl: result.metadata?.bitsUiLlmUrl,
           notes: result.notes,
-          warnings: result.warnings,
+          warnings: result.warnings
+            ? [
+                ...result.warnings,
+                "Note: Project should already be initialized with shadcn-svelte before adding components.",
+                "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
+              ]
+            : [
+                "Note: Project should already be initialized with shadcn-svelte before adding components.",
+                "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
+              ],
           type: result.type || "doc",
           codeBlocks: result.codeBlocks,
+          cliCommands: CLI_COMMANDS,
         };
         return JSON.stringify(response, null, 2);
       } else if (type === "sonner") {
@@ -360,7 +428,8 @@ export const shadcnSvelteGetTool = createTool({
         if (!result.success || !result.content) {
           const response: ToolResponse = {
             success: false,
-            error: result.error || "Failed to fetch Svelte Sonner documentation",
+            error:
+              result.error || "Failed to fetch Svelte Sonner documentation",
           };
           return JSON.stringify(response, null, 2);
         }
@@ -370,9 +439,19 @@ export const shadcnSvelteGetTool = createTool({
           content: result.content,
           metadata: result.metadata,
           notes: result.notes,
-          warnings: result.warnings,
+          warnings: result.warnings
+            ? [
+                ...result.warnings,
+                "Note: Project should already be initialized with shadcn-svelte before adding components.",
+                "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
+              ]
+            : [
+                "Note: Project should already be initialized with shadcn-svelte before adding components.",
+                "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
+              ],
           type: "doc",
           codeBlocks: result.codeBlocks,
+          cliCommands: CLI_COMMANDS,
         };
         return JSON.stringify(response, null, 2);
       }
