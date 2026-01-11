@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.2.0...v1.3.0) (2026-01-11)
+
+
+### Features
+
+* enhance CLI command functionality and improve ToolResponse structure ([28a8ad9](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/28a8ad90ce741b51f15ca73cf7aa2382a48255cd))
+* refactor bits-ui-get and shadcn-svelte-get tools for improved LLM integration and response structure; add utility functions for enhanced code fetching and parsing ([e502600](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/e5026001cd32851ec43612aec02cc7d38fb38721))
+
 # [1.2.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.1.0...v1.2.0) (2025-12-30)
 
 
