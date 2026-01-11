@@ -4,28 +4,31 @@ import {
   fetchGeneralDocs,
   type FetchResult,
 } from "../../services/doc-fetcher.js";
+import {
+  parseBitsUiApi,
+  getInstallPrefix,
+  sanitizeContent,
+  extractSummary,
+} from "./utils/shadcn-utils.js";
 
 /**
  * Response interface for structured JSON output
+ * Optimized for LLM consumption
  */
 interface ToolResponse {
   success: boolean;
-  content?: string;
-  metadata?: {
-    title?: string;
-    description?: string;
-    author?: string;
-    url?: string;
-    keywords?: string[];
-  };
-  warnings?: string[];
-  notes?: string[];
+  name?: string;
   type?: "component" | "doc" | "unknown";
-  codeBlocks?: Array<{
-    language?: string;
-    code: string;
-    title?: string;
-  }>;
+  description?: string;
+  docs?: {
+    main?: string;
+    llm?: string;
+  };
+  api?: {
+    raw?: string;
+  };
+  contextRules?: string[];
+  rawContent?: string;
   error?: string;
 }
 
@@ -48,6 +51,7 @@ export const bitsUiGetTool = createTool({
 
     // Normalize component name to lowercase for Bits UI
     const normalizedName = name.toLowerCase();
+    const llmUrl = `https://bits-ui.com/docs/components/${normalizedName}/llms.txt`;
 
     try {
       // Fetch from Bits UI LLM docs
@@ -64,51 +68,37 @@ export const bitsUiGetTool = createTool({
           success: false,
           error:
             result.error || `Bits UI component "${normalizedName}" not found`,
-          notes: [
-            "Bits UI provides the underlying components for shadcn-svelte.",
-            "Use this tool for detailed API documentation and implementation details.",
-          ],
         };
         return JSON.stringify(response, null, 2);
       }
 
-      // If a packageManager was provided, replace common installer patterns in result.content
-      let content = result.content;
-      const getPrefix = (pm?: string) => {
-        if (!pm) return "npx";
-        if (pm === "npm") return "npx";
-        if (pm === "yarn") return "yarn dlx";
-        if (pm === "pnpm") return "pnpm dlx";
-        if (pm === "bun") return "bunx";
-        return "npx";
-      };
-      const prefix = getPrefix(context.packageManager);
-      if (content) {
-        content = content.replace(
-          /(?:npx|yarn dlx|pnpm dlx|bunx|bun x)\s+bits-ui@latest\s+add/gi,
-          `${prefix} bits-ui@latest add`
-        );
-      }
+      // Parse structured API data from content
+      const apiData = parseBitsUiApi(result.content);
+      const rawContent = sanitizeContent(result.content);
 
       const response: ToolResponse = {
         success: true,
-        content: content || result.content,
-        metadata: result.metadata || {
-          title: `${name} Component`,
-          url: `https://bits-ui.com/docs/components/${normalizedName}/llms.txt`,
-        },
-        warnings: [
-          "This is a Bits UI component documentation. Bits UI is the underlying library for shadcn-svelte.",
-          "For shadcn-svelte usage examples, also check the shadcn-svelte-get tool.",
-        ],
+        name: result.metadata?.title || name,
         type: "component",
-        codeBlocks: result.codeBlocks,
+        description:
+          extractSummary(rawContent) ||
+          `Technical documentation for the ${name} component.`,
+        docs: {
+          main: `https://bits-ui.com/docs/components/${normalizedName}`,
+          llm: llmUrl,
+        },
+        api: apiData ? { raw: apiData.raw } : undefined,
+        contextRules: [
+          "This is a Bits UI component documentation. Bits UI is the underlying library for shadcn-svelte.",
+          "Use these primitives for building accessible custom components.",
+        ],
+        rawContent,
       };
       return JSON.stringify(response, null, 2);
     } catch (error) {
       const response: ToolResponse = {
         success: false,
-        error: `Error retrieving Bits UI component "${normalizedName}": ${error}`,
+        error: `Error retrieving Bits UI component "${normalizedName}": ${error instanceof Error ? error.message : error}`,
       };
       return JSON.stringify(response, null, 2);
     }

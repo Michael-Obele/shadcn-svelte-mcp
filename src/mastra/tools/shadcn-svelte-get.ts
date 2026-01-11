@@ -6,194 +6,57 @@ import {
   fetchSvelteSonnerDocs,
   type FetchResult,
 } from "../../services/doc-fetcher.js";
-
-// Block/Chart detection patterns
-const BLOCK_PATTERNS = [
-  /^chart-/i,
-  /^dashboard-/i,
-  /^sidebar-/i,
-  /^login-/i,
-  /^signup-/i,
-  /^otp-/i,
-  /^calendar-/i,
-];
-
-/**
- * Detects if a component name is a block/chart
- */
-function isBlock(name: string): boolean {
-  return BLOCK_PATTERNS.some((pattern) => pattern.test(name));
-}
-
-/**
- * Fetches block/chart code from the /api/block/ endpoint
- */
-async function fetchBlockCode(
-  name: string,
-  packageManager?: "npm" | "yarn" | "pnpm" | "bun"
-): Promise<{ success: boolean; code?: string; error?: string }> {
-  try {
-    const url = `https://shadcn-svelte.com/api/block/${name}`;
-    console.log(`[Fetcher] Fetching block from: ${url}`);
-
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "shadcn-svelte-mcp/1.0.0 (Block Fetcher; +https://github.com/Michael-Obele/shadcn-svelte-mcp)",
-      },
-    });
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: `HTTP ${response.status}: ${response.statusText}`,
-      };
-    }
-
-    const data = await response.json();
-
-    if (data.type !== "registry:block") {
-      return {
-        success: false,
-        error: `Expected registry:block, got ${data.type}`,
-      };
-    }
-
-    // Extract code from all files
-    const files = data.files || [];
-    let codeOutput = `# ${data.name}\n\n`;
-
-    if (data.description) {
-      codeOutput += `**Description:** ${data.description}\n\n`;
-    }
-
-    codeOutput += `**Type:** ${data.type}\n\n`;
-    const getInstallPrefix = (pm?: string) => {
-      if (!pm) return "npx";
-      if (pm === "npm") return "npx";
-      if (pm === "yarn") return "yarn dlx";
-      if (pm === "pnpm") return "pnpm dlx";
-      if (pm === "bun") return "bunx";
-      return "npx";
-    };
-    const installPrefix = getInstallPrefix(packageManager);
-    codeOutput += `**Installation:**\n\`\`\`bash\n${installPrefix} shadcn-svelte@latest add ${name}\n\`\`\`\n\n`;
-
-    // Process each file
-    for (const file of files) {
-      const fileName = file.target || file.path || "unknown";
-      codeOutput += `## File: ${fileName}\n\n`;
-      codeOutput += `**Type:** ${file.type}\n\n`;
-
-      // Parse highlightedContent (HTML-escaped pre tag with code)
-      if (file.highlightedContent) {
-        // Extract code from the pre tag
-        const codeMatch = file.highlightedContent.match(
-          /<pre[^>]*>.*?<code[^>]*>(.*?)<\/code>.*?<\/pre>/s
-        );
-        if (codeMatch) {
-          // Decode HTML entities and escape sequences
-          let code = codeMatch[1]
-            .replace(/<span[^>]*>/g, "")
-            .replace(/<\/span>/g, "")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .replace(/&amp;/g, "&")
-            .replace(/&quot;/g, '"')
-            .replace(/&#x3C;/g, "<")
-            .replace(/&#x3E;/g, ">")
-            .replace(/\\n/g, "\n");
-
-          // Detect language from filename
-          let language = "typescript";
-          if (fileName.endsWith(".svelte")) language = "svelte";
-          else if (fileName.endsWith(".ts")) language = "typescript";
-          else if (fileName.endsWith(".js")) language = "javascript";
-          else if (fileName.endsWith(".css")) language = "css";
-
-          codeOutput += `\`\`\`${language}\n${code}\n\`\`\`\n\n`;
-        }
-      }
-    }
-
-    return { success: true, code: codeOutput };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
+import {
+  isBlock,
+  fetchBlockCode,
+  extractExamples,
+  extractVariants,
+  extractSummary,
+  sanitizeContent,
+  getInstallCommand,
+  getImportPath,
+  getFirstCodeBlock,
+} from "./utils/shadcn-utils.js";
 
 /**
  * Response interface for structured JSON output
+ * Optimized for LLM consumption
  */
 interface ToolResponse {
   success: boolean;
-  content?: string;
-  metadata?: {
-    title?: string;
-    description?: string;
-    author?: string;
-    url?: string;
-    keywords?: string[];
-    bitsUiUrl?: string;
-    bitsUiLlmUrl?: string;
-  };
-  warnings?: string[];
-  notes?: string[];
+  name?: string;
   type?: "component" | "block" | "chart" | "doc" | "theme" | "unknown";
-  codeBlocks?: Array<{
-    language?: string;
-    code: string;
-    title?: string;
-  }>;
-  cliCommands?: {
-    add: {
-      description: string;
-      usage: string[];
-      options: Array<{ flag: string; description: string }>;
+  description?: string;
+  installCommand?: {
+    packageManagers: {
+      npm: string;
+      yarn: string;
+      pnpm: string;
+      bun: string;
     };
+    cliOptions: Record<string, string>;
   };
+  importPath?: string;
+  dependencies?: string[];
+  docs?: {
+    main?: string;
+    primitive?: string;
+  };
+  usage?: {
+    summary?: string;
+    code?: string;
+  };
+  variants?: string[];
+  contextRules?: string[];
+  rawContent?: string;
   error?: string;
+  // Metadata for non-component docs
+  metadata?: {
+    url?: string;
+    title?: string;
+    [key: string]: any;
+  };
 }
-
-// CLI commands information for AI automation
-const CLI_COMMANDS = {
-  add: {
-    description:
-      "Add components and dependencies to your project. Use -y flag for automated, non-interactive installation.",
-    usage: [
-      "npx shadcn-svelte@latest add <component>",
-      "pnpm dlx shadcn-svelte@latest add <component>",
-      "yarn dlx shadcn-svelte@latest add <component>",
-      "bun x shadcn-svelte@latest add <component>",
-    ],
-    options: [
-      {
-        flag: "--no-deps",
-        description: "skips adding & installing package dependencies",
-      },
-      {
-        flag: "--skip-preflight",
-        description: "ignore preflight checks and continue (default: false)",
-      },
-      {
-        flag: "-y, --yes",
-        description:
-          "skip confirmation prompt - USE THIS FOR AUTOMATION (default: false)",
-      },
-      {
-        flag: "-o, --overwrite",
-        description: "overwrite existing files (default: false)",
-      },
-      {
-        flag: "-a, --all",
-        description: "install all components to your project (default: false)",
-      },
-    ],
-  },
-};
 
 // Tool for getting detailed information about components or documentation
 export const shadcnSvelteGetTool = createTool({
@@ -219,63 +82,36 @@ export const shadcnSvelteGetTool = createTool({
       ),
   }),
   execute: async ({ context }): Promise<string> => {
-    const { name, type } = context;
+    const { name, type, packageManager } = context;
 
     try {
       if (type === "component") {
         // Check if this is a block/chart (uses different API)
         if (isBlock(name)) {
-          console.log(
-            `[Tool] Detected block/chart pattern for "${name}", using /api/block/ endpoint`
-          );
-          const blockResult = await fetchBlockCode(
-            name,
-            context.packageManager
-          );
+          const blockResult = await fetchBlockCode(name, packageManager);
 
           if (!blockResult.success) {
             const response: ToolResponse = {
               success: false,
               error: `Block/Chart "${name}" not found: ${blockResult.error}`,
-              notes: ["Use the list tool to see available blocks and charts."],
             };
             return JSON.stringify(response, null, 2);
           }
 
-          // Extract code blocks from the markdown-formatted code
-          const codeBlocks: Array<{
-            language?: string;
-            code: string;
-            title?: string;
-          }> = [];
-          const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-          let match;
-          while (
-            (match = codeBlockRegex.exec(blockResult.code || "")) !== null
-          ) {
-            codeBlocks.push({
-              language: match[1] || undefined,
-              code: match[2].trim(),
-            });
-          }
-
           const response: ToolResponse = {
             success: true,
-            content: blockResult.code,
-            metadata: {
-              title: name,
-              description: `Block/Chart component for shadcn-svelte`,
-              url: `https://shadcn-svelte.com/blocks/${name}`,
-            },
-            warnings: [
-              "This is a SVELTE block/chart. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.).",
-              "Always follow the Svelte examples shown in the code blocks.",
-              "Note: Project should already be initialized with shadcn-svelte before adding components.",
-              "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
-            ],
+            name,
             type: name.startsWith("chart-") ? "chart" : "block",
-            codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
-            cliCommands: CLI_COMMANDS,
+            description: `Block/Chart component: ${name}`,
+            installCommand: getInstallCommand(name, packageManager),
+            docs: {
+              main: `https://shadcn-svelte.com/blocks/${name}`,
+            },
+            contextRules: [
+              "This is a SVELTE block/chart. Do NOT use React-specific props or patterns.",
+              "Note: Project should already be initialized with shadcn-svelte before adding components.",
+            ],
+            rawContent: blockResult.code,
           };
           return JSON.stringify(response, null, 2);
         }
@@ -287,101 +123,70 @@ export const shadcnSvelteGetTool = createTool({
           const response: ToolResponse = {
             success: false,
             error: result.error || `Component "${name}" not found`,
-            notes: ["Use the list tool to see available components."],
           };
           return JSON.stringify(response, null, 2);
         }
 
-        // If a packageManager was provided, replace common installer patterns in result.content
-        let content = result.content;
-        // Always replace examples in the content with the selected package manager prefix
-        const getPrefix = (pm?: string) => {
-          if (!pm) return "npx";
-          if (pm === "npm") return "npx";
-          if (pm === "yarn") return "yarn dlx";
-          if (pm === "pnpm") return "pnpm dlx";
-          if (pm === "bun") return "bunx";
-          return "npx";
-        };
-        const prefix = getPrefix(context.packageManager);
-        if (content) {
-          content = content.replace(
-            /(?:npx|yarn dlx|pnpm dlx|bunx|bun x)\s+shadcn-svelte@latest\s+add/gi,
-            `${prefix} shadcn-svelte@latest add`
-          );
-        }
+        const rawContent = sanitizeContent(result.content);
+        const summary = extractSummary(rawContent);
+        const examples = extractExamples(rawContent);
+        const variants = extractVariants(rawContent);
+
+        // Fallback for primary code if examples didn't catch it
+        const primaryCode =
+          examples.length > 0
+            ? examples[0].code
+            : getFirstCodeBlock(rawContent);
 
         const response: ToolResponse = {
           success: true,
-          content: content || result.content,
-          metadata: {
-            ...(result.metadata || {
-              title: `${name} Component`,
-              url: `https://shadcn-svelte.com/docs/components/${name}`,
-            }),
-            bitsUiUrl: result.bitsUiUrl,
-            bitsUiLlmUrl: result.metadata?.bitsUiLlmUrl,
-          },
-          warnings: [
-            "This is a SVELTE component. Do NOT use React-specific props or patterns (like 'asChild', 'React.ReactNode', etc.).",
-            "Always follow the Svelte examples shown in the documentation.",
-            "Note: Project should already be initialized with shadcn-svelte before adding components.",
-            "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
-          ],
+          name: result.metadata?.title || name,
           type: "component",
-          codeBlocks: result.codeBlocks,
-          cliCommands: CLI_COMMANDS,
+          description: summary || `Displays a ${name} component.`,
+          installCommand: getInstallCommand(name, packageManager),
+          importPath: getImportPath(name),
+          dependencies: ["bits-ui"],
+          docs: {
+            main: `https://shadcn-svelte.com/docs/components/${name}`,
+            primitive: result.metadata?.bitsUiUrl || result.bitsUiUrl,
+          },
+          usage: {
+            summary: "Use the examples below to understand implementation.",
+            code: primaryCode,
+          },
+          variants:
+            variants.length > 0 ? variants.map((v) => v.name) : undefined,
+          contextRules: [
+            "Do NOT use React-specific props like 'asChild'.",
+            "Use standard Svelte slot patterns or snippets where applicable.",
+            "Always follow the Svelte examples shown in the documentation.",
+          ],
+          rawContent,
         };
         return JSON.stringify(response, null, 2);
       } else if (type === "doc") {
-        // Try a broad set of possible documentation roots so we can fetch
-        // docs that live outside of `/docs` (e.g. /charts, /themes, /colors, /blocks, /view, /examples)
-        const roots = [
-          `/docs`,
-          `/docs/installation`,
-          `/docs/dark-mode`,
-          `/docs/migration`,
-          `/docs/registry`,
-          `/docs/theming`,
-          `/docs/cli`,
-          `/charts`,
-          `/themes`,
-          `/colors`,
-          `/blocks`,
-          `/view`,
-          `/examples`,
-        ];
-
         let result: FetchResult | null = null;
 
-        // If the caller provided a path-like name (contains a slash), try it directly first
+        // Try path directly if it has a slash
         if (name.includes("/")) {
           result = await fetchGeneralDocs(`/docs/${name}`, { useCache: true });
-          if (!result.success) {
-            // also try without /docs prefix (handles top-level paths passed in)
+          if (!result.success)
             result = await fetchGeneralDocs(`/${name}`, { useCache: true });
-          }
         }
 
-        // Try each root + name
-        if (!result || !result.success || !result.markdown) {
-          for (const root of roots) {
-            const path = name ? `${root}/${name}` : root;
+        // Try standard roots
+        if (!result || !result.success) {
+          const searchPaths = name
+            ? [
+                `/docs/${name}`,
+                `/docs/installation/${name}`,
+                `/docs/cli/${name}`,
+                `/${name}`,
+              ]
+            : [`/docs`];
+          for (const path of searchPaths) {
             result = await fetchGeneralDocs(path, { useCache: true });
-            if (result.success && result.markdown) break;
-          }
-        }
-
-        // As a final fallback, try the root pages themselves (e.g. /charts)
-        // But only if the name matches the root (to avoid returning /docs for a "charts" query)
-        if ((!result || !result.success || !result.markdown) && roots.length) {
-          for (const root of roots) {
-            // Check if this root matches the name (e.g., "/charts" matches "charts")
-            const rootName = root.substring(root.lastIndexOf("/") + 1);
-            if (!name || rootName === name || root === `/${name}`) {
-              result = await fetchGeneralDocs(root, { useCache: true });
-              if (result.success && result.markdown) break;
-            }
+            if (result.success) break;
           }
         }
 
@@ -389,37 +194,25 @@ export const shadcnSvelteGetTool = createTool({
           const response: ToolResponse = {
             success: false,
             error: result?.error || `Documentation "${name}" not found`,
-            notes: [
-              "Use the list tool to see available documentation sections.",
-            ],
           };
           return JSON.stringify(response, null, 2);
         }
 
+        const content = sanitizeContent(result.content);
         const response: ToolResponse = {
           success: true,
-          content: result.content,
-          metadata: {
-            ...(result.metadata || {
-              title: name,
-            }),
-            bitsUiUrl: result.bitsUiUrl,
-            bitsUiLlmUrl: result.metadata?.bitsUiLlmUrl,
+          name: result.metadata?.title || name,
+          type: "doc",
+          description: extractSummary(content),
+          docs: {
+            main: result.metadata?.url,
           },
-          notes: result.notes,
-          warnings: result.warnings
-            ? [
-                ...result.warnings,
-                "Note: Project should already be initialized with shadcn-svelte before adding components.",
-                "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
-              ]
-            : [
-                "Note: Project should already be initialized with shadcn-svelte before adding components.",
-                "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
-              ],
-          type: result.type || "doc",
-          codeBlocks: result.codeBlocks,
-          cliCommands: CLI_COMMANDS,
+          usage: {
+            summary: "Primary usage code block extracted from documentation.",
+            code: getFirstCodeBlock(content),
+          },
+          rawContent: content,
+          metadata: result.metadata,
         };
         return JSON.stringify(response, null, 2);
       } else if (type === "sonner") {
@@ -434,39 +227,37 @@ export const shadcnSvelteGetTool = createTool({
           return JSON.stringify(response, null, 2);
         }
 
+        const content = sanitizeContent(result.content);
         const response: ToolResponse = {
           success: true,
-          content: result.content,
-          metadata: result.metadata,
-          notes: result.notes,
-          warnings: result.warnings
-            ? [
-                ...result.warnings,
-                "Note: Project should already be initialized with shadcn-svelte before adding components.",
-                "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
-              ]
-            : [
-                "Note: Project should already be initialized with shadcn-svelte before adding components.",
-                "For initialization and more CLI options, request CLI documentation from shadcn-svelte MCP server.",
-              ],
+          name: "Svelte Sonner",
           type: "doc",
-          codeBlocks: result.codeBlocks,
-          cliCommands: CLI_COMMANDS,
+          description: "An opinionated toast component for Svelte.",
+          installCommand: getInstallCommand("sonner", packageManager),
+          importPath: 'import { toast } from "svelte-sonner";',
+          docs: {
+            main: "https://shadcn-svelte.com/docs/components/sonner",
+          },
+          usage: {
+            summary: "Primary usage code block extracted from documentation.",
+            code: getFirstCodeBlock(content),
+          },
+          rawContent: content,
+          metadata: result.metadata,
         };
         return JSON.stringify(response, null, 2);
       }
 
-      const response: ToolResponse = {
-        success: false,
-        error: `Invalid type "${type}". Use "component", "doc", or "sonner".`,
-      };
-      return JSON.stringify(response, null, 2);
+      throw new Error(`Invalid type "${type}"`);
     } catch (error) {
-      const response: ToolResponse = {
-        success: false,
-        error: `Error retrieving ${type} "${name}": ${error}`,
-      };
-      return JSON.stringify(response, null, 2);
+      return JSON.stringify(
+        {
+          success: false,
+          error: `Error retrieving ${type} "${name}": ${error instanceof Error ? error.message : error}`,
+        },
+        null,
+        2
+      );
     }
   },
 });
