@@ -35,39 +35,6 @@ Shell command preference
 
 4. Project-specific conventions and gotchas (do not invent alternatives)
 
-## CRITICAL: Error Handling & Self-Correction
-
-When using shadcn-svelte-get or bits-ui-get, if a component is not found, the tool response will include:
-- `success: false`
-- `error`: A message indicating the component wasn't found
-- `suggestion`: Guidance on how to find the correct component name
-- `nextSteps`: An array of specific actions to take (always includes using shadcn-svelte-list first)
-
-**AI MUST FOLLOW THIS PATTERN:**
-1. If you get a 404/not found error with `nextSteps`, DO NOT HALLUCINATE component names
-2. ALWAYS follow the `nextSteps` provided - typically this means using `shadcn-svelte-list` first
-3. Use the suggestion to understand what went wrong (spelling, wrong tool, etc.)
-4. Retry with the correct information from the list tool
-
-**Example:** An AI tries `bits-ui-get("Sidebar", ...)` and gets:
-```json
-{
-  "success": false,
-  "error": "Bits UI component \"sidebar\" not found",
-  "suggestion": "The component name \"sidebar\" may not exist. Available Bits UI components can be discovered.",
-  "nextSteps": [
-    "1. Use the shadcn-svelte-list tool to see all available shadcn-svelte components and blocks",
-    "..."
-  ]
-}
-```
-
-**CORRECT RESPONSE:** The AI should then call `shadcn-svelte-list("all")` to discover available components before trying again.
-
-**WRONG RESPONSE:** The AI should NOT guess names like "Sidebar", "SideBar", etc. - this causes hallucination.
-
----
-
 - Tools follow Mastra patterns using `createTool` with Zod schemas for input validation (see `shadcn-svelte-get.ts`). When creating new tools, follow the established patterns for tool development.
 - Tools use web scraping to fetch documentation in real-time from shadcn-svelte.com. The tooling parses markdown content returned from the scraping service.
 - File path resolution: tools resolve docs relative to the tool file (they use file URL + join with `../docs`) — prefer relative paths instead of hard-coded absolute paths.
