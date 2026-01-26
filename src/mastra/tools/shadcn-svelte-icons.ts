@@ -6,7 +6,7 @@ import { getFromCache, saveToCache } from "../../services/cache-manager.js";
 export const shadcnSvelteIconsTool = createTool({
   id: "shadcn-svelte-icons",
   description:
-    "Search and browse Lucide icons available for use with lucide-svelte. Browse all 1600+ Lucide icons with search by name and tags. No AI hallucination - returns only real icons that exist. Can handle multiple icon names: pass comma-separated names like 'truck, package, dashboard' or space-separated names like 'truck package dashboard' in the query parameter.",
+    "Search and browse Lucide icons available for use with lucide-svelte. Browse all 1600+ Lucide icons with search by name and tags. No AI hallucination - returns only real icons that exist. IMPORTANT: ONLY use this tool for Lucide icons - do NOT use for shadcn-svelte component information. For components, use shadcn-svelte-get, shadcn-svelte-search, or shadcn-svelte-list instead. Can handle multiple icon names: pass comma-separated names like 'truck, package, dashboard' or space-separated names like 'truck package dashboard' in the query parameter.",
   inputSchema: z.object({
     query: z
       .string()

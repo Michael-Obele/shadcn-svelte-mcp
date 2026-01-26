@@ -35,6 +35,14 @@ interface SearchResult {
   type: string;
   score: number;
   similarity?: number; // Percentage similarity (0-100)
+  installCommand?: string | null;
+}
+
+interface Suggestion {
+  name: string;
+  type: string;
+  similarity: number;
+  nextAction: string;
 }
 
 interface SearchableItem {
@@ -69,8 +77,17 @@ async function getSearchableItems(): Promise<SearchableItem[]> {
   const content = await getAllContent();
   const items: SearchableItem[] = [];
 
-  // Add components
+  // Add shadcn-svelte components
   for (const component of content.components) {
+    items.push({
+      name: component.name,
+      type: "component",
+      category: component.category,
+    });
+  }
+
+  // Add Bits UI components
+  for (const component of content.bitsUIComponents) {
     items.push({
       name: component.name,
       type: "component",
@@ -125,7 +142,7 @@ function performFuzzySearch(
   options: {
     threshold?: number;
     limit?: number;
-  } = {}
+  } = {},
 ): Array<{ item: SearchableItem; score: number; similarity: number }> {
   const { threshold = 0.4, limit = 50 } = options;
 
@@ -163,7 +180,7 @@ function performFuzzySearch(
 function getSuggestionsForNoResults(
   items: SearchableItem[],
   query: string,
-  count: number = 3
+  count: number = 3,
 ): Array<{ item: SearchableItem; similarity: number }> {
   // Use higher threshold (more lenient) for suggestions
   const results = performFuzzySearch(items, query, {
@@ -179,6 +196,11 @@ function getSuggestionsForNoResults(
  */
 function buildUrl(item: SearchableItem): string {
   const base = "https://www.shadcn-svelte.com";
+  const bitsBase = "https://bits-ui.com";
+
+  if (item.category === "bits-ui-component") {
+    return `${bitsBase}/docs/components/${item.name}`;
+  }
 
   switch (item.type) {
     case "component":
@@ -208,8 +230,15 @@ function buildUrl(item: SearchableItem): string {
  */
 function buildInstallCommand(
   item: SearchableItem,
-  packageManager?: "npm" | "yarn" | "pnpm" | "bun"
+  packageManager?: "npm" | "yarn" | "pnpm" | "bun",
 ): string | null {
+  // Bits UI components are part of the bits-ui package
+  if (item.category === "bits-ui-component") {
+    const prefix = getPrefix(packageManager);
+    const installCmd = packageManager === "npm" ? "install" : "add";
+    return `${prefix.replace("npx", "npm")} ${installCmd} bits-ui`;
+  }
+
   // Only components, blocks, and charts have install commands
   if (
     item.type === "component" ||
@@ -236,6 +265,10 @@ function formatTitle(name: string): string {
  * Generate description for an item
  */
 function generateDescription(item: SearchableItem): string {
+  if (item.category === "bits-ui-component") {
+    return `Bits UI: Headless ${formatTitle(item.name)} primitive`;
+  }
+
   switch (item.type) {
     case "component":
       return `UI component: ${formatTitle(item.name)}`;
@@ -252,42 +285,54 @@ function generateDescription(item: SearchableItem): string {
 
 /**
  * Format results as markdown with install commands
+ * Returns both markdown and structured suggestions
  */
 function formatResults(
   results: SearchResult[],
   query: string,
   type: string,
   packageManager: "npm" | "yarn" | "pnpm" | "bun" = "npm",
-  allItems?: SearchableItem[]
-): string {
+  allItems?: SearchableItem[],
+): { markdown: string; suggestions: Suggestion[] } {
+  const suggestions: Suggestion[] = [];
+
   if (results.length === 0) {
     let markdown = `# No Results Found\n\nNo matches found for query: **"${query}"**\n\n`;
 
     // Provide suggestions if we have all items
     if (allItems) {
-      const suggestions = getSuggestionsForNoResults(allItems, query);
-      if (suggestions.length > 0) {
+      const fuzzyResults = getSuggestionsForNoResults(allItems, query);
+      if (fuzzyResults.length > 0) {
         markdown += `## 💡 Did you mean?\n\n`;
-        suggestions.forEach(
+        fuzzyResults.forEach(
           (
             suggestion: { item: SearchableItem; similarity: number },
-            index: number
+            index: number,
           ) => {
             const { item, similarity } = suggestion;
             const installCmd = buildInstallCommand(item, packageManager);
+
+            // Build suggestion for structured data
+            suggestions.push({
+              name: item.name,
+              type: item.type,
+              similarity: Math.round(similarity),
+              nextAction: `Try shadcn-svelte-get("${item.name}", "${item.type}")`,
+            });
+
             markdown += `${index + 1}. **${formatTitle(item.name)}** (${similarity}% similar)\n`;
             markdown += `   Type: ${item.type}\n`;
             if (installCmd) {
               markdown += `   📦 Install: \`${installCmd}\`\n`;
             }
             markdown += `   🔗 [View docs](${buildUrl(item)})\n\n`;
-          }
+          },
         );
       }
     }
 
     markdown += `\n**Try:**\n- Using different keywords\n- Checking spelling\n- Being more general\n\nYou can use the \`list\` tool to see all available components and docs.\n`;
-    return markdown;
+    return { markdown, suggestions };
   }
 
   // Group by type
@@ -299,7 +344,7 @@ function formatResults(
       acc[result.type].push(result);
       return acc;
     },
-    {} as Record<string, SearchResult[]>
+    {} as Record<string, SearchResult[]>,
   );
 
   let markdown = `# Search Results for "${query}"\n\n`;
@@ -347,15 +392,9 @@ function formatResults(
         markdown += `   ${item.description}\n`;
       }
 
-      // Add install command for components/blocks/charts
-      if (
-        resourceType === "component" ||
-        resourceType === "block" ||
-        resourceType === "chart"
-      ) {
-        const itemName = item.title.toLowerCase().replace(/\s+/g, "-");
-        const prefix = getPrefix(packageManager);
-        markdown += `   📦 Install: \`${prefix} shadcn-svelte@latest add ${itemName}\`\n`;
+      // Add install command if available
+      if (item.installCommand) {
+        markdown += `   📦 Install: \`${item.installCommand}\`\n`;
       }
 
       markdown += `\n`;
@@ -365,7 +404,7 @@ function formatResults(
   markdown += "---\n\n";
   markdown += `**Query**: "${query}" | **Type Filter**: ${type} | **Total Results**: ${results.length}\n`;
 
-  return markdown;
+  return { markdown, suggestions };
 }
 
 /**
@@ -393,14 +432,14 @@ export const shadcnSvelteSearchTool = createTool({
       .enum(["npm", "yarn", "pnpm", "bun"])
       .optional()
       .describe(
-        "Optional package manager for install commands. If omitted, defaults to 'npx' for npm-style one-time commands"
+        "Optional package manager for install commands. If omitted, defaults to 'npx' for npm-style one-time commands",
       ),
   }),
   execute: async ({ context }) => {
     const { query, type = "all", limit = 10, packageManager = "npm" } = context;
 
     console.log(
-      `[shadcn-svelte-search] Searching for: "${query}" (type: ${type}, limit: ${limit}, packageManager: ${packageManager})`
+      `[shadcn-svelte-search] Searching for: "${query}" (type: ${type}, limit: ${limit}, packageManager: ${packageManager})`,
     );
 
     try {
@@ -420,19 +459,20 @@ export const shadcnSvelteSearchTool = createTool({
           title: formatTitle(item.name),
           url: buildUrl(item),
           description: generateDescription(item),
+          installCommand: buildInstallCommand(item, packageManager),
           type: item.type,
           score,
           similarity,
-        })
+        }),
       );
 
       // Format as markdown (pass allItems for suggestions if no results)
-      const markdown = formatResults(
+      const { markdown, suggestions } = formatResults(
         results,
         query,
         type,
         packageManager,
-        items
+        items,
       );
 
       return {
@@ -440,6 +480,15 @@ export const shadcnSvelteSearchTool = createTool({
         results,
         query,
         totalResults: results.length,
+        suggestions: results.length === 0 ? suggestions : undefined,
+        nextSteps:
+          results.length === 0 && suggestions.length > 0
+            ? [
+                `Try using shadcn-svelte-get directly with one of these suggestions: ${suggestions.map((s) => `"${s.name}"`).join(", ")}`,
+                "Keep your search query simple - just the component name works best",
+                "If the name above doesn't match, try the 'list' tool to browse all available items",
+              ]
+            : undefined,
       };
     } catch (error) {
       console.error("[shadcn-svelte-search] Error during search:", error);

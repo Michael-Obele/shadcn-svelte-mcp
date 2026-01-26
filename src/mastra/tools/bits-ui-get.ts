@@ -39,7 +39,7 @@ interface ToolResponse {
 export const bitsUiGetTool = createTool({
   id: "bits-ui-get",
   description:
-    "Get DEEPER API DETAILS about Bits UI primitives (the underlying library for shadcn-svelte). Use this ONLY when: (1) you need lower-level primitive API documentation, (2) shadcn-svelte-get doesn't provide sufficient implementation details, or (3) you're building custom components with Bits UI primitives. For standard shadcn-svelte component usage, always use shadcn-svelte-get first. Returns structured JSON with API details optimized for AI consumption.",
+    "Get DEEPER API DETAILS about Bits UI primitives (the underlying library for shadcn-svelte). ONLY use this tool when: (1) shadcn-svelte-get returned a docs.bitsuiName field (meaning the component IS based on Bits UI), (2) you need lower-level primitive API documentation, or (3) you're building custom components with Bits UI primitives. DO NOT use this tool for components that don't have bitsuiName. For standard shadcn-svelte component usage, always use shadcn-svelte-get first. Returns structured JSON with API details optimized for AI consumption.",
   inputSchema: z.object({
     name: z.string().describe("Name of the Bits UI component"),
     packageManager: z
@@ -70,12 +70,12 @@ export const bitsUiGetTool = createTool({
         const response: ToolResponse = {
           success: false,
           error: `Bits UI component "${normalizedName}" not found`,
-          suggestion: `The component name "${normalizedName}" may not exist. Available Bits UI components can be discovered.`,
+          suggestion: `The component name "${normalizedName}" may not exist. Use shadcn-svelte-get to find the correct Bits UI primitive link.`,
           nextSteps: [
-            `1. Use the shadcn-svelte-list tool to see all available shadcn-svelte components and blocks`,
-            `2. Or if you're looking for a specific Bits UI primitive, check the Bits UI documentation at https://bits-ui.com/docs/components`,
-            `3. Try searching with a corrected component name`,
-            `4. Note: shadcn-svelte wraps Bits UI components, so using shadcn-svelte-get is often better than bits-ui-get for standard components`,
+            `1. Use shadcn-svelte-get to see available shadcn-svelte components`,
+            `2. Check the "docs.primitive" field in the response for the Bits UI component link`,
+            `3. Or visit https://bits-ui.com/docs/components to browse all Bits UI components`,
+            `4. Note: shadcn-svelte component names may differ from Bits UI names`,
           ],
         };
         return JSON.stringify(response, null, 2);
@@ -108,12 +108,12 @@ export const bitsUiGetTool = createTool({
       const response: ToolResponse = {
         success: false,
         error: `Error retrieving Bits UI component "${normalizedName}": ${error instanceof Error ? error.message : error}`,
-        suggestion: `An error occurred while retrieving the component. Try these alternatives:`,
+        suggestion: `Use shadcn-svelte-get first to find the correct Bits UI component name. It provides docs.bitsuiName field with the exact Bits UI component name.`,
         nextSteps: [
-          `1. Double-check the component name spelling`,
-          `2. Use shadcn-svelte-get instead if this is a shadcn-svelte component`,
-          `3. Check https://bits-ui.com/docs/components for valid component names`,
-          `4. Try using shadcn-svelte-list to discover available components`,
+          `1. Use shadcn-svelte-get with a shadcn-svelte component name (e.g., "sheet", "dialog")`,
+          `2. Check the response's docs.bitsuiName field for the Bits UI component name`,
+          `3. Use that name with bits-ui-get for deeper API details`,
+          `4. Or visit https://bits-ui.com/docs/components to browse all components`,
         ],
       };
       return JSON.stringify(response, null, 2);

@@ -19,6 +19,30 @@ import {
 } from "./utils/shadcn-utils.js";
 
 /**
+ * Extract Bits UI component name from URL
+ * @param url - Bits UI component URL like "https://bits-ui.com/docs/components/dialog"
+ * @returns Component name like "dialog" or undefined if not found
+ */
+function extractBitsUiComponentName(url?: string): string | undefined {
+  if (!url) return undefined;
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split("/");
+    // Expected format: /docs/components/{componentName}
+    if (
+      pathParts.length >= 4 &&
+      pathParts[1] === "docs" &&
+      pathParts[2] === "components"
+    ) {
+      return pathParts[3];
+    }
+  } catch {
+    // Invalid URL, return undefined
+  }
+  return undefined;
+}
+
+/**
  * Response interface for structured JSON output
  * Optimized for LLM consumption
  */
@@ -41,6 +65,7 @@ interface ToolResponse {
   docs?: {
     main?: string;
     primitive?: string;
+    bitsuiName?: string;
   };
   usage?: {
     summary?: string;
@@ -69,18 +94,18 @@ export const shadcnSvelteGetTool = createTool({
     name: z
       .string()
       .describe(
-        "Name of the component, documentation section, or 'sonner' for Svelte Sonner docs"
+        "Name of the component, documentation section, or 'sonner' for Svelte Sonner docs",
       ),
     type: z
       .enum(["component", "doc", "sonner"])
       .describe(
-        "Type: 'component' for UI components/blocks/charts, 'doc' for documentation, 'sonner' for Svelte Sonner docs"
+        "Type: 'component' for UI components/blocks/charts, 'doc' for documentation, 'sonner' for Svelte Sonner docs",
       ),
     packageManager: z
       .enum(["npm", "yarn", "pnpm", "bun"]) // optional package manager override for generated snippets
       .optional()
       .describe(
-        "Preferred package manager to use when rendering installation commands"
+        "Preferred package manager to use when rendering installation commands",
       ),
   }),
   execute: async ({ context }): Promise<string> => {
@@ -147,7 +172,6 @@ export const shadcnSvelteGetTool = createTool({
         const summary = extractSummary(rawContent);
         const examples = extractExamples(rawContent);
         const variants = extractVariants(rawContent);
-
         // Fallback for primary code if examples didn't catch it
         const primaryCode =
           examples.length > 0
@@ -161,10 +185,13 @@ export const shadcnSvelteGetTool = createTool({
           description: summary || `Displays a ${name} component.`,
           installCommand: getInstallCommand(name, packageManager),
           importPath: getImportPath(name),
-          dependencies: ["bits-ui"],
+          dependencies: extractBitsUiComponentName(result.metadata?.bitsUiUrl || result.bitsUiUrl) ? ["bits-ui"] : [],
           docs: {
             main: `https://shadcn-svelte.com/docs/components/${name}`,
             primitive: result.metadata?.bitsUiUrl || result.bitsUiUrl,
+            bitsuiName: extractBitsUiComponentName(
+              result.metadata?.bitsUiUrl || result.bitsUiUrl,
+            ),
           },
           usage: {
             summary: "Use the examples below to understand implementation.",
@@ -272,7 +299,7 @@ export const shadcnSvelteGetTool = createTool({
           error: `Error retrieving ${type} "${name}": ${error instanceof Error ? error.message : error}`,
         },
         null,
-        2
+        2,
       );
     }
   },

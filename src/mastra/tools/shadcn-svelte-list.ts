@@ -1,6 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { getAllContent } from "../../services/component-discovery.js";
+import { discoverBitsUIComponents } from "../../services/bits-ui-discovery.js";
 
 // Known blocks and charts (manually curated from investigation)
 const BLOCKS = {
@@ -25,13 +26,13 @@ const CHARTS = {
 export const shadcnSvelteListTool = createTool({
   id: "shadcn-svelte-list",
   description:
-    "List all available shadcn-svelte components, blocks, charts, and documentation sections by discovering them from the live website",
+    "List all available shadcn-svelte components, blocks, charts, documentation sections, and Bits UI primitives by discovering them from the live websites",
   inputSchema: z.object({
     type: z
-      .enum(["components", "blocks", "charts", "docs", "all"])
+      .enum(["components", "blocks", "charts", "docs", "bits-ui", "all"])
       .optional()
       .default("all")
-      .describe("What to list: components, blocks, charts, docs, or all"),
+      .describe("What to list: components, blocks, charts, docs, bits-ui, or all"),
   }),
   execute: async ({ context }) => {
     const { type = "all" } = context;
@@ -45,7 +46,7 @@ export const shadcnSvelteListTool = createTool({
       // List components if requested
       if (type === "components" || type === "all") {
         result += "## Components\n\n";
-        result += `Found ${content.components.length} UI components:\n\n`;
+        result += `Found ${content.components.length} shadcn-svelte components:\n\n`;
 
         // Display in columns for better readability
         const columns = 3;
@@ -57,6 +58,25 @@ export const shadcnSvelteListTool = createTool({
           result += `${row}\n`;
         }
         result += "\n";
+      }
+
+      // List Bits UI components if requested
+      if (type === "bits-ui" || type === "all") {
+        const bitsUIComponents = content.bitsUIComponents;
+        result += "## Bits UI Components\n\n";
+        result += `Found ${bitsUIComponents.length} headless UI primitives (used by shadcn-svelte):\n\n`;
+
+        // Display in columns for better readability
+        const columns = 3;
+        for (let i = 0; i < bitsUIComponents.length; i += columns) {
+          const row = bitsUIComponents
+            .slice(i, i + columns)
+            .map((c) => `\`${c.name}\``)
+            .join(" · ");
+          result += `${row}\n`;
+        }
+        result += "\n";
+        result += "*These are the underlying headless components that shadcn-svelte builds upon.*\n\n";
       }
 
       // List blocks if requested

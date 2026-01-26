@@ -5,6 +5,7 @@
 
 import { fetchUrl } from "./doc-fetcher.js";
 import { getFromCache, saveToCache } from "./cache-manager.js";
+import { discoverBitsUIComponents } from "./bits-ui-discovery.js";
 
 export interface ComponentInfo {
   name: string;
@@ -295,6 +296,7 @@ export async function discoverDocs(): Promise<{
  */
 export async function getAllContent(): Promise<{
   components: ComponentInfo[];
+  bitsUIComponents: any[];
   docs: {
     installation: string[];
     darkMode: string[];
@@ -302,10 +304,14 @@ export async function getAllContent(): Promise<{
     general: string[];
   };
 }> {
-  const [components, docs] = await Promise.all([
+  const [components, bitsUIComponents, docs] = await Promise.all([
     discoverComponents(),
+    discoverBitsUIComponents(),
     discoverDocs(),
   ]);
 
-  return { components, docs };
+  console.log(`[getAllContent] shadcn-svelte components: ${components.length}`);
+  console.log(`[getAllContent] Bits UI components: ${bitsUIComponents.length}`);
+
+  return { components, bitsUIComponents, docs };
 }
