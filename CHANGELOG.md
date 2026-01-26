@@ -1,3 +1,11 @@
+# [1.5.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.4.0...v1.5.0) (2026-01-26)
+
+
+### Features
+
+* add error handling and self-correction guidelines for shadcn-svelte-get and bits-ui-get tools ([1acea9a](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/1acea9a8354178b2cb46e69a0f44ee954d4dcaed))
+* enhance ToolResponse structure in bits-ui-get and shadcn-svelte-get tools with suggestions and next steps for improved user guidance ([8272d37](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/8272d37a6b02b01d7d6db99e41548314470c1fbd))
+
 # [1.4.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.3.0...v1.4.0) (2026-01-26)
 
 
