@@ -30,6 +30,8 @@ interface ToolResponse {
   contextRules?: string[];
   rawContent?: string;
   error?: string;
+  suggestion?: string;
+  nextSteps?: string[];
 }
 
 // Tool for getting detailed information about Bits UI components
@@ -44,7 +46,7 @@ export const bitsUiGetTool = createTool({
       .enum(["npm", "yarn", "pnpm", "bun"])
       .optional()
       .describe(
-        "Preferred package manager to use when rendering installation commands"
+        "Preferred package manager to use when rendering installation commands",
       ),
   }),
   execute: async ({ context }): Promise<string> => {
@@ -61,14 +63,20 @@ export const bitsUiGetTool = createTool({
         {
           useCache: true,
           baseUrl: "https://bits-ui.com",
-        }
+        },
       );
 
       if (!result.success || !result.content) {
         const response: ToolResponse = {
           success: false,
-          error:
-            result.error || `Bits UI component "${normalizedName}" not found`,
+          error: `Bits UI component "${normalizedName}" not found`,
+          suggestion: `The component name "${normalizedName}" may not exist. Available Bits UI components can be discovered.`,
+          nextSteps: [
+            `1. Use the shadcn-svelte-list tool to see all available shadcn-svelte components and blocks`,
+            `2. Or if you're looking for a specific Bits UI primitive, check the Bits UI documentation at https://bits-ui.com/docs/components`,
+            `3. Try searching with a corrected component name`,
+            `4. Note: shadcn-svelte wraps Bits UI components, so using shadcn-svelte-get is often better than bits-ui-get for standard components`,
+          ],
         };
         return JSON.stringify(response, null, 2);
       }
@@ -100,6 +108,13 @@ export const bitsUiGetTool = createTool({
       const response: ToolResponse = {
         success: false,
         error: `Error retrieving Bits UI component "${normalizedName}": ${error instanceof Error ? error.message : error}`,
+        suggestion: `An error occurred while retrieving the component. Try these alternatives:`,
+        nextSteps: [
+          `1. Double-check the component name spelling`,
+          `2. Use shadcn-svelte-get instead if this is a shadcn-svelte component`,
+          `3. Check https://bits-ui.com/docs/components for valid component names`,
+          `4. Try using shadcn-svelte-list to discover available components`,
+        ],
       };
       return JSON.stringify(response, null, 2);
     }

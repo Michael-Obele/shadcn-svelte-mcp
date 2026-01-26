@@ -50,6 +50,8 @@ interface ToolResponse {
   contextRules?: string[];
   rawContent?: string;
   error?: string;
+  suggestion?: string;
+  nextSteps?: string[];
   // Metadata for non-component docs
   metadata?: {
     url?: string;
@@ -94,6 +96,13 @@ export const shadcnSvelteGetTool = createTool({
             const response: ToolResponse = {
               success: false,
               error: `Block/Chart "${name}" not found: ${blockResult.error}`,
+              suggestion: `The block/chart name "${name}" may not exist. Use shadcn-svelte-list to discover available blocks and charts.`,
+              nextSteps: [
+                `1. Use shadcn-svelte-list with type "blocks" or "charts" to see all available blocks and charts`,
+                `2. Check the correct spelling - block/chart names are case-sensitive`,
+                `3. Visit https://shadcn-svelte.com/blocks to browse all available blocks`,
+                `4. Blocks often have numerical suffixes (e.g., sidebar-03, dashboard-01)`,
+              ],
             };
             return JSON.stringify(response, null, 2);
           }
@@ -123,6 +132,13 @@ export const shadcnSvelteGetTool = createTool({
           const response: ToolResponse = {
             success: false,
             error: result.error || `Component "${name}" not found`,
+            suggestion: `The component name "${name}" may not exist in shadcn-svelte. Available components can be discovered.`,
+            nextSteps: [
+              `1. Use the shadcn-svelte-list tool to see all available components, blocks, and charts`,
+              `2. Check the correct spelling - component names are case-sensitive`,
+              `3. Visit https://shadcn-svelte.com to browse available components`,
+              `4. If you're looking for a Bits UI primitive, use bits-ui-get instead`,
+            ],
           };
           return JSON.stringify(response, null, 2);
         }
