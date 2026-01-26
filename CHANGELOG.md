@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.3.0...v1.4.0) (2026-01-26)
+
+
+### Features
+
+* update bits-ui-get and shadcn-svelte-get tools with improved descriptions and usage notes for clarity ([b3e0771](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/b3e0771fcc97aac26aa5d8e61f48136d2b26260b))
+
 # [1.3.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.2.0...v1.3.0) (2026-01-11)
 
 
