@@ -1,3 +1,11 @@
+# [1.6.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.5.0...v1.6.0) (2026-01-26)
+
+
+### Features
+
+* add error handling and self-correction guidelines for shadcn-svelte-get and bits-ui-get tools ([63912c7](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/63912c7eb6fd5cae1f49489cdc369b67aaf8ecc5))
+* enhance bits-ui-get and shadcn-svelte-get tools with improved documentation and error handling; add Bits UI component discovery service ([6a7cdd6](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/6a7cdd6f63a2c298d51b011efd1350e762536a4c))
+
 # [1.5.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.4.0...v1.5.0) (2026-01-26)
 
 
