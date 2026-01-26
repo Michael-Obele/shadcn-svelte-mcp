@@ -58,11 +58,11 @@ interface ToolResponse {
   };
 }
 
-// Tool for getting detailed information about components or documentation
+// PRIMARY TOOL - Tool for getting detailed information about components or documentation
 export const shadcnSvelteGetTool = createTool({
   id: "shadcn-svelte-get",
   description:
-    "Get detailed information about any shadcn-svelte component, block, chart, documentation section, or Svelte Sonner docs from the live websites. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), charts, docs, and sonner. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. Svelte has different APIs and patterns than React.",
+    "PRIMARY TOOL for shadcn-svelte components. Get detailed information about any shadcn-svelte component, block, chart, documentation section, or Svelte Sonner docs. Always use this tool FIRST for any shadcn-svelte-related queries. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), charts, docs, and sonner. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. If you need deeper API details after using this tool, then use bits-ui-get.",
   inputSchema: z.object({
     name: z
       .string()

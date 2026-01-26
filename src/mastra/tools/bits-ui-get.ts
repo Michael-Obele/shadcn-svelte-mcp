@@ -33,10 +33,11 @@ interface ToolResponse {
 }
 
 // Tool for getting detailed information about Bits UI components
+// NOTE: This is a SECONDARY tool - only use after shadcn-svelte-get or when you need deeper API details
 export const bitsUiGetTool = createTool({
   id: "bits-ui-get",
   description:
-    "Get detailed information about any Bits UI component from the official LLM-optimized documentation. Bits UI is the underlying library for shadcn-svelte components, providing deeper API details and implementation specifics. Returns structured JSON with content optimized for AI consumption.",
+    "Get DEEPER API DETAILS about Bits UI primitives (the underlying library for shadcn-svelte). Use this ONLY when: (1) you need lower-level primitive API documentation, (2) shadcn-svelte-get doesn't provide sufficient implementation details, or (3) you're building custom components with Bits UI primitives. For standard shadcn-svelte component usage, always use shadcn-svelte-get first. Returns structured JSON with API details optimized for AI consumption.",
   inputSchema: z.object({
     name: z.string().describe("Name of the Bits UI component"),
     packageManager: z
