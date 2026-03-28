@@ -1,0 +1,23 @@
+{
+  "skill_name": "shadcn-sveltekit-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Design a premium SvelteKit landing page for an AI design assistant. Use shadcn-svelte components that are actually available, choose a bold visual direction, and include a hero, feature grid, testimonial section, pricing, and CTA. Use the MCP to get the official shadcn-svelte CLI commands where possible, run them if project edits are needed, and do not hand-write upstream shadcn-svelte component source if the CLI can add it.",
+      "expected_output": "A polished landing page concept and implementation grounded in verified shadcn-svelte components, with a clear design direction, no invented APIs, and an MCP-preferred CLI-first approach to official components.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Build a reusable Svelte settings panel with sections, toggles, inline descriptions, destructive actions, and an icon-backed sidebar. Use the shadcn-svelte MCP to verify components and icons first, install any official shadcn-svelte primitives through the CLI instead of writing them manually, and explain any Tailwind or CSS overrides you apply. Do not offload the installation step to the user if command execution is available.",
+      "expected_output": "A reusable Svelte component with a coherent API, verified component choices, MCP-sourced CLI installation for official primitives when needed, and deliberate Tailwind or CSS customization.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Redesign a cramped analytics dashboard in SvelteKit so it feels editorial and data-dense without becoming generic SaaS UI. Use verified shadcn-svelte building blocks, keep the layout responsive, and call out any component gaps instead of hallucinating them. If no motion library is requested, prefer Svelte built-in motion primitives such as transition, in, out, and animate rather than adding a new dependency.",
+      "expected_output": "A dashboard redesign plan and implementation that uses verified blocks, charts, or primitives, preserves responsiveness, prefers built-in Svelte motion when no motion library is specified, and explicitly states any unavailable components.",
+      "files": []
+    }
+  ]
+}
