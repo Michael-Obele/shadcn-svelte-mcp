@@ -41,6 +41,7 @@ This repository contains a Mastra-based MCP server that provides real-time acces
 - [Observations & Minor UX Suggestions](#-observations--minor-ux-suggestions)
 - [Editor Setup](#editor-setup)
 - [CLI & Agent Configuration](#cli--agent-configuration)
+- [Skills.sh Skill](#skillssh-skill)
 - [Verification & Quick Tests](#verification--quick-tests)
 - [Available Tools](#available-tools)
 - [Example Usage](#example-usage)
@@ -364,6 +365,40 @@ codex mcp list
 <!-- Mastra Cloud recommended; replace with a private host if needed. -->
 
 </details>
+
+## Skills.sh Skill
+
+This repository now includes a publishable agent skill at `skills/shadcn-sveltekit-design/SKILL.md`.
+
+Use it when you want an agent to design or implement polished SvelteKit pages and reusable components with shadcn-svelte while grounding component choices in this MCP.
+
+### Install from GitHub
+
+```bash
+npx skills add Michael-Obele/shadcn-svelte-mcp --skill shadcn-sveltekit-design
+```
+
+For GitHub Copilot specifically:
+
+```bash
+npx skills add Michael-Obele/shadcn-svelte-mcp --skill shadcn-sveltekit-design --agent github-copilot -g -y
+```
+
+### Local validation
+
+```bash
+npx skills add . --list
+```
+
+### Expected skills.sh page
+
+Once this repository change is pushed to the public GitHub repository and indexed by the `skills` ecosystem, the skill should resolve at:
+
+```text
+https://skills.sh/Michael-Obele/shadcn-svelte-mcp/shadcn-sveltekit-design
+```
+
+The skill assumes the `shadcn-svelte` MCP server is already configured in the agent environment, using the endpoints documented above.
 
 ## Verification & Quick Tests
 
