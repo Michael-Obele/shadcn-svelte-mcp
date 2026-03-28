@@ -9,24 +9,12 @@ Mastra MCP server and tooling that provides real-time access to shadcn-svelte co
 
 ## Production Deployments
 
-Choose the base host that fits your workflow — both expose the same toolset, but their runtime characteristics differ:
+Mastra Cloud is the primary deployment: zero cold start, fast tool discovery, and the same toolset over both transports.
 
-| Host         | Base URL                           | Highlights                                                                                           |
-| ------------ | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Mastra Cloud | https://shadcn-svelte.mastra.cloud | **Primary choice** - Zero cold start, maximum responsiveness, and consistently reliable performance. |
-
-- Append `/api/mcp/shadcn/sse` for the SSE transport (best for editors that keep long-lived connections).
-- Append `/api/mcp/shadcn/mcp` for the HTTP transport (handy for CLIs and quick one-off calls).
-- **Mastra Cloud is the recommended primary deployment** - it offers zero cold start and maximum responsiveness. Tool discovery issue has been fixed and it can be used reliably.
-
-<details>
-<summary>Endpoint reference & alternates</summary>
-
-- **Mastra Cloud SSE**: https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse
-- **Mastra Cloud HTTP**: https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp
-<!-- Only Mastra Cloud endpoints are published as primary; an org/private host may be used if needed. -->
-
-</details>
+| Transport | URL                                                   | Best for                                 |
+| --------- | ----------------------------------------------------- | ---------------------------------------- |
+| SSE       | https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse | Editors that keep long-lived connections |
+| HTTP      | https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp | CLIs, scripts, and one-off calls         |
 
 > [!NOTE]
 > This project follows our [Code of Conduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
@@ -91,14 +79,14 @@ This ensures that AI assistants receive the most relevant and well-structured in
 
 ## Editor Setup
 
-**Mastra Cloud is the recommended primary deployment** for all editors. It offers zero cold start and maximum responsiveness. SSE works best for editors that keep a persistent connection, while HTTP is handy for one-off requests and scripts. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add server` to paste either URL.
+Mastra Cloud is the recommended deployment for all editors. Use SSE for persistent editor connections and HTTP for one-off requests or scripts. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add server` to paste either URL.
 
 <details>
 <summary>Cursor</summary>
 
 1. Open Cursor Settings (`Cmd/Ctrl` + `,`).
 2. Navigate to "MCP" / "Model Context Protocol" and add a new server configuration.
-3. **Mastra Cloud is recommended** for zero cold start and maximum responsiveness. Append the SSE or HTTP path as shown in the examples below.
+3. Add either the SSE or HTTP endpoint shown below.
 
 Mastra Cloud — SSE example:
 
@@ -122,15 +110,13 @@ Mastra Cloud — HTTP example:
 }
 ```
 
-# Mastra Cloud is the recommended deployment for reliability and responsiveness.
-
 </details>
 
 <details>
 <summary>Windsurf</summary>
 
 1. Edit `~/.codeium/windsurf/mcp_config.json`.
-2. **Mastra Cloud is recommended** for zero cold start and maximum responsiveness. Add the SSE transport as shown:
+2. Add the SSE transport as shown:
 
 ```json
 {
@@ -158,8 +144,6 @@ Use the HTTP variant if you need it:
 }
 ```
 
-<!-- Mastra Cloud is the recommended deployment for most users. -->
-
 </details>
 
 <details>
@@ -185,11 +169,7 @@ Use the HTTP variant if you need it:
 }
 ```
 
-<!-- If you operate your own MCP host, adjust the `args` URL to your host. Mastra Cloud is recommended. -->
-
 4. Save, restart Zed, and confirm the server shows a green indicator in the Agent panel. Zed also offers a UI flow via Settings → Agent to paste either endpoint without editing JSON.
-
-<!-- Mastra Cloud is the recommended deployment for most users. -->
 
 </details>
 
@@ -360,17 +340,13 @@ codex mcp list
    }
    ```
 
-4. **Mastra Cloud is recommended** for zero cold start and maximum responsiveness. Restart the CLI to apply changes.
-
-<!-- Mastra Cloud recommended; replace with a private host if needed. -->
+4. Restart the CLI to apply changes.
 
 </details>
 
 ## Skills.sh Skill
 
-This repository now includes a publishable agent skill at `skills/shadcn-sveltekit-design/SKILL.md`.
-
-Use it when you want an agent to design or implement polished SvelteKit pages and reusable components with shadcn-svelte while grounding component choices in this MCP.
+This repository includes a publishable agent skill at `skills/shadcn-sveltekit-design/SKILL.md` for designing and implementing polished SvelteKit pages and reusable components with shadcn-svelte while grounding component choices in this MCP.
 
 ### Install from GitHub
 
@@ -398,9 +374,11 @@ Once this repository change is pushed to the public GitHub repository and indexe
 https://skills.sh/Michael-Obele/shadcn-svelte-mcp/shadcn-sveltekit-design
 ```
 
-The skill assumes the `shadcn-svelte` MCP server is already configured in the agent environment, using the endpoints documented above.
+The skill assumes the `shadcn-svelte` MCP server is already configured in the agent environment.
 
 ## Verification & Quick Tests
+
+Use these checks after configuration. Prefer SSE for editor connections and HTTP for CLI probing.
 
 - `claude mcp list`
 - `codex mcp list`
@@ -408,29 +386,21 @@ The skill assumes the `shadcn-svelte` MCP server is already configured in the ag
 - `curl -I https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
 - `curl -N https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse`
 
-Claude Code may prompt for tool permissions — use `/permissions` or set `allowedTools` in `~/.claude.json`. Editors that maintain long-lived connections should use the SSE URL; quick scripts can stick with HTTP.
-
-<!-- Backup-host references have been removed; Mastra Cloud is the recommended deployment for all editor and CLI configurations. -->
+Claude Code may prompt for tool permissions. Use `/permissions` or set `allowedTools` in `~/.claude.json` if needed.
 
 ## Available Tools
 
-> Note: The previous 'utility' tool has been split into dedicated tools. Use `shadcn-svelte-icons` for icon browsing/search, `shadcn-svelte-list` and `shadcn-svelte-get` for discovery and docs, `shadcn-svelte-search` for fuzzy search, and `bits-ui-get` for underlying API details.
+These are the tool IDs exposed by the MCP server:
 
-Once installed, your AI assistant will have access to these tools (IDs exactly as exposed by the MCP server):
+| Tool                   | Use for                                                                    | Returns                                                |
+| ---------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `shadcn-svelte-list`   | Inventory of components, blocks, charts, docs, and Bits UI primitives      | Markdown list                                          |
+| `shadcn-svelte-get`    | Detailed lookup for components, blocks, charts, docs, and install snippets | Structured JSON; supports `packageManager`             |
+| `shadcn-svelte-search` | Fuzzy discovery when you do not know the exact component or docs name      | Markdown summary plus structured results               |
+| `shadcn-svelte-icons`  | Lucide icon discovery with install and import snippets                     | Markdown; supports `names`, `limit`, and `importLimit` |
+| `bits-ui-get`          | Lower-level Bits UI API reference and implementation details               | Structured JSON from Bits UI `llms.txt` endpoints      |
 
-1. `shadcn-svelte-list` — List components, blocks, charts, and docs (returns Markdown lists)
-2. `shadcn-svelte-get` — Retrieve detailed component/block/doc content as structured JSON (content, metadata, codeBlocks)
-3. `shadcn-svelte-icons` — Browse and search Lucide Svelte icons by name/tag (returns Markdown with install + usage snippets; accepts an optional `names` array for explicit icon selection; supports `limit` (total returned) and `importLimit` (how many to include in imports); uses dynamic upstream icon data)
-4. `shadcn-svelte-search` — Fuzzy search across components and docs (returns Markdown for display and a `results` array for programmatic use)
-5. `bits-ui-get` — Access Bits UI component API documentation with AI-optimized content from llms.txt endpoints (provides structured API reference tables, implementation details, and clean markdown formatting)
-
-### Tool response formats (quick reference)
-
-- `shadcn-svelte-list`: Markdown list intended for human display (component names, docs, blocks)
-- `shadcn-svelte-get`: Structured JSON with `content`, `metadata`, `codeBlocks` (useful for programmatic responses). You can pass an optional `packageManager` (`npm`|`yarn`|`pnpm`|`bun`) to render install commands using a preferred package manager.
-- `shadcn-svelte-icons`: Markdown list with icon names, tag summaries, and an example `@lucide/svelte` usage snippet. Accepts `names: string[]` for explicit selection and returns multi-import usage snippets.
-- `shadcn-svelte-search`: An object with `markdown`, `results` (structured), and `totalResults`
-- `bits-ui-get`: Structured JSON with AI-optimized content from Bits UI's llms.txt endpoints, including API reference tables and implementation details
+Use `shadcn-svelte-get` first for known components or docs, `shadcn-svelte-search` when the exact name is unknown, and `bits-ui-get` only when you need lower-level primitive details.
 
 ## Example Usage
 
@@ -438,18 +408,12 @@ After installing the MCP server in your editor, you can ask your AI assistant:
 
 - "Show me how to install the shadcn-svelte button component"
 - "List all available shadcn-svelte components"
-- "Search for date picker components in shadcn-svelte"
-- "Find all chart components with 'line' in the name"
-- "How do I customize the theme for shadcn-svelte?"
-- "What are the props for the Dialog component?"
-- "Search for Lucide icons related to 'user profile'"
-- "Find all arrow icons in Lucide Svelte"
-- "Search for Lucide icons related to 'user profile'" — uses `shadcn-svelte-icons` tool
-- "Find components matching 'date picker'" — uses `shadcn-svelte-search` tool (returns markdown and structured results)
-- "Get specific icons 'arrow-right' and 'user' with pnpm as package manager" — `{ names: ['arrow-right','user'], packageManager: 'pnpm' }` (call `shadcn-svelte-icons`)
-- "Get the installation docs for dashboard-01 using yarn" — `{ name: 'dashboard-01', type: 'component', packageManager: 'yarn' }` (call `shadcn-svelte-get`)
-- "What are the API details for the Button component?" — uses `bits-ui-get` tool for underlying Bits UI implementation details
-- "Show me the Button component's props and events" — uses `bits-ui-get` tool with AI-optimized content from llms.txt
+- "Find components similar to a date picker and tell me which ones actually exist"
+- "List the available chart components"
+- "How do I customize themes in shadcn-svelte?"
+- "Find Lucide icons for user profile and settings"
+- "Show me the Bits UI API details for Dialog"
+- "Give me the install steps for dashboard-01 using yarn"
 
 ## Local Development
 
@@ -494,19 +458,6 @@ npm run dev
 - `npm run sync-versions-auto` - Check versions and auto-sync if mismatched (package.json is source of truth).
 - `npm run sync-versions` - Sync versions from latest git tag to both files.
 
-## MCP Architecture
-
-This project exposes a **production-ready MCP Server** that makes shadcn-svelte documentation and tools available to AI code editors.
-
-**What this means:**
-
-- **MCP Server** (`src/mastra/mcp-server.ts`) - Exposes four shadcn-svelte tools to external MCP clients (Cursor, Windsurf, VS Code, etc.)
-- **No MCP Client needed** - This project only _provides_ tools, it doesn't consume tools from other servers
-
-The server is deployed at `https://shadcn-svelte.mastra.cloud` and exposes tools via HTTP and SSE transports.
-
-For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
-
 ## Project Architecture
 
 ### Core Components
@@ -524,14 +475,7 @@ For a detailed explanation of MCP concepts, see `MCP_ARCHITECTURE.md`.
 
 ### Key Features
 
-- **Real-time Documentation**: Always fetches latest content from shadcn-svelte.com and bits-ui.com
-- **Bits UI API Access**: Direct integration with underlying component library documentation via AI-optimized llms.txt endpoints
-- **Multi-strategy Fetching**: Handles different page types (SPA, static, JS-heavy)
-- **Intelligent Caching**: Reduces API calls while ensuring freshness
-- **Lucide Icon Search**: Browse and search ~1,600 Lucide Svelte icons with smart filtering by name and tags
-- **Comprehensive Testing**: Edge case coverage and integration tests
-- **Automated Versioning**: Semantic release with version synchronization
-- **Production Deployment**: Mastra Cloud hosting with monitoring
+The project combines real-time documentation fetching, Bits UI API access, multi-strategy scraping, intelligent caching, Lucide icon search, semantic version synchronization, and production deployment on Mastra Cloud.
 
 ## Conventions & notes
 
