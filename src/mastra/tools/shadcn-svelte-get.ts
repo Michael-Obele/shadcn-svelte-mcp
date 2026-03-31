@@ -51,6 +51,15 @@ interface ToolResponse {
   name?: string;
   type?: "component" | "block" | "chart" | "doc" | "theme" | "unknown";
   description?: string;
+  tooling?: {
+    primary: "shadcn-svelte-get";
+    bitsUi?: {
+      available: boolean;
+      exactName?: string;
+      onlyFor?: string;
+      reason?: string;
+    };
+  };
   installCommand?: {
     packageManagers: {
       npm: string;
@@ -89,7 +98,7 @@ interface ToolResponse {
 export const shadcnSvelteGetTool = createTool({
   id: "shadcn-svelte-get",
   description:
-    "PRIMARY TOOL for shadcn-svelte components. Get detailed information about any shadcn-svelte component, block, chart, documentation section, or Svelte Sonner docs. Always use this tool FIRST for any shadcn-svelte-related queries. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), charts, docs, and sonner. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. If you need deeper API details after using this tool, then use bits-ui-get.",
+    "PRIMARY TOOL for shadcn-svelte components. Get detailed information about any shadcn-svelte component, block, chart, documentation section, or Svelte Sonner docs. Always use this tool FIRST for any shadcn-svelte-related query. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), charts, docs, and sonner. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. If the response includes tooling.bitsUi.exactName, that is the only exact value you should pass to bits-ui-get, and only when you truly need lower-level primitive internals.",
   inputSchema: z.object({
     name: z
       .string()
@@ -162,7 +171,7 @@ export const shadcnSvelteGetTool = createTool({
               `1. Use the shadcn-svelte-list tool to see all available components, blocks, and charts`,
               `2. Check the correct spelling - component names are case-sensitive`,
               `3. Visit https://shadcn-svelte.com to browse available components`,
-              `4. If you're looking for a Bits UI primitive, use bits-ui-get instead`,
+              `4. Only use bits-ui-get after shadcn-svelte-get exposes docs.bitsuiName for an underlying primitive`,
             ],
           };
           return JSON.stringify(response, null, 2);
@@ -172,6 +181,9 @@ export const shadcnSvelteGetTool = createTool({
         const summary = extractSummary(rawContent);
         const examples = extractExamples(rawContent);
         const variants = extractVariants(rawContent);
+        const bitsUiName = extractBitsUiComponentName(
+          result.metadata?.bitsUiUrl || result.bitsUiUrl,
+        );
         // Fallback for primary code if examples didn't catch it
         const primaryCode =
           examples.length > 0
@@ -183,15 +195,27 @@ export const shadcnSvelteGetTool = createTool({
           name: result.metadata?.title || name,
           type: "component",
           description: summary || `Displays a ${name} component.`,
+          tooling: {
+            primary: "shadcn-svelte-get",
+            bitsUi: bitsUiName
+              ? {
+                  available: true,
+                  exactName: bitsUiName,
+                  onlyFor: `Only use bits-ui-get if you need lower-level primitive internals for \"${bitsUiName}\". For normal shadcn-svelte wrapper usage, stay with shadcn-svelte-get.`,
+                }
+              : {
+                  available: false,
+                  reason:
+                    "No underlying Bits UI primitive was exposed for this component response, so bits-ui-get is not needed.",
+                },
+          },
           installCommand: getInstallCommand(name, packageManager),
           importPath: getImportPath(name),
-          dependencies: extractBitsUiComponentName(result.metadata?.bitsUiUrl || result.bitsUiUrl) ? ["bits-ui"] : [],
+          dependencies: bitsUiName ? ["bits-ui"] : [],
           docs: {
             main: `https://shadcn-svelte.com/docs/components/${name}`,
             primitive: result.metadata?.bitsUiUrl || result.bitsUiUrl,
-            bitsuiName: extractBitsUiComponentName(
-              result.metadata?.bitsUiUrl || result.bitsUiUrl,
-            ),
+            bitsuiName: bitsUiName,
           },
           usage: {
             summary: "Use the examples below to understand implementation.",
@@ -203,6 +227,9 @@ export const shadcnSvelteGetTool = createTool({
             "Do NOT use React-specific props like 'asChild'.",
             "Use standard Svelte slot patterns or snippets where applicable.",
             "Always follow the Svelte examples shown in the documentation.",
+            bitsUiName
+              ? `Use this shadcn-svelte wrapper for standard app code. Only call bits-ui-get when you specifically need the lower-level \"${bitsUiName}\" primitive internals.`
+              : "If no docs.bitsuiName is present, do not switch to bits-ui-get.",
           ],
           rawContent,
         };

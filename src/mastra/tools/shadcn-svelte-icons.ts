@@ -2,6 +2,18 @@ import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { getFromCache, saveToCache } from "../../services/cache-manager.js";
 
+function normalizeIconName(input: string): string {
+  return input
+    .trim()
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-zA-Z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+}
+
 // Tool for searching and browsing Lucide icons
 export const shadcnSvelteIconsTool = createTool({
   id: "shadcn-svelte-icons",
@@ -48,7 +60,7 @@ export const shadcnSvelteIconsTool = createTool({
       if (query.includes(",")) {
         names = query
           .split(",")
-          .map((name) => name.trim())
+          .map((name) => normalizeIconName(name))
           .filter((name) => name.length > 0);
       } else {
         // Check if query contains multiple space-separated words that look like icon names
@@ -63,7 +75,7 @@ export const shadcnSvelteIconsTool = createTool({
               /^[a-zA-Z0-9_-]+$/.test(word)
           );
           if (looksLikeIconNames) {
-            names = words;
+            names = words.map((name) => normalizeIconName(name));
           }
         }
       }
@@ -106,7 +118,8 @@ export const shadcnSvelteIconsTool = createTool({
       // Filter icons if query provided
       let filteredIcons = allIcons;
       if (names && names.length > 0) {
-        const nameSet = new Set(names.map((n) => n.toLowerCase()));
+        const normalizedNames = names.map((name) => normalizeIconName(name));
+        const nameSet = new Set(normalizedNames);
         filteredIcons = allIcons.filter((iconName) =>
           nameSet.has(iconName.toLowerCase())
         );
@@ -136,7 +149,8 @@ export const shadcnSvelteIconsTool = createTool({
       if (names && names.length > 0) {
         // Determine missing names
         for (const nm of names) {
-          if (!allIcons.some((a) => a.toLowerCase() === nm.toLowerCase())) {
+          const normalizedName = normalizeIconName(nm);
+          if (!allIcons.some((a) => a.toLowerCase() === normalizedName)) {
             missingIcons.push(nm);
           }
         }

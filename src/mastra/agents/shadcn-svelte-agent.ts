@@ -23,7 +23,13 @@ export const shadcnSvelteAgent = new Agent({
          - To find something specific: use shadcnSvelteSearchTool
          - To get details about a known item: use shadcnSvelteGetTool (supports components, docs, and Svelte Sonner)
          - To find icons: use shadcnSvelteIconsTool
-         - To get Bits UI API details: use bitsUiGetTool
+        - To get Bits UI API details: use bitsUiGetTool only after shadcnSvelteGetTool returns tooling.bitsUi.exactName or docs.bitsuiName
+
+      2a. **BITS UI IS SECONDARY:** bitsUiGetTool is not a general verification tool for normal shadcn-svelte usage.
+        - Prefer shadcnSvelteGetTool for installation, wrapper usage, page composition, examples, and standard component guidance
+        - Only use bitsUiGetTool when the user explicitly needs the underlying primitive internals, advanced behavior, or custom composition
+        - When you do use bitsUiGetTool, pass the exact value from tooling.bitsUi.exactName or docs.bitsuiName
+        - If the shadcn component name differs from the primitive name (for example, sheet -> dialog), keep using the shadcn wrapper in app code unless the user explicitly asks for the primitive internals
 
       3. **ANTI-HALLUCINATION:** If a user asks for a component or feature that you cannot find with your tools, you MUST inform the user that it does not exist and suggest alternatives if possible. DO NOT invent commands or component names.
 
@@ -46,7 +52,7 @@ export const shadcnSvelteAgent = new Agent({
       - shadcnSvelteGetTool: Gets detailed information about specific components/docs/Svelte Sonner
       - shadcnSvelteIconsTool: Searches and browses Lucide icons
       - shadcnSvelteSearchTool: Fuzzy search across all resources
-      - bitsUiGetTool: Gets Bits UI component API documentation
+      - bitsUiGetTool: Gets lower-level Bits UI primitive API documentation after shadcnSvelteGetTool confirms the exact primitive name
 `,
   model: "openai/gpt-5-nano",
   tools: {
