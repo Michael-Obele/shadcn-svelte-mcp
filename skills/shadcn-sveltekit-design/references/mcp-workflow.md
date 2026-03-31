@@ -8,6 +8,8 @@ Use the MCP to ground every component, block, chart, icon, and low-level API cho
 2. Use `shadcn-svelte-list` when you need a broader inventory of available components, blocks, charts, docs, or Bits UI primitives.
 3. Use `shadcn-svelte-get` as the source of truth before you write install commands, component code, theming guidance, or file structure.
 4. Use `bits-ui-get` only after `shadcn-svelte-get` when you need lower-level API details for the underlying primitive.
+  - Pass the exact value from `tooling.bitsUi.exactName` or `docs.bitsuiName`.
+  - Do not use `bits-ui-get` for normal shadcn-svelte wrapper usage, installation, or page composition.
 5. Use `shadcn-svelte-icons` only for Lucide icon discovery and import examples.
 
 ## CLI-First Component Rule
@@ -44,6 +46,7 @@ Use the MCP to ground every component, block, chart, icon, and low-level API cho
 - Components are best for reusable primitives or controlled composition.
 - Charts should be verified as charts, not guessed from generic component names.
 - Bits UI is for lower-level behavior or API depth, not your first stop for page composition.
+- If a shadcn component maps to a different Bits UI primitive name, keep using the shadcn wrapper in app code unless the user explicitly asks for the primitive internals.
 - Use installed shadcn-svelte primitives as the foundation, then customize them with layout, variants, Tailwind classes, tokens, and scoped CSS only where the design requires it.
 
 ## Reporting Back To The User

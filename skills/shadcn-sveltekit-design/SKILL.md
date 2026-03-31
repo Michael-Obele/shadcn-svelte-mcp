@@ -60,7 +60,8 @@ For reusable components, structure the response like this:
 - Prefer retrieving CLI commands from the MCP before using web research.
 - If you must research the CLI on the web, only trust commands from official shadcn-svelte documentation, not shadcn/ui or other similarly named libraries.
 - Use `shadcn-svelte-icons` only for Lucide icons.
-- Use `bits-ui-get` only when `shadcn-svelte-get` shows you need lower-level primitive details.
+- Use `bits-ui-get` only when `shadcn-svelte-get` exposes `tooling.bitsUi.exactName` or `docs.bitsuiName`, and only for lower-level primitive details.
+- When `shadcn-svelte-get` and `bits-ui-get` overlap, prefer `shadcn-svelte-get` for standard component usage and pass the exact primitive name into `bits-ui-get` only when you need underlying internals.
 - Prefer a smaller set of verified components composed well over a wide, unverified grab bag.
 - Preserve an existing design system when the user is working inside one.
 - Keep desktop and mobile layouts intentional; do not treat mobile as an afterthought.
