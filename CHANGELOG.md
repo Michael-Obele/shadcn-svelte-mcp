@@ -1,3 +1,11 @@
+# [1.7.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.6.0...v1.7.0) (2026-03-28)
+
+
+### Features
+
+* add shadcn-sveltekit-design skill documentation, evaluation prompts, and MCP workflow guidelines ([f19662e](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/f19662efef133608383b69a62206f401b61c834c))
+* add Skills.sh skill for designing SvelteKit pages and components ([6013bd0](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/6013bd0b9d9687af2196ab653160295880a3c8e9))
+
 # [1.6.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.5.0...v1.6.0) (2026-01-26)
 
 
