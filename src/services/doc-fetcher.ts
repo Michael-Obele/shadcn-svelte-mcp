@@ -85,7 +85,7 @@ function unescapeMarkdown(markdown: string): string {
  */
 async function fetchWithTimeout(
   url: string,
-  timeout: number = FETCH_TIMEOUT
+  timeout: number = FETCH_TIMEOUT,
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -107,15 +107,15 @@ async function fetchWithTimeout(
 }
 
 /**
- * Tries to fetch .md endpoint directly (for components)
+ * Tries to fetch text-based endpoints directly (for components/docs)
  */
 async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
   try {
-    // Convert regular URL to .md URL
-    const mdUrl = url.endsWith(".md") ? url : `${url}.md`;
+    const textUrl =
+      url.endsWith(".md") || url.endsWith(".txt") ? url : `${url}.md`;
 
-    console.log(`[Fetcher] Trying direct .md fetch: ${mdUrl}`);
-    const response = await fetchWithTimeout(mdUrl);
+    console.log(`[Fetcher] Trying direct text fetch: ${textUrl}`);
+    const response = await fetchWithTimeout(textUrl);
 
     if (response.ok) {
       let markdown = await response.text();
@@ -129,7 +129,7 @@ async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
 
       // Extract Bits UI link from markdown if present
       const bitsUiMatch = markdown.match(
-        /https:\/\/bits-ui\.com\/docs\/components\/[a-z-]+/
+        /https:\/\/bits-ui\.com\/docs\/components\/[a-z-]+/,
       );
       const bitsUiUrl = bitsUiMatch ? bitsUiMatch[0] : undefined;
       const bitsUiLlmUrl = bitsUiUrl
@@ -138,14 +138,14 @@ async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
           : `${bitsUiUrl}/llms.txt`
         : undefined;
 
-      console.log(`[Fetcher] ✓ Direct .md fetch successful: ${mdUrl}`);
+      console.log(`[Fetcher] ✓ Direct text fetch successful: ${textUrl}`);
       return {
         success: true,
         content: markdown,
         markdown, // Deprecated: keep for backward compatibility
         metadata: {
           title,
-          url: mdUrl,
+          url: textUrl,
           bitsUiUrl,
           bitsUiLlmUrl,
         },
@@ -157,11 +157,11 @@ async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
 
     // 404 or other error, return null to try HTML fallback
     console.log(
-      `[Fetcher] ✗ .md endpoint not found (${response.status}): ${mdUrl}`
+      `[Fetcher] ✗ text endpoint not found (${response.status}): ${textUrl}`,
     );
     return null;
   } catch (error) {
-    console.log(`[Fetcher] ✗ Error fetching .md: ${error}`);
+    console.log(`[Fetcher] ✗ Error fetching text endpoint: ${error}`);
     return null;
   }
 }
@@ -186,7 +186,7 @@ async function fetchHtmlAndConvert(url: string): Promise<FetchResult> {
 
     // Remove navigation, footer, header, and other non-content elements
     $(
-      "nav, footer, aside, script, style, .navigation, .sidebar, header"
+      "nav, footer, aside, script, style, .navigation, .sidebar, header",
     ).remove();
 
     // Try to find main content area with improved selectors for SPA-style pages
@@ -293,13 +293,13 @@ async function tryFetchWithCrawlee(url: string): Promise<FetchResult | null> {
 
           // Remove unwanted elements
           $(
-            "nav, footer, aside, script, style, .navigation, .sidebar, header"
+            "nav, footer, aside, script, style, .navigation, .sidebar, header",
           ).remove();
 
           // Try to find main content area with improved selectors
           let content = "";
           const mainSections = $(
-            "main > section, main > .container-wrapper, main > div.content"
+            "main > section, main > .container-wrapper, main > div.content",
           );
 
           if (mainSections.length > 0) {
@@ -360,7 +360,7 @@ async function tryFetchWithCrawlee(url: string): Promise<FetchResult | null> {
       failedRequestHandler({ request }, error) {
         console.error(
           `[Fetcher] Crawlee request failed for ${request.url}:`,
-          error
+          error,
         );
         result.data = {
           success: false,
@@ -377,7 +377,7 @@ async function tryFetchWithCrawlee(url: string): Promise<FetchResult | null> {
     }
 
     console.log(
-      `[Fetcher] ${result.data.success ? "✓" : "✗"} Crawlee fetch ${result.data.success ? "successful" : "failed"}: ${url}`
+      `[Fetcher] ${result.data.success ? "✓" : "✗"} Crawlee fetch ${result.data.success ? "successful" : "failed"}: ${url}`,
     );
     return result.data;
   } catch (error) {
@@ -445,7 +445,7 @@ function extractMetadata($: cheerio.CheerioAPI, url: string): DocumentMetadata {
  */
 export async function fetchUrl(
   url: string,
-  options: FetchOptions = {}
+  options: FetchOptions = {},
 ): Promise<FetchResult> {
   const {
     useCache = true,
@@ -507,7 +507,7 @@ export async function fetchUrl(
  */
 export async function fetchComponentDocs(
   componentName: string,
-  options?: FetchOptions
+  options?: FetchOptions,
 ): Promise<FetchResult> {
   const url = `${SHADCN_BASE_URL}/docs/components/${componentName}`;
   return fetchUrl(url, options);
@@ -517,7 +517,7 @@ export async function fetchComponentDocs(
  * Fetches Svelte Sonner documentation from the official website
  */
 export async function fetchSvelteSonnerDocs(
-  options?: FetchOptions
+  options?: FetchOptions,
 ): Promise<FetchResult> {
   const url = "https://svelte-sonner.vercel.app/";
   return fetchUrl(url, options);
@@ -528,7 +528,7 @@ export async function fetchSvelteSonnerDocs(
  */
 export async function fetchInstallationDocs(
   framework?: string,
-  options?: FetchOptions
+  options?: FetchOptions,
 ): Promise<FetchResult> {
   const path = framework
     ? `/docs/installation/${framework}`
@@ -542,7 +542,7 @@ export async function fetchInstallationDocs(
  */
 export async function fetchGeneralDocs(
   path: string,
-  options?: FetchOptions
+  options?: FetchOptions,
 ): Promise<FetchResult> {
   const baseUrl = options?.baseUrl || SHADCN_BASE_URL;
   const url = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
@@ -558,7 +558,7 @@ export async function discoverUrls(
   options: {
     search?: string;
     limit?: number;
-  } = {}
+  } = {},
 ): Promise<{ urls: string[]; success: boolean; error?: string }> {
   try {
     console.log(`[Fetcher] Discovering URLs from ${baseUrl}`);
@@ -608,18 +608,18 @@ export async function discoverUrls(
     if (options.search) {
       const searchLower = options.search.toLowerCase();
       filteredUrls = urls.filter((url) =>
-        url.toLowerCase().includes(searchLower)
+        url.toLowerCase().includes(searchLower),
       );
     }
 
     // Deduplicate and limit
     const uniqueUrls = [...new Set(filteredUrls)].slice(
       0,
-      options.limit || 100
+      options.limit || 100,
     );
 
     console.log(
-      `[Fetcher] ✓ Discovered ${uniqueUrls.length} URLs from homepage`
+      `[Fetcher] ✓ Discovered ${uniqueUrls.length} URLs from homepage`,
     );
     return { urls: uniqueUrls, success: true };
   } catch (error) {
