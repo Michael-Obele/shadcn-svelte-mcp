@@ -1,3 +1,11 @@
+# [1.8.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.7.0...v1.8.0) (2026-03-31)
+
+
+### Features
+
+* enhance bits-ui-get and shadcn-svelte-get tools with improved resolution logic and documentation; add icon name normalization in shadcn-svelte-icons tool ([d58fe4d](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/d58fe4d0f0b9537c8f4d65c939fcb06604275139))
+* refine guidance on using bits-ui-get and shadcn-svelte-get for improved component resolution and API clarity ([397ab86](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/397ab86ec40ee2aa1d44965dc27198c2caff0390))
+
 # [1.7.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.6.0...v1.7.0) (2026-03-28)
 
 
