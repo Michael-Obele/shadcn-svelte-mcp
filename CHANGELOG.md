@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.8.1...v1.9.0) (2026-04-26)
+
+
+### Features
+
+* add parseMultiIconQuery function for improved multi-icon name handling ([478ad30](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/478ad302d8da189af82ee187f12ccba869c5fa30))
+
 ## [1.8.1](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.8.0...v1.8.1) (2026-04-03)
 
 
