@@ -28,6 +28,57 @@ function parseMultiIconQuery(query: string): string[] | undefined {
   return parsedNames.length > 0 ? parsedNames : undefined;
 }
 
+function tokenizeQuery(query: string): string[] {
+  return query
+    .split(/[\s,]+/)
+    .map((part) => normalizeIconName(part))
+    .filter((part) => part.length > 0);
+}
+
+function scoreIconMatch(
+  iconName: string,
+  query: string,
+  tags: string[],
+): number {
+  const normalizedQuery = normalizeIconName(query);
+  const queryTokens = tokenizeQuery(query);
+  const nameLower = iconName.toLowerCase();
+  let score = 0;
+
+  if (normalizedQuery && nameLower === normalizedQuery) {
+    score += 100;
+  }
+
+  if (normalizedQuery && nameLower.startsWith(normalizedQuery)) {
+    score += 40;
+  }
+
+  if (normalizedQuery && nameLower.includes(normalizedQuery)) {
+    score += 20;
+  }
+
+  for (const token of queryTokens) {
+    if (nameLower === token) {
+      score += 90;
+    } else if (nameLower.startsWith(token)) {
+      score += 35;
+    } else if (nameLower.includes(token)) {
+      score += 15;
+    }
+
+    for (const tag of tags) {
+      const tagLower = tag.toLowerCase();
+      if (tagLower === token) {
+        score += 25;
+      } else if (tagLower.includes(token)) {
+        score += 8;
+      }
+    }
+  }
+
+  return score;
+}
+
 // Tool for searching and browsing Lucide icons
 export const shadcnSvelteIconsTool = createTool({
   id: "shadcn-svelte-icons",
@@ -116,16 +167,28 @@ export const shadcnSvelteIconsTool = createTool({
           nameSet.has(iconName.toLowerCase()),
         );
       } else if (query) {
-        const searchLower = query.toLowerCase();
-        filteredIcons = allIcons.filter((iconName) => {
-          // Search in icon name
-          if (iconName.toLowerCase().includes(searchLower)) {
-            return true;
-          }
-          // Search in tags
-          const tags = tagsData[iconName] || [];
-          return tags.some((tag) => tag.toLowerCase().includes(searchLower));
-        });
+        const scoredIcons = allIcons
+          .map((iconName) => {
+            const tags = tagsData[iconName] || [];
+            return {
+              iconName,
+              score: scoreIconMatch(iconName, query, tags),
+            };
+          })
+          .filter(({ score }) => score > 0)
+          .sort((left, right) => {
+            if (right.score !== left.score) {
+              return right.score - left.score;
+            }
+
+            if (left.iconName.length !== right.iconName.length) {
+              return left.iconName.length - right.iconName.length;
+            }
+
+            return left.iconName.localeCompare(right.iconName);
+          });
+
+        filteredIcons = scoredIcons.map(({ iconName }) => iconName);
       }
 
       // Apply limit
@@ -222,29 +285,12 @@ export const shadcnSvelteIconsTool = createTool({
       }
 
       // Heuristic & recommendation: if many matches, recommend the best candidate
-      if (!names && limitedIcons.length > 1) {
-        const scoreIcon = (iconName: string) => {
-          const nameLower = iconName.toLowerCase();
-          let score = 0;
-          if (query && query.toLowerCase() === nameLower) score += 100; // exact match
-          if (query && nameLower.startsWith(query.toLowerCase())) score += 50; // prefix
-          if (query && nameLower.includes(query.toLowerCase())) score += 30; // substring
-          // add tag overlap
-          const tags = tagsData[iconName] || [];
-          if (query) {
-            const q = query.toLowerCase();
-            const commonTags = tags.filter((t) =>
-              t.toLowerCase().includes(q),
-            ).length;
-            score += commonTags * 10;
-          }
-          return score;
-        };
+      if (query && limitedIcons.length > 1) {
         let recommendedIcon: string | null = null;
         let recommendedReason = "";
         let bestScore = -1;
         for (const ic of limitedIcons) {
-          const sc = scoreIcon(ic);
+          const sc = scoreIconMatch(ic, query || "", tagsData[ic] || []);
           if (sc > bestScore) {
             bestScore = sc;
             recommendedIcon = ic;
