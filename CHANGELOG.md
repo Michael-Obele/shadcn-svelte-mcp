@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.9.0...v1.9.1) (2026-04-26)
+
+
+### Bug Fixes
+
+* enhance icon search functionality with scoring and tokenization ([1c549b9](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/1c549b99242a31f50afda287793dd9d801854299))
+
 # [1.9.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.8.1...v1.9.0) (2026-04-26)
 
 
