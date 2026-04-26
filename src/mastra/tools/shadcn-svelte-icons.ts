@@ -14,6 +14,20 @@ function normalizeIconName(input: string): string {
     .toLowerCase();
 }
 
+function parseMultiIconQuery(query: string): string[] | undefined {
+  const trimmedQuery = query.trim();
+  if (!/[\s,]/.test(trimmedQuery)) {
+    return undefined;
+  }
+
+  const parsedNames = trimmedQuery
+    .split(/[\s,]+/)
+    .map((name) => normalizeIconName(name))
+    .filter((name) => name.length > 0);
+
+  return parsedNames.length > 0 ? parsedNames : undefined;
+}
+
 // Tool for searching and browsing Lucide icons
 export const shadcnSvelteIconsTool = createTool({
   id: "shadcn-svelte-icons",
@@ -24,7 +38,7 @@ export const shadcnSvelteIconsTool = createTool({
       .string()
       .optional()
       .describe(
-        "Search term to filter icons (searches icon names and tags), or multiple icon names separated by commas or spaces (e.g., 'truck, package, dashboard' or 'truck package dashboard')"
+        "Search term to filter icons (searches icon names and tags), or multiple icon names separated by commas or spaces (e.g., 'truck, package, dashboard' or 'truck package dashboard')",
       ),
     // `names` allows an agent to request a specific set of icons by name
     names: z
@@ -36,7 +50,7 @@ export const shadcnSvelteIconsTool = createTool({
       .optional()
       .default(10)
       .describe(
-        "Maximum number of icon imports to show in the snippet (default: 10). This prevents long import lines but can be increased if needed."
+        "Maximum number of icon imports to show in the snippet (default: 10). This prevents long import lines but can be increased if needed.",
       ),
     limit: z
       .number()
@@ -47,7 +61,7 @@ export const shadcnSvelteIconsTool = createTool({
       .enum(["npm", "yarn", "pnpm", "bun"])
       .optional()
       .describe(
-        "Optional package manager for install commands. If omitted, the tool will use a recommended default (npx/PNPM/Yarn/bun as appropriate)."
+        "Optional package manager for install commands. If omitted, the tool will use a recommended default (npx/PNPM/Yarn/bun as appropriate).",
       ),
   }),
   execute: async ({ context }) => {
@@ -56,29 +70,7 @@ export const shadcnSvelteIconsTool = createTool({
 
     // Parse query to detect multiple icon names
     if (query && !names) {
-      // Check if query contains commas (comma-separated names)
-      if (query.includes(",")) {
-        names = query
-          .split(",")
-          .map((name) => normalizeIconName(name))
-          .filter((name) => name.length > 0);
-      } else {
-        // Check if query contains multiple space-separated words that look like icon names
-        const words = query.split(/\s+/).filter((word) => word.length > 0);
-        if (words.length > 1) {
-          // Heuristic: if all words are reasonable icon name length (2-30 chars, no spaces)
-          const looksLikeIconNames = words.every(
-            (word) =>
-              word.length >= 2 &&
-              word.length <= 30 &&
-              !word.includes(" ") &&
-              /^[a-zA-Z0-9_-]+$/.test(word)
-          );
-          if (looksLikeIconNames) {
-            names = words.map((name) => normalizeIconName(name));
-          }
-        }
-      }
+      names = parseMultiIconQuery(query);
     }
 
     try {
@@ -121,7 +113,7 @@ export const shadcnSvelteIconsTool = createTool({
         const normalizedNames = names.map((name) => normalizeIconName(name));
         const nameSet = new Set(normalizedNames);
         filteredIcons = allIcons.filter((iconName) =>
-          nameSet.has(iconName.toLowerCase())
+          nameSet.has(iconName.toLowerCase()),
         );
       } else if (query) {
         const searchLower = query.toLowerCase();
@@ -242,7 +234,7 @@ export const shadcnSvelteIconsTool = createTool({
           if (query) {
             const q = query.toLowerCase();
             const commonTags = tags.filter((t) =>
-              t.toLowerCase().includes(q)
+              t.toLowerCase().includes(q),
             ).length;
             score += commonTags * 10;
           }
