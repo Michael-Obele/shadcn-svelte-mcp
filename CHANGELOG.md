@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.8.0...v1.8.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* improve error handling and logging for text-based endpoint fetching in doc-fetcher service ([1c2996e](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/1c2996ea9d603f673ed4e366d3ff1766ad81f97d))
+
 # [1.8.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.7.0...v1.8.0) (2026-03-31)
 
 
