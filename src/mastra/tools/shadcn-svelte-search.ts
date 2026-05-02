@@ -261,6 +261,98 @@ function formatTitle(name: string): string {
     .join(" ");
 }
 
+function parseCommaSeparatedQueries(query: string): string[] {
+  return query
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+}
+
+function buildSearchResult(
+  item: SearchableItem,
+  score: number,
+  similarity: number,
+  packageManager: "npm" | "yarn" | "pnpm" | "bun",
+): SearchResult {
+  return {
+    title: formatTitle(item.name),
+    url: buildUrl(item),
+    description: generateDescription(item),
+    installCommand: buildInstallCommand(item, packageManager),
+    type: item.type,
+    score,
+    similarity,
+  };
+}
+
+function combineCommaSeparatedResults(
+  filtered: SearchableItem[],
+  query: string,
+  packageManager: "npm" | "yarn" | "pnpm" | "bun",
+  limit: number,
+): { results: SearchResult[]; fragments: string[] } | null {
+  const fragments = parseCommaSeparatedQueries(query);
+  if (fragments.length < 2) {
+    return null;
+  }
+
+  const resultsByKey = new Map<string, SearchResult>();
+
+  for (const fragment of fragments) {
+    const scored = performFuzzySearch(filtered, fragment, { limit });
+
+    for (const { item, score, similarity } of scored) {
+      const result = buildSearchResult(
+        item,
+        score,
+        similarity,
+        packageManager,
+      );
+      const key = `${result.type}:${result.url}`;
+      const existing = resultsByKey.get(key);
+
+      if (
+        !existing ||
+        result.score > existing.score ||
+        (result.score === existing.score &&
+          (result.similarity ?? 0) > (existing.similarity ?? 0))
+      ) {
+        resultsByKey.set(key, result);
+      }
+    }
+  }
+
+  const results = Array.from(resultsByKey.values()).sort((left, right) => {
+    if (right.score !== left.score) {
+      return right.score - left.score;
+    }
+
+    if ((right.similarity ?? 0) !== (left.similarity ?? 0)) {
+      return (right.similarity ?? 0) - (left.similarity ?? 0);
+    }
+
+    return left.title.localeCompare(right.title);
+  });
+
+  return { results: results.slice(0, limit), fragments };
+}
+
+function buildCommaSeparatedFallbackMarkdown(
+  markdown: string,
+  query: string,
+  fragments: string[],
+): string {
+  const header = `# Search Results for "${query}"\n\n`;
+  const fragmentList = fragments.map((fragment) => `"${fragment}"`).join(", ");
+  const note = `No direct matches found for the full query. Searched comma-separated fragments: ${fragmentList}\n\n`;
+
+  if (markdown.startsWith(header)) {
+    return `${header}${note}${markdown.slice(header.length)}`;
+  }
+
+  return `${header}${note}${markdown}`;
+}
+
 /**
  * Generate description for an item
  */
@@ -454,17 +546,43 @@ export const shadcnSvelteSearchTool = createTool({
       const scored = performFuzzySearch(filtered, query, { limit });
 
       // Build results
-      const results: SearchResult[] = scored.map(
-        ({ item, score, similarity }) => ({
-          title: formatTitle(item.name),
-          url: buildUrl(item),
-          description: generateDescription(item),
-          installCommand: buildInstallCommand(item, packageManager),
-          type: item.type,
-          score,
-          similarity,
-        }),
+      const results: SearchResult[] = scored.map(({ item, score, similarity }) =>
+        buildSearchResult(item, score, similarity, packageManager),
       );
+
+      const commaSeparatedFallback =
+        results.length === 0
+          ? combineCommaSeparatedResults(
+              filtered,
+              query,
+              packageManager,
+              limit,
+            )
+          : null;
+
+      if (commaSeparatedFallback && commaSeparatedFallback.results.length > 0) {
+        const fallbackResults = commaSeparatedFallback.results;
+        const { markdown } = formatResults(
+          fallbackResults,
+          query,
+          type,
+          packageManager,
+          items,
+        );
+
+        return {
+          markdown: buildCommaSeparatedFallbackMarkdown(
+            markdown,
+            query,
+            commaSeparatedFallback.fragments,
+          ),
+          results: fallbackResults,
+          query,
+          totalResults: fallbackResults.length,
+          suggestions: undefined,
+          nextSteps: undefined,
+        };
+      }
 
       // Format as markdown (pass allItems for suggestions if no results)
       const { markdown, suggestions } = formatResults(
@@ -492,11 +610,20 @@ export const shadcnSvelteSearchTool = createTool({
       };
     } catch (error) {
       console.error("[shadcn-svelte-search] Error during search:", error);
+      const { markdown, suggestions } = formatResults(
+        [],
+        query,
+        type,
+        packageManager,
+        [],
+      );
+
       return {
-        markdown: `# Error\n\nFailed to perform search: ${error}\n\nPlease try again or use the \`list\` tool to browse available content.`,
+        markdown,
         results: [],
         query,
         totalResults: 0,
+        suggestions,
       };
     }
   },
