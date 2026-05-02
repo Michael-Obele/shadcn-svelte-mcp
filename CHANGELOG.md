@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.9.1...v1.10.0) (2026-05-02)
+
+
+### Features
+
+* implement comma-separated query handling and fallback results in search tool ([d628f59](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/d628f59c6c43ef65b3ccf757acfbf6c61fc80183))
+
 ## [1.9.1](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.9.0...v1.9.1) (2026-04-26)
 
 
