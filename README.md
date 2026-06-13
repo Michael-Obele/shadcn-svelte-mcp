@@ -14,36 +14,47 @@ Mastra MCP server and tooling that provides real-time access to shadcn-svelte co
 
 Mastra Cloud is the primary deployment: zero cold start, fast tool discovery, and the same toolset over both transports.
 
-| Transport | URL                                                   | Best for                                 |
-| --------- | ----------------------------------------------------- | ---------------------------------------- |
+| Transport | URL                                                              | Best for                                 |
+| --------- | ---------------------------------------------------------------- | ---------------------------------------- |
 | SSE       | https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse | Editors that keep long-lived connections |
 | HTTP      | https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp | CLIs, scripts, and one-off calls         |
 
 > [!NOTE]
-> This project follows our [Code of Conduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
+> This project follows our [Code of ConTIPduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 This repository contains a Mastra-based MCP server that provides real-time access to shadcn-svelte component documentation using web scraping. Use it in your AI-powered code editor to get instant access to the latest shadcn-svelte component information directly from the official website.
 
 ## Table of Contents
 
-- [Production Deployments](#production-deployments)
-- [Features](#-features)
-- [Bits UI Integration](#bits-ui-integration)
-- [Observations & Minor UX Suggestions](#-observations--minor-ux-suggestions)
-- [Editor Setup](#editor-setup)
-- [CLI & Agent Configuration](#cli--agent-configuration)
-- [Skills.sh Skill](#skillssh-skill)
-- [Verification & Quick Tests](#verification--quick-tests)
-- [Available Tools](#available-tools)
-- [Example Usage](#example-usage)
-
-- [Local Development](#local-development)
-- [Developer Scripts](#developer-scripts)
-- [MCP Architecture](#mcp-architecture)
-- [Project Architecture](#project-architecture)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
+- [shadcn-svelte-mcp](#shadcn-svelte-mcp)
+  - [Production Deployments](#production-deployments)
+  - [Table of Contents](#table-of-contents)
+  - [🎉 Features](#-features)
+  - [Bits UI Integration](#bits-ui-integration)
+    - [AI-Optimized Content](#ai-optimized-content)
+  - [🔧 UX Observations \& Suggestions](#-ux-observations--suggestions)
+  - [Editor Setup](#editor-setup)
+    - [Verification](#verification)
+  - [CLI \& Agent Configuration](#cli--agent-configuration)
+  - [Skills.sh Skill](#skillssh-skill)
+    - [Install from GitHub](#install-from-github)
+    - [Local validation](#local-validation)
+    - [Expected skills.sh page](#expected-skillssh-page)
+  - [Verification \& Quick Tests](#verification--quick-tests)
+  - [Available Tools](#available-tools)
+  - [Example Usage](#example-usage)
+  - [Local Development](#local-development)
+    - [Contents](#contents)
+    - [Quick start (development smoke-test)](#quick-start-development-smoke-test)
+  - [Developer Scripts](#developer-scripts)
+  - [Project Architecture](#project-architecture)
+    - [Core Components](#core-components)
+    - [Key Features](#key-features)
+  - [Conventions \& notes](#conventions--notes)
+  - [Development tips](#development-tips)
+  - [License](#license)
+  - [Contributing](#contributing)
+  - [Contact](#contact)
 
 ## 🎉 Features
 
