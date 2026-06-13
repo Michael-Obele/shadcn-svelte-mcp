@@ -9,6 +9,9 @@ Mastra MCP server and tooling that provides real-time access to shadcn-svelte co
 
 ## Production Deployments
 
+> [!IMPORTANT]
+> **URL Update Notification:** Due to the migration and updates to the Mastra Cloud platform, the deployment URL has changed to the new `*.server.mastra.cloud` structure. If you are experiencing connection issues, please update your editor and CLI configurations to use `https://shadcn-svelte-mcp.server.mastra.cloud` as the previous URLs are no longer active.
+
 Mastra Cloud is the primary deployment: zero cold start, fast tool discovery, and the same toolset over both transports.
 
 | Transport | URL                                                   | Best for                                 |
