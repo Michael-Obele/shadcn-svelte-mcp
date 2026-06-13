@@ -117,8 +117,7 @@ export const shadcnSvelteGetTool = createTool({
         "Preferred package manager to use when rendering installation commands",
       ),
   }),
-  execute: async ({ context }): Promise<string> => {
-    const { name, type, packageManager } = context;
+  execute: async ({ name, type, packageManager }): Promise<string> => {
 
     try {
       if (type === "component") {

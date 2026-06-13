@@ -162,8 +162,7 @@ export const bitsUiGetTool = createTool({
         "Preferred package manager to use when rendering installation commands",
       ),
   }),
-  execute: async ({ context }): Promise<string> => {
-    const { name } = context;
+  execute: async ({ name }): Promise<string> => {
 
     try {
       const resolution = await resolveBitsUiComponentName(name);

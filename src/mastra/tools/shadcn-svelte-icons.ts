@@ -115,9 +115,9 @@ export const shadcnSvelteIconsTool = createTool({
         "Optional package manager for install commands. If omitted, the tool will use a recommended default (npx/PNPM/Yarn/bun as appropriate).",
       ),
   }),
-  execute: async ({ context }) => {
-    const { query, limit = 100, importLimit = 10, packageManager } = context;
-    let { names } = context;
+  execute: async (input) => {
+    const { query, limit = 100, importLimit = 10, packageManager } = input;
+    let { names } = input;
 
     // Parse query to detect multiple icon names
     if (query && !names) {

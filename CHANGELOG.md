@@ -287,7 +287,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Production deployment on Mastra Cloud (https://shadcn-svelte.mastra.cloud)
+- Production deployment on Mastra Cloud (https://shadcn-svelte-mcp.server.mastra.cloud)
 - Three powerful MCP tools for shadcn-svelte components:
   - `shadcnSvelteListTool` - List all components and documentation
   - `shadcnSvelteGetTool` - Get detailed component documentation

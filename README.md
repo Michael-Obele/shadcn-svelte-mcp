@@ -3,7 +3,7 @@
 [![latest release](https://img.shields.io/github/v/tag/Michael-Obele/shadcn-svelte-mcp?sort=semver)](https://github.com/Michael-Obele/shadcn-svelte-mcp/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoic3NlIiwidXJsIjoiaHR0cHM6Ly9zaGFkY24tc3ZlbHRlLm1hc3RyYS5jbG91ZC9hcGkvbWNwL3NoYWRjbi9zc2UifQ%3D%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoic3NlIiwidXJsIjoiaHR0cHM6Ly9zaGFkY24tc3ZlbHRlLW1jcC5zZXJ2ZXIubWFzdHJhLmNsb3VkL2FwaS9tY3Avc2hhZGNuL3NzZSJ9)
 
 Mastra MCP server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping.
 
@@ -13,8 +13,8 @@ Mastra Cloud is the primary deployment: zero cold start, fast tool discovery, an
 
 | Transport | URL                                                   | Best for                                 |
 | --------- | ----------------------------------------------------- | ---------------------------------------- |
-| SSE       | https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse | Editors that keep long-lived connections |
-| HTTP      | https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp | CLIs, scripts, and one-off calls         |
+| SSE       | https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse | Editors that keep long-lived connections |
+| HTTP      | https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp | CLIs, scripts, and one-off calls         |
 
 > [!NOTE]
 > This project follows our [Code of Conduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
@@ -94,7 +94,7 @@ Mastra Cloud — SSE example:
 {
   "shadcn-svelte": {
     "type": "sse",
-    "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
+    "url": "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse"
   }
 }
 ```
@@ -105,7 +105,7 @@ Mastra Cloud — HTTP example:
 {
   "shadcn-svelte": {
     "type": "http",
-    "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+    "url": "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp"
   }
 }
 ```
@@ -122,7 +122,7 @@ Mastra Cloud — HTTP example:
 {
   "mcpServers": {
     "shadcn-svelte": {
-      "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse",
+      "url": "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse",
       "transport": "sse"
     }
   }
@@ -138,7 +138,7 @@ Use the HTTP variant if you need it:
   "servers": {
     "shadcn-svelte": {
       "type": "http",
-      "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+      "url": "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp"
     }
   }
 }
@@ -161,7 +161,7 @@ Use the HTTP variant if you need it:
       "args": [
         "-y",
         "mcp-remote",
-        "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
+        "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse"
       ],
       "env": {}
     }
@@ -181,8 +181,8 @@ Two supported workflows (both work for either user/global settings or workspace/
 - **Option A — Command Palette (quick):** Run `MCP: Add Server` (Ctrl/Cmd+Shift+P) and paste the SSE or HTTP URL. This is the simplest interactive flow and can be used from the global (user) or workspace context.
 
   Examples to paste:
-  - SSE: `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse`
-  - HTTP: `https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
+  - SSE: `https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse`
+  - HTTP: `https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp`
 
 - **Option B — mcp-remote JSON (scriptable):** Create or update `.vscode/mcp.json` (or your user-level MCP config) to use the `mcp-remote` helper. This works equally well as a workspace or global config and is handy for reproducible setups.
 
@@ -196,7 +196,7 @@ Two supported workflows (both work for either user/global settings or workspace/
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
+          "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse"
         ]
       }
     }
@@ -213,7 +213,7 @@ Two supported workflows (both work for either user/global settings or workspace/
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+          "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp"
         ]
       }
     }
@@ -244,7 +244,7 @@ The same base URLs work across CLIs. **Mastra Cloud is the recommended primary d
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+          "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp"
         ]
       }
     }
@@ -261,7 +261,7 @@ The same base URLs work across CLIs. **Mastra Cloud is the recommended primary d
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+          "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp"
         ]
       }
     }
@@ -279,7 +279,7 @@ The same base URLs work across CLIs. **Mastra Cloud is the recommended primary d
 - **Command palette alternative:**
 
   ```bash
-  claude mcp add --transport http shadcn-svelte https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp
+  claude mcp add --transport http shadcn-svelte https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp
   ```
 
 - Use `/permissions` inside Claude Code to grant tool access if prompted.
@@ -296,7 +296,7 @@ The same base URLs work across CLIs. **Mastra Cloud is the recommended primary d
 Register the Mastra Cloud endpoint for codex or use your own privately hosted MCP endpoint.
 
 ```bash
-codex mcp add shadcn-svelte --url https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse
+codex mcp add shadcn-svelte --url https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse
 codex mcp list
 ```
 
@@ -318,7 +318,7 @@ codex mcp list
    {
      "mcpServers": {
        "shadcn-svelte": {
-         "httpUrl": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+         "httpUrl": "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp"
        }
      }
    }
@@ -333,7 +333,7 @@ codex mcp list
          "command": "npx",
          "args": [
            "mcp-remote",
-           "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+           "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp"
          ]
        }
      }
@@ -382,9 +382,9 @@ Use these checks after configuration. Prefer SSE for editor connections and HTTP
 
 - `claude mcp list`
 - `codex mcp list`
-- `npx mcp-remote https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
-- `curl -I https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
-- `curl -N https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse`
+- `npx mcp-remote https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp`
+- `curl -I https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp`
+- `curl -N https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse`
 
 Claude Code may prompt for tool permissions. Use `/permissions` or set `allowedTools` in `~/.claude.json` if needed.
 

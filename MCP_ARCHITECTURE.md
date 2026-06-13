@@ -24,7 +24,7 @@ The server supports two transport protocols:
 - **Endpoint**: `/api/mcp/shadcn/mcp`
 - **Method**: HTTP POST
 - **Use case**: One-off requests, CLI tools, simple integrations
-- **Example**: `curl -X POST https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp`
+- **Example**: `curl -X POST https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp`
 
 #### Server-Sent Events (SSE) Transport
 
@@ -144,7 +144,7 @@ The server uses multi-strategy web scraping to fetch documentation:
 
 #### Mastra Cloud (Primary)
 
-- **URL**: `https://shadcn-svelte.mastra.cloud`
+- **URL**: `https://shadcn-svelte-mcp.server.mastra.cloud`
 - **Characteristics**: Zero cold start, high responsiveness
 - **Limitation**: Occasional tool visibility issues (4 tools may hide)
 - **Use case**: Fastest response times, acceptable tool visibility quirks
@@ -170,7 +170,7 @@ The server uses multi-strategy web scraping to fetch documentation:
 {
   "shadcn-svelte": {
     "type": "http",
-    "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp"
+    "url": "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp"
   }
 }
 ```
@@ -181,7 +181,7 @@ The server uses multi-strategy web scraping to fetch documentation:
 {
   "shadcn-svelte": {
     "type": "sse",
-    "url": "https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse"
+    "url": "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse"
   }
 }
 ```
@@ -189,7 +189,7 @@ The server uses multi-strategy web scraping to fetch documentation:
 ### Claude Code CLI
 
 ```bash
-claude mcp add shadcn-svelte --url https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp
+claude mcp add shadcn-svelte --url https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp
 ```
 
 ## Error Handling
@@ -283,13 +283,13 @@ npm run test:integration  # Integration tests
 
 ```bash
 # Test HTTP endpoint
-curl -I https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp
+curl -I https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp
 
 # Test SSE endpoint
-curl -N https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/sse
+curl -N https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse
 
 # Test with MCP client
-npx mcp-remote https://shadcn-svelte.mastra.cloud/api/mcp/shadcn/mcp
+npx mcp-remote https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp
 ```
 
 ## Contributing

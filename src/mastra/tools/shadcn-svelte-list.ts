@@ -34,8 +34,7 @@ export const shadcnSvelteListTool = createTool({
       .default("all")
       .describe("What to list: components, blocks, charts, docs, bits-ui, or all"),
   }),
-  execute: async ({ context }) => {
-    const { type = "all" } = context;
+  execute: async ({ type }) => {
 
     try {
       // Get all content from discovery service

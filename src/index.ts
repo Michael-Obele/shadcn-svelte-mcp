@@ -1,7 +1,6 @@
 import { Mastra } from "@mastra/core/mastra";
 import { PinoLogger } from "@mastra/loggers";
 import { LibSQLStore } from "@mastra/libsql";
-import { shadcnSvelteAgent } from "./mastra/agents/shadcn-svelte-agent";
 import { shadcn } from "./mastra/mcp-server";
 
 // MCP Client is used directly in agents, not registered here
@@ -9,7 +8,6 @@ import { shadcn } from "./mastra/mcp-server";
 
 export const mastra = new Mastra({
   workflows: {},
-  agents: { shadcnSvelteAgent },
   mcpServers: { shadcn },
   storage: new LibSQLStore({
     id: "mastra",

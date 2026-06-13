@@ -527,8 +527,7 @@ export const shadcnSvelteSearchTool = createTool({
         "Optional package manager for install commands. If omitted, defaults to 'npx' for npm-style one-time commands",
       ),
   }),
-  execute: async ({ context }) => {
-    const { query, type = "all", limit = 10, packageManager = "npm" } = context;
+  execute: async ({ query, type = "all", limit = 10, packageManager = "npm" }) => {
 
     console.log(
       `[shadcn-svelte-search] Searching for: "${query}" (type: ${type}, limit: ${limit}, packageManager: ${packageManager})`,
