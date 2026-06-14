@@ -1,15 +1,11 @@
 import { Mastra } from "@mastra/core/mastra";
 import { PinoLogger } from "@mastra/loggers";
-import { LibSQLStore } from "@mastra/libsql";
+import { CloudflareDeployer } from "@mastra/deployer-cloudflare";
 import { shadcn } from "./mcp-server";
 
 export const mastra = new Mastra({
   workflows: {},
   mcpServers: { shadcn },
-  storage: new LibSQLStore({
-    id: "mastra",
-    url: ":memory:",
-  }),
   logger: new PinoLogger({
     name: "Mastra",
     level: "info",
@@ -17,4 +13,7 @@ export const mastra = new Mastra({
   bundler: {
     externals: ["crawlee", "fuse.js"],
   },
+  deployer: new CloudflareDeployer({
+    name: "shadcn-svelte-mcp",
+  }),
 });

@@ -22,7 +22,6 @@
   "dependencies": {
     "@mastra/core": "^1.42.0",
     "@mastra/deployer-cloudflare": "^1.1.43",
-    "@mastra/libsql": "^1.13.0",
     "@mastra/loggers": "^1.1.2",
     "@mastra/mcp": "^1.10.0",
     "@mastra/memory": "^1.20.3",
