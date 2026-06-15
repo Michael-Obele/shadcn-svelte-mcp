@@ -3,21 +3,21 @@
 [![latest release](https://img.shields.io/github/v/tag/Michael-Obele/shadcn-svelte-mcp?sort=semver)](https://github.com/Michael-Obele/shadcn-svelte-mcp/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoic3NlIiwidXJsIjoiaHR0cHM6Ly9zaGFkY24tc3ZlbHRlLW1jcC5hbWFjaHJlZTk2MzAud29ya2Vycy5kZXYvYXBpL21jcC9zaGFkY24vc3NlIn0=)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoic3NlIiwidXJsIjoiaHR0cHM6Ly9zaGFkY24tc3ZlbHRlLW1jcC5zdmVsdGUtYXBwcy53b3JrZXJzLmRldi9hcGkvbWNwL3NoYWRjbi9zc2UifQ==)
 
 Mastra MCP server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping.
 
 ## Production Deployments
 
 > [!IMPORTANT]
-> **URL Update Notification:** Due to the migration and updates to the Mastra Cloud platform, the deployment URL has changed to the new `*.server.mastra.cloud` structure. If you are experiencing connection issues, please update your editor and CLI configurations to use `https://shadcn-svelte-mcp.amachree9630.workers.dev` as the previous URLs are no longer active.
+> **URL Update Notification:** Due to the migration and updates to the Mastra Cloud platform, the deployment URL has changed to the new `*.server.mastra.cloud` structure. If you are experiencing connection issues, please update your editor and CLI configurations to use `https://shadcn-svelte-mcp.svelte-apps.workers.dev` as the previous URLs are no longer active.
 
 Cloudflare Workers is the primary deployment: zero cold start, high availability, fast tool discovery, and the same toolset over both transports.
 
 | Transport | URL                                                              | Best for                                 |
 | --------- | ---------------------------------------------------------------- | ---------------------------------------- |
-| SSE       | https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/sse | Editors that keep long-lived connections |
-| HTTP      | https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp | CLIs, scripts, and one-off calls         |
+| SSE       | https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse | Editors that keep long-lived connections |
+| HTTP      | https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp | CLIs, scripts, and one-off calls         |
 
 > [!NOTE]
 > This project follows our [Code of ConTIPduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
@@ -108,7 +108,7 @@ Cloudflare Workers — SSE example:
 {
   "shadcn-svelte": {
     "type": "sse",
-    "url": "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/sse"
+    "url": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse"
   }
 }
 ```
@@ -119,7 +119,7 @@ Cloudflare Workers — HTTP example:
 {
   "shadcn-svelte": {
     "type": "http",
-    "url": "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp"
+    "url": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
   }
 }
 ```
@@ -136,7 +136,7 @@ Cloudflare Workers — HTTP example:
 {
   "mcpServers": {
     "shadcn-svelte": {
-      "url": "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/sse",
+      "url": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse",
       "transport": "sse"
     }
   }
@@ -152,7 +152,7 @@ Use the HTTP variant if you need it:
   "servers": {
     "shadcn-svelte": {
       "type": "http",
-      "url": "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp"
+      "url": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
     }
   }
 }
@@ -175,7 +175,7 @@ Use the HTTP variant if you need it:
       "args": [
         "-y",
         "mcp-remote",
-        "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/sse"
+        "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse"
       ],
       "env": {}
     }
@@ -195,8 +195,8 @@ Two supported workflows (both work for either user/global settings or workspace/
 - **Option A — Command Palette (quick):** Run `MCP: Add Server` (Ctrl/Cmd+Shift+P) and paste the SSE or HTTP URL. This is the simplest interactive flow and can be used from the global (user) or workspace context.
 
   Examples to paste:
-  - SSE: `https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/sse`
-  - HTTP: `https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp`
+  - SSE: `https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse`
+  - HTTP: `https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp`
 
 - **Option B — mcp-remote JSON (scriptable):** Create or update `.vscode/mcp.json` (or your user-level MCP config) to use the `mcp-remote` helper. This works equally well as a workspace or global config and is handy for reproducible setups.
 
@@ -210,7 +210,7 @@ Two supported workflows (both work for either user/global settings or workspace/
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/sse"
+          "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse"
         ]
       }
     }
@@ -227,7 +227,7 @@ Two supported workflows (both work for either user/global settings or workspace/
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp"
+          "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
         ]
       }
     }
@@ -258,7 +258,7 @@ The same base URLs work across CLIs. **Cloudflare Workers is the recommended pri
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp"
+          "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
         ]
       }
     }
@@ -275,7 +275,7 @@ The same base URLs work across CLIs. **Cloudflare Workers is the recommended pri
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp"
+          "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
         ]
       }
     }
@@ -293,7 +293,7 @@ The same base URLs work across CLIs. **Cloudflare Workers is the recommended pri
 - **Command palette alternative:**
 
   ```bash
-  claude mcp add --transport http shadcn-svelte https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp
+  claude mcp add --transport http shadcn-svelte https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp
   ```
 
 - Use `/permissions` inside Claude Code to grant tool access if prompted.
@@ -310,7 +310,7 @@ The same base URLs work across CLIs. **Cloudflare Workers is the recommended pri
 Register the Cloudflare Workers endpoint for codex or use your own privately hosted MCP endpoint.
 
 ```bash
-codex mcp add shadcn-svelte --url https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/sse
+codex mcp add shadcn-svelte --url https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse
 codex mcp list
 ```
 
@@ -332,7 +332,7 @@ codex mcp list
    {
      "mcpServers": {
        "shadcn-svelte": {
-         "httpUrl": "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp"
+         "httpUrl": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
        }
      }
    }
@@ -347,7 +347,7 @@ codex mcp list
          "command": "npx",
          "args": [
            "mcp-remote",
-           "https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp"
+           "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
          ]
        }
      }
@@ -396,9 +396,9 @@ Use these checks after configuration. Prefer SSE for editor connections and HTTP
 
 - `claude mcp list`
 - `codex mcp list`
-- `npx mcp-remote https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp`
-- `curl -I https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/mcp`
-- `curl -N https://shadcn-svelte-mcp.amachree9630.workers.dev/api/mcp/shadcn/sse`
+- `npx mcp-remote https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp`
+- `curl -I https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp`
+- `curl -N https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse`
 
 Claude Code may prompt for tool permissions. Use `/permissions` or set `allowedTools` in `~/.claude.json` if needed.
 
