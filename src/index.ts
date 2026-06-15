@@ -14,7 +14,7 @@ export const mastra = new Mastra({
     level: "info",
   }),
   bundler: {
-    externals: ["crawlee", "fuse.js"],
+    externals: ["fuse.js"],
   },
   deployer: new CloudflareDeployer({
     name: "shadcn-svelte-mcp",

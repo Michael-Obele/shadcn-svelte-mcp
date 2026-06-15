@@ -58,6 +58,7 @@ function getCacheKey(url: string): string {
  * Gets data from cache (checks memory first, then disk)
  */
 export async function getFromCache<T>(url: string): Promise<T | null> {
+  await ensureCacheInitialized();
   const key = getCacheKey(url);
 
   // Check memory cache first
@@ -116,6 +117,7 @@ export async function getFromCache<T>(url: string): Promise<T | null> {
  * Saves data to cache (both memory and disk)
  */
 export async function saveToCache<T>(url: string, data: T): Promise<void> {
+  await ensureCacheInitialized();
   const key = getCacheKey(url);
   const entry: CacheEntry<T> = {
     data,
@@ -162,6 +164,7 @@ function addToMemoryCache<T>(key: string, entry: CacheEntry<T>): void {
  * Clears all cache (memory and disk)
  */
 export async function clearCache(): Promise<void> {
+  await ensureCacheInitialized();
   // Clear memory
   memoryCache.clear();
   accessOrder.length = 0;
@@ -184,6 +187,7 @@ export async function clearCache(): Promise<void> {
  * Cleans up expired cache entries
  */
 export async function cleanupCache(): Promise<void> {
+  await ensureCacheInitialized();
   try {
     const files = await fs.readdir(CACHE_DIR);
     let removed = 0;
@@ -222,6 +226,7 @@ export async function getCacheStats(): Promise<{
   diskSize: number;
   totalSize: number;
 }> {
+  await ensureCacheInitialized();
   const memorySize = memoryCache.size;
 
   let diskSize = 0;
@@ -249,8 +254,16 @@ export async function prewarmCache(urls: string[]): Promise<void> {
   // This will be implemented by the fetcher service
 }
 
-// Initialize cache on module load
-initializeCache();
+// Lazy initialization flag
+let cacheInitialized = false;
 
-// Cleanup expired cache every hour
-setInterval(cleanupCache, 60 * 60 * 1000);
+async function ensureCacheInitialized() {
+  if (cacheInitialized) return;
+  cacheInitialized = true;
+  // Only attempt disk cache initialization if fs is available and we're not in a worker-like environment that blocks it
+  try {
+    await initializeCache();
+  } catch (e) {
+    console.warn("[Cache] Lazy disk cache initialization failed, falling back to memory-only cache:", e);
+  }
+}

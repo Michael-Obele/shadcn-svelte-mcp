@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "mastra dev",
-    "build": "mastra build",
+    "build": "mastra build && node scripts/post-build.js",
     "start": "mastra start",
     "check": "tsc --noEmit",
     "check-versions": "node scripts/check-versions.js",
@@ -26,7 +26,6 @@
     "@mastra/mcp": "^1.10.0",
     "@mastra/memory": "^1.20.3",
     "cheerio": "^1.1.2",
-    "crawlee": "^3.15.2",
     "fuse.js": "^7.1.0",
     "turndown": "^7.2.2",
     "valibot": "^1.1.0",

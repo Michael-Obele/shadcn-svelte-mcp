@@ -6,6 +6,7 @@ import { shadcnSvelteSearchTool } from "./tools/shadcn-svelte-search";
 import { bitsUiGetTool } from "./tools/bits-ui-get";
 
 export const shadcn = new MCPServer({
+  id: "shadcn",
   name: "Shadcn Svelte Docs",
   version: "1.10.0",
   description:
