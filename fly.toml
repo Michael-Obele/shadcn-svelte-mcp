@@ -1,0 +1,42 @@
+# shadcn-svelte-mcp — Fly.io deployment configuration (tmcp)
+# Docs: https://fly.io/docs/reference/configuration/
+#
+# Quick start:
+#   fly launch --no-deploy     (first time; picks up this file)
+#   fly deploy
+
+app = "shadcn-svelte-mcp"
+primary_region = "ord"
+
+[build]
+dockerfile = "Dockerfile"
+
+[env]
+PORT = "3000"
+
+# HTTP service — MCP over Streamable HTTP at /mcp
+[[services]]
+protocol = "tcp"
+internal_port = 3000
+processes = ["app"]
+
+[[services.ports]]
+port = 80
+handlers = ["http"]
+
+[[services.ports]]
+port = 443
+handlers = ["tls", "http"]
+
+# Health checks hit /health (see src/index.ts)
+[[services.http_checks]]
+interval = "30s"
+timeout = "5s"
+grace_period = "10s"
+method = "get"
+path = "/health"
+
+[[services.concurrency]]
+type = "connections"
+hard_limit = 1000
+soft_limit = 500

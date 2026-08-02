@@ -19,19 +19,19 @@ This project does NOT implement an MCP client - it only provides tools to extern
 
 The server supports two transport protocols:
 
-#### HTTP Transport
+#### Streamable HTTP Transport (recommended)
 
-- **Endpoint**: `/api/mcp/shadcn/mcp`
-- **Method**: HTTP POST
-- **Use case**: One-off requests, CLI tools, simple integrations
-- **Example**: `curl -X POST https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp`
+- **Endpoint**: `/mcp` (both `src/index.ts` for Node/Bun and `src/worker.ts` for Cloudflare Workers)
+- **Method**: HTTP POST (Streamable HTTP per the MCP spec)
+- **Use case**: One-off requests, CLI tools, remote clients, serverless deployments
+- **Example**: `curl -X POST http://localhost:3000/mcp`
 
-#### Server-Sent Events (SSE) Transport
+#### STDIO Transport
 
-- **Endpoint**: `/api/mcp/shadcn/sse`
-- **Protocol**: HTTP with SSE for bidirectional communication
-- **Use case**: Long-lived connections, real-time updates, editor integrations
-- **Example**: Persistent connection for editor plugins
+- **Entry**: `src/stdio.ts`
+- **Protocol**: JSON-RPC over stdin/stdout
+- **Use case**: Local MCP clients (Claude Desktop, Cursor, VS Code, etc.)
+- **Example**: `bun run src/stdio.ts`
 
 ## Architecture
 
@@ -40,45 +40,54 @@ The server supports two transport protocols:
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   AI Editor     │────│   MCP Transport  │────│  MCP Server     │
-│   (Client)      │    │   (HTTP/SSE)     │    │  (This Project) │
+│   (Client)      │    │  (HTTP / STDIO)  │    │  (tmcp)         │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                                        │
                                                ┌───────┴───────┐
-                                               │   Mastra      │
-                                               │   Framework   │
+                                               │  McpServer    │
+                                               │  (tmcp)       │
                                                └───────┬───────┘
                                                        │
                                                ┌───────┴───────┐
-                                               │   Tools       │
-                                               │   (4 total)   │
+                                               │  Tools (5) +  │
+                                               │  Prompts (4)  │
                                                └───────────────┘
 ```
 
-### Mastra Framework Integration
+### tmcp Framework Integration
 
-The server is built using the [Mastra](https://mastra.ai) framework, which provides:
+The server is built using [tmcp](https://tmcp.io) — a lightweight, schema-agnostic
+MCP SDK — with the Valibot adapter (`@tmcp/adapter-valibot`):
 
-- **Agent orchestration**: Manages AI agent workflows
-- **Tool registration**: Exposes tools to MCP clients
-- **MCP protocol handling**: Manages HTTP/SSE transport
-- **Configuration management**: Environment and deployment settings
+- **`McpServer` assembly**: `src/mcp/server.ts` (name, version, description, capabilities)
+- **Tool registration**: `defineTool` from `tmcp/tool` + `server.tools([...])`
+- **Prompt registration**: `definePrompt` from `tmcp/prompt` + `server.prompts([...])`
+- **HTTP transport**: `HttpTransport` from `@tmcp/transport-http` (`respond(request) → Response | null`)
+- **STDIO transport**: `StdioTransport` from `@tmcp/transport-stdio` (`.listen()`)
+- **Runtime-agnostic**: Web `Request`/`Response` based — runs on Node, Bun, Deno, and Cloudflare Workers
 
 ### Tool Implementation
 
-Tools are implemented using Mastra's `createTool` function with Zod schemas:
+Tools are implemented using tmcp's `defineTool` with Valibot schemas, and return
+content blocks via the `tool.text(...)` / `tool.error(...)` helpers from `tmcp/utils`:
 
 ```typescript
-export const myTool = createTool({
-  id: "tool-name",
-  description: "Tool description",
-  inputSchema: z.object({
-    param: z.string(),
-  }),
-  execute: async ({ context }) => {
-    // Tool implementation
-    return result;
+import { defineTool } from "tmcp/tool";
+import { tool } from "tmcp/utils";
+import * as v from "valibot";
+
+export const myTool = defineTool(
+  {
+    name: "tool-name",
+    description: "Tool description",
+    schema: v.object({
+      param: v.string(),
+    }),
   },
-});
+  async ({ param }) => {
+    return tool.text(`Received: ${param}`);
+  },
+);
 ```
 
 ## Available Tools
@@ -253,8 +262,8 @@ npm run test:integration  # Integration tests
 
 ### Tool Development
 
-1. Create tool in `src/mastra/tools/`
-2. Use `createTool` with Zod schema
+1. Create tool in `src/mcp/tools/`
+2. Use `defineTool` with Valibot schema
 3. Register in `src/mastra/index.ts`
 4. Test with MCP client
 

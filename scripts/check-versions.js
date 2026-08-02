@@ -18,7 +18,7 @@ import fs from "fs";
 import path from "path";
 
 const pkgPath = path.resolve(process.cwd(), "package.json");
-const targetPath = path.resolve(process.cwd(), "src/mastra/mcp-server.ts");
+const targetPath = path.resolve(process.cwd(), "src/mcp/server.ts");
 
 if (!fs.existsSync(pkgPath)) {
   console.error("package.json not found");

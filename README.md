@@ -5,24 +5,23 @@
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoic3NlIiwidXJsIjoiaHR0cHM6Ly9zaGFkY24tc3ZlbHRlLW1jcC5zdmVsdGUtYXBwcy53b3JrZXJzLmRldi9hcGkvbWNwL3NoYWRjbi9zc2UifQ==)
 
-Mastra MCP server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping.
+tmcp (lightweight MCP) server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping. Built with [tmcp](https://tmcp.io) — schema-agnostic, runs anywhere JavaScript runs: Cloudflare Workers, Fly.io, Render, or your laptop via stdio.
 
 ## Production Deployments
 
-> [!IMPORTANT]
-> **URL Update Notification:** Due to the migration and updates to the Mastra Cloud platform, the deployment URL has changed to the new `*.server.mastra.cloud` structure. If you are experiencing connection issues, please update your editor and CLI configurations to use `https://shadcn-svelte-mcp.svelte-apps.workers.dev` as the previous URLs are no longer active.
+Cloudflare Workers is the primary deployment: zero cold start, high availability,
+fast tool discovery, and the same toolset over both transports. Fly.io and Render
+are fully supported alternatives (see [Deployment](#deployment)).
 
-Cloudflare Workers is the primary deployment: zero cold start, high availability, fast tool discovery, and the same toolset over both transports.
-
-| Transport | URL                                                              | Best for                                 |
-| --------- | ---------------------------------------------------------------- | ---------------------------------------- |
-| SSE       | https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse | Editors that keep long-lived connections |
-| HTTP      | https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp | CLIs, scripts, and one-off calls         |
+| Transport | URL                                                   | Best for                         |
+| --------- | ----------------------------------------------------- | -------------------------------- |
+| HTTP      | `https://shadcn-svelte-mcp.<account>.workers.dev/mcp` | CLIs, scripts, and one-off calls |
+| STDIO     | `bun run src/stdio.ts` (local)                        | Editors and local agents         |
 
 > [!NOTE]
 > This project follows our [Code of ConTIPduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-This repository contains a Mastra-based MCP server that provides real-time access to shadcn-svelte component documentation using web scraping. Use it in your AI-powered code editor to get instant access to the latest shadcn-svelte component information directly from the official website.
+This repository contains a tmcp-based MCP server that provides real-time access to shadcn-svelte component documentation using web scraping. Use it in your AI-powered code editor to get instant access to the latest shadcn-svelte component information directly from the official website.
 
 ## Table of Contents
 
@@ -435,76 +434,130 @@ Want to run the MCP server locally or contribute to the project?
 
 ### Contents
 
-- `src/` - Mastra bootstrap, MCP servers, tools, and agents
+- `src/` - Entry points: `index.ts` (HTTP server), `stdio.ts` (local MCP), `worker.ts` (Cloudflare Worker)
+- `src/mcp/` - The MCP server: `server.ts` (tmcp `McpServer` assembly), `tools/`, `prompts/`
 - `src/services/` - Web scraping services for real-time documentation fetching
-- `src/mastra/tools/` - Tools that expose component discovery, fetching and utilities
-- `src/mastra/agents/` - Specialized AI agent for shadcn-svelte assistance
 - `scripts/` - Version management and automation scripts
+- `legacy-mastra/` - The pre-migration Mastra implementation (kept for reference)
 
 ### Quick start (development smoke-test)
 
 1. Install dependencies (using your preferred package manager).
 
 ```bash
-# npm
-npm install
-
-# or bun
+# bun (recommended)
 bun install
+
+# or npm
+npm install
 
 # or pnpm
 pnpm install
 ```
 
-2. Run the development smoke-test (recommended):
+2. Run the development server:
 
 ```bash
-# Starts Mastra in dev mode; this repo's smoke-test expects a short run to detect runtime errors
-npm run dev
+# Starts the HTTP server with file watching on http://localhost:3000
+bun run dev
+```
+
+The MCP endpoint is at `http://localhost:3000/mcp` and a health check at
+`http://localhost:3000/health`.
+
+For local MCP clients (Claude Desktop, Cursor, etc.), use the stdio entry:
+
+```json
+{
+  "mcpServers": {
+    "shadcn-svelte": {
+      "command": "bun",
+      "args": ["run", "src/stdio.ts"]
+    }
+  }
+}
 ```
 
 ## Developer Scripts
 
-- `npm run dev` - Start Mastra in development mode (recommended smoke-test).
-- `npm run build` - Build the Mastra project for production.
-- `npm run start` - Start the built Mastra server.
-- `npm run check-versions` - Check if package.json and mcp-server.ts versions match (fails if mismatched).
-- `npm run sync-versions-auto` - Check versions and auto-sync if mismatched (package.json is source of truth).
-- `npm run sync-versions` - Sync versions from latest git tag to both files.
+- `bun run dev` - HTTP server in watch mode (port 3000, `/mcp` endpoint).
+- `bun run mcp` - Run the stdio transport for local MCP clients.
+- `bun run build` - Bundle the HTTP + stdio entries to `dist/` (for Fly.io/Render).
+- `bun run deploy:worker` - Deploy the Cloudflare Worker (`wrangler deploy`).
+- `bun run check` - TypeScript check (`tsc --noEmit`).
+- `bun run check-versions` - Check if package.json and src/mcp/server.ts versions match (fails if mismatched).
+- `bun run sync-versions-auto` - Check versions and auto-sync if mismatched (package.json is source of truth).
+- `bun run sync-versions` - Sync versions from latest git tag to both files.
+
+## Deployment
+
+### Cloudflare Workers
+
+```bash
+bun install
+npx wrangler kv:namespace create TMCP_KV   # once — paste the id into wrangler.jsonc
+bun run deploy:worker
+```
+
+The worker serves Streamable HTTP at `/mcp` on your `*.workers.dev` domain, with
+a `/health` endpoint. Sessions and doc cache are persisted in KV (`TMCP_KV`)
+when the binding is present; the server degrades to in-memory without it.
+
+### Fly.io
+
+```bash
+fly launch --no-deploy   # first time — picks up fly.toml
+fly deploy
+```
+
+Runs the bundled `dist/index.js` in a bun container (`Dockerfile`), served at
+`/mcp` with health checks against `/health`.
+
+### Render
+
+`render.yaml` builds with bun and starts the same bundle. `PORT` is set
+automatically by the platform.
 
 ## Project Architecture
 
 ### Core Components
 
-- **Mastra Framework**: Orchestrates agents, workflows, and MCP servers
-- **MCP Server**: Exposes tools to AI code editors via HTTP/SSE protocols
-- **Web Scraping Services**: Multi-strategy approach for fetching documentation:
+- **tmcp `McpServer`** (`src/mcp/server.ts`): The MCP server with a Valibot schema
+  adapter (`@tmcp/adapter-valibot`) and HTTP/STDIO transports
+- **HTTP Transport** (`@tmcp/transport-http`): Streamable HTTP at `/mcp` —
+  used by the Node/Bun server (`src/index.ts`) and the Cloudflare Worker
+  (`src/worker.ts`)
+- **STDIO Transport** (`@tmcp/transport-stdio`): Local MCP clients (`src/stdio.ts`)
+- **Web Scraping Services** (`src/services/`): Multi-strategy documentation fetching:
   - Direct `.md` endpoint fetching for shadcn-svelte components
   - AI-optimized `/llms.txt` endpoint fetching for Bits UI API documentation
-  - Crawlee (Playwright) for JavaScript-heavy pages (charts, themes, blocks)
-  - Cheerio + Turndown for simple HTML pages
-- **Intelligent Caching**: 3-day TTL cache with memory and disk storage
+  - Cheerio + Turndown for HTML pages
+- **Intelligent Caching**: 3-day TTL cache with memory, disk (Node), and KV
+  (Workers) tiers
 - **Component Discovery**: Dynamic scraping of component registry from shadcn-svelte.com
 - **Advanced Search**: Fuse.js-powered fuzzy search with typo tolerance
 
 ### Key Features
 
-The project combines real-time documentation fetching, Bits UI API access, multi-strategy scraping, intelligent caching, Lucide icon search, semantic version synchronization, and production deployment on Mastra Cloud.
+The project combines real-time documentation fetching, Bits UI API access, multi-strategy scraping, intelligent caching, Lucide icon search, semantic version synchronization, and production deployment on Cloudflare Workers, Fly.io, or Render.
 
 ## Conventions & notes
 
-- Tools are implemented under `src/mastra/tools` and should use `zod` for input validation
-- Web scraping services are implemented under `src/services/` and use Crawlee (with Playwright) for real-time documentation fetching from JavaScript-heavy pages
-- Intelligent caching is used to improve performance and reduce API calls
-- Tools follow Mastra patterns using `createTool` with proper input/output schemas
+- Tools are implemented under `src/mcp/tools` with `defineTool` from `tmcp/tool`
+  and use `valibot` schemas for input validation
+- Prompts live in `src/mcp/prompts` and use `definePrompt` from `tmcp/prompt`
+- Web scraping services are implemented under `src/services/` and use Cheerio + Turndown for real-time documentation fetching
+- Tool handlers return `tool.text(...)` / `tool.error(...)` from `tmcp/utils`
+- The `version: "x.y.z"` literal in `src/mcp/server.ts` is the version anchor —
+  keep it in sync with `package.json` (see `scripts/check-versions.js`)
 
 ## Development tips
 
-- Node >= 20.9.0 is recommended (see `package.json` engines)
-- When adding tools, follow the patterns in `src/mastra/tools/shadcn-svelte-get.ts` and `shadcn-svelte-list.ts`
-- After making changes, run the 10–15s smoke-test via `npm run dev` to surface runtime integration issues early
-- Set up proper Firecrawl API credentials for web scraping functionality
-- The system uses intelligent caching - clear cache if you need fresh data during development
+- Node >= 20.9.0 or Bun >= 1.1 is required (see `package.json` engines)
+- When adding tools, follow the patterns in `src/mcp/tools/shadcn-svelte-get.ts` and `src/mcp/tools/shadcn-svelte-list.ts`
+- After making changes, run `bun run check` (type check) and a short `bun run dev` smoke-test to surface runtime issues early
+- Verify protocol behavior with the MCP Inspector: `npx @modelcontextprotocol/inspector` and point it at `http://localhost:3000/mcp`
+- The system uses intelligent caching (3-day TTL) - clear the `.cache/` folder if you need fresh data during development
 
 ## License
 

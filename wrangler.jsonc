@@ -1,0 +1,28 @@
+{
+  /* shadcn-svelte-mcp — Cloudflare Worker deployment (tmcp) */
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "shadcn-svelte-mcp",
+  "main": "./src/worker.ts",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "logs": {
+      "enabled": true,
+    },
+  },
+  "vars": {
+    /* Override cache TTL (ms) — optional:
+       "CACHE_TTL_MS": "259200000" */
+  },
+  /* KV namespace used for MCP session info + doc cache.
+     Create it before first deploy:
+       npx wrangler kv:namespace create TMCP_KV
+     then paste the returned `id` below. The server runs without it
+     (in-memory sessions) but multi-isolate deployments should have it. */
+  "kv_namespaces": [
+    {
+      "binding": "TMCP_KV",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID",
+    },
+  ],
+}

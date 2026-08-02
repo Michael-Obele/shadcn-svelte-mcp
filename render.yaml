@@ -1,0 +1,34 @@
+# Render.com deployment configuration for shadcn-svelte-mcp (tmcp)
+# See: https://render.com/docs/infrastructure-as-code
+
+services:
+  # Main MCP Server (HTTP + stdio-capable)
+  - type: web
+    name: shadcn-svelte-mcp
+    runtime: node
+    plan: free # Options: free, starter ($7/mo), standard ($25/mo), pro ($85/mo)
+    region: oregon # Options: oregon, frankfurt, singapore, ohio
+    branch: main
+    rootDir: .
+
+    # Build Configuration
+    buildCommand: bun install --frozen-lockfile && bun run build
+    startCommand: bun run dist/index.js
+
+    # Health check against the /health endpoint
+    healthCheckPath: /health
+
+    # Environment Variables
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: 10000
+
+      # Optional: Override cache TTL (ms) — default is 3 days
+      # - key: CACHE_TTL_MS
+      #   value: "259200000"
+
+    # Auto-Deploy Configuration
+    autoDeploy: true # Deploy automatically on git push
