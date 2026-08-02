@@ -47,27 +47,39 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to help us main
 
 ### Development Commands
 
-- `bun run dev` - Start Mastra in development mode (recommended smoke-test)
-- `bun run build` - Build the Mastra project for production
-- `bun run start` - Start the built Mastra server
+- `bun run dev` - HTTP server with watch (port 3000, MCP endpoint `/mcp`)
+- `bun run build` - Bundle HTTP + stdio entries to `dist/` for deployment
+- `bun run mcp` - STDIO transport for local MCP clients
+- `bun run check` - TypeScript check (`tsc --noEmit`)
 
 ### Smoke Testing
 
-Always run `bun run dev` for 10-15 seconds after making changes to catch early runtime errors. This is our standard smoke-test procedure.
+Run `bun run dev` for 10-15 seconds after making changes to catch early runtime errors, then verify the MCP endpoint:
+
+```bash
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+This is our standard smoke-test procedure.
 
 ### Project Structure
 
-- `src/` - Mastra bootstrap, MCP servers, tools, and agents
+- `src/` - Entry points: `index.ts` (HTTP), `stdio.ts` (local MCP), `worker.ts` (Cloudflare Worker)
+- `src/mcp/` - MCP server assembly (`server.ts`), tools, and prompts
 - `src/services/` - Web scraping services for real-time documentation fetching
-- `src/mastra/tools/` - Tools that expose component discovery, fetching and utilities
-- `src/services/doc-fetcher.ts` - Multi-strategy documentation fetcher (Crawlee/Playwright for JS-heavy pages, Cheerio for simple pages)
+- `src/services/doc-fetcher.ts` - Multi-strategy documentation fetcher (direct `.md`, `llms.txt`, Cheerio+Turndown HTML)
 - `src/services/component-discovery.ts` - Component discovery via web scraping
+- `legacy-mastra/` - Pre-migration Mastra implementation (reference only, not part of the build)
 
 ## Pull Request Process
 
 1. **Ensure your code follows our guidelines**:
-   - Follow Mastra tool patterns using `createTool` with proper Zod schemas
-   - Use descriptive tool IDs and clear descriptions
+   - Follow tmcp tool patterns using `defineTool` with proper Valibot schemas
+   - Use descriptive tool names and clear descriptions
+   - Tool handlers must return `tool.text(...)` / `tool.error(...)` from `tmcp/utils`
    - Follow web scraping patterns in existing services
    - Include appropriate documentation
 

@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@tmcp/adapter-valibot": "^0.1.6",
+    "@tmcp/session-manager-durable-objects": "^0.2.3",
     "@tmcp/transport-http": "^0.8.6",
     "@tmcp/transport-stdio": "^0.4.3",
     "cheerio": "^1.1.2",
