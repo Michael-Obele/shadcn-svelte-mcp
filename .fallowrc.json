@@ -1,0 +1,21 @@
+{
+  // shadcn-svelte-mcp — fallow configuration
+  // Research-backed choices to avoid false positives in this codebase:
+  //  1. .mastra/** and .wrangler/** are build artifacts / stale output dirs.
+  //  2. conventional-changelog-conventionalcommits is consumed implicitly as the
+  //     semantic-release preset in .releaserc.json ({"preset":"conventionalcommits"})
+  //     — fallow cannot see JSON-config presets, so it's a verified false positive.
+  //  3. ignoreExportsUsedInFile mirrors knip: exports referenced within their own
+  //     file (common in tool registration files) aren't flagged as unused.
+  //  4. src/stdio.ts is the MCP stdio entry (package.json "mcp" script +
+  //     "build" script) — declared explicitly so it's an entry.
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": ["src/stdio.ts"],
+  "ignorePatterns": [
+    ".mastra/**",
+    ".wrangler/**",
+    ".fallow/**"
+  ],
+  "ignoreDependencies": ["conventional-changelog-conventionalcommits"],
+  "ignoreExportsUsedInFile": true
+}

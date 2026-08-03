@@ -16,9 +16,9 @@ The MCP server implements a sophisticated system that combines user-triggered gu
 
 The system is built on several core components that work together to provide intelligent and reliable guidance.
 
-- **Agent Instructions (`src/mastra/agents/shadcn-svelte-agent.ts`)**: A comprehensive system prompt containing strict directives for the AI, including tool-first verification, anti-hallucination safeguards.
-- **MCP Prompts (`src/mastra/mcp-server.ts`)**: User-triggered guided workflows for common `shadcn-svelte` tasks, such as installing components or setting up theming.
-- **Validation System (`test-prompt-validation.js`)**: An automated testing suite to ensure the effectiveness of prompts, tool verification, and anti-hallucination measures.
+- **MCP Prompts (`src/mcp/prompts/`)**: User-triggered guided workflows for common `shadcn-svelte` tasks, such as installing components or setting up theming. Each prompt is defined with `definePrompt` from `tmcp/prompt` and registered in `src/mcp/server.ts`.
+- **MCP Tools (`src/mcp/tools/`)**: Tool-first verification is enforced by the underlying tools (`shadcn-svelte-get`, `shadcn-svelte-list`, `shadcn-svelte-search`), which fetch real-time documentation before any command is suggested.
+- **Validation**: Prompts and tools are validated through the `#test-mcp` MCP channel (see CONTRIBUTING.md).
 
 ## 3. MCP Prompts (Guided Workflows)
 
@@ -115,18 +115,45 @@ The system ensures all CLI command suggestions are accurate and up-to-date.
 
 ## 5. Implementation for Developers
 
-### 5.1. Agent Instructions Structure
+### 5.1. Prompt Structure
 
-The core logic is defined in a structured prompt within `shadcn-svelte-agent.ts`.
+Each prompt is defined with `definePrompt` from `tmcp/prompt` in `src/mcp/prompts/`. A prompt declares its name, title, description, and a valibot schema for its arguments, then returns `{ messages: [...] }` guiding the assistant to verify with tools before answering.
 
 ```typescript
-instructions: `
-  ⚠️ CRITICAL DIRECTIVES ⚠️
-  1. SVELTE, NOT REACT: [Strict Svelte-only rules]
-  2. TOOL-FIRST APPROACH: [Verification requirements]
-  3. ANTI-HALLUCINATION: [Error handling and correction rules]
-  4. CLI COMMAND INTELLIGENCE: [Command validation procedures]
-`;
+import { definePrompt } from "tmcp/prompt";
+import * as v from "valibot";
+
+export const installComponentPrompt = definePrompt(
+  {
+    name: "install-component",
+    title: "Install shadcn-svelte Component",
+    description:
+      "Step-by-step guide to install a specific shadcn-svelte component with proper CLI usage",
+    schema: v.object({
+      component: v.pipe(
+        v.string(),
+        v.description("Name of the component to install (e.g., 'button')"),
+      ),
+      packageManager: v.optional(
+        v.pipe(
+          v.picklist(["npm", "yarn", "pnpm", "bun"]),
+          v.description("Package manager to use"),
+        ),
+      ),
+    }),
+  },
+  async ({ component, packageManager = "npm" }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `I want to install the "${component}" component from shadcn-svelte using ${packageManager}.`,
+        },
+      },
+    ],
+  }),
+);
 ```
 
 ### 5.2. Tool Usage Patterns
@@ -143,8 +170,8 @@ instructions: `
 
 A combination of automated and manual testing ensures the system's integrity.
 
-- **Automated Tests**: Run the validation suite with `npm run test:prompts`. Tests cover CLI doc access, component verification, non-existent component rejection, and command accuracy.
-- **Manual Checklist**: For each prompt scenario, manually verify that the AI calls tools first, uses exact commands, rejects non-existent components.
+- **MCP Channel Validation**: Trigger each prompt and tool via the `#test-mcp` MCP channel. Verify CLI doc access, component verification, non-existent component rejection, and command accuracy.
+- **Manual Checklist**: For each prompt scenario, manually verify that the AI calls tools first, uses exact commands, and rejects non-existent components.
 
 ## 7. Usage Examples
 
@@ -167,14 +194,14 @@ A combination of automated and manual testing ensures the system's integrity.
 
 When modifying the prompt system:
 
-1.  Update agent instructions in `src/mastra/agents/shadcn-svelte-agent.ts`.
-2.  Update MCP prompt definitions in `src/mastra/mcp-server.ts`.
-3.  Update validation tests.
-4.  Run the full automated and manual testing suite.
+1.  Update the prompt definitions in `src/mcp/prompts/`.
+2.  Register any new prompt in `src/mcp/server.ts`.
+3.  Validate the prompts via the `#test-mcp` MCP channel.
+4.  Run `bun run check` before committing.
 
 ## 10. Related Files
 
-- `src/mastra/agents/shadcn-svelte-agent.ts`
-- `src/mastra/mcp-server.ts`
-- `test-prompt-validation.js`
+- `src/mcp/server.ts` - Prompt and tool registration
+- `src/mcp/prompts/` - Prompt definitions (`cli-usage.ts`, `install-component.ts`, `project-init.ts`, `setup-theming.ts`)
+- `src/mcp/tools/` - Tool implementations
 - `MCP_ARCHITECTURE.md`

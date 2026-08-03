@@ -5,7 +5,10 @@
 
 import { fetchUrl } from "./doc-fetcher.js";
 import { getFromCache, saveToCache } from "./cache-manager.js";
-import { discoverBitsUIComponents } from "./bits-ui-discovery.js";
+import {
+  discoverBitsUIComponents,
+  type BitsUIComponentInfo,
+} from "./bits-ui-discovery.js";
 
 export interface ComponentInfo {
   name: string;
@@ -296,7 +299,7 @@ export async function discoverDocs(): Promise<{
  */
 export async function getAllContent(): Promise<{
   components: ComponentInfo[];
-  bitsUIComponents: any[];
+  bitsUIComponents: BitsUIComponentInfo[];
   docs: {
     installation: string[];
     darkMode: string[];

@@ -1,5 +1,6 @@
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import { defineTool } from "tmcp/tool";
+import { tool } from "tmcp/utils";
+import * as v from "valibot";
 import { getAllContent } from "../../services/component-discovery.js";
 import { discoverBitsUIComponents } from "../../services/bits-ui-discovery.js";
 
@@ -23,19 +24,31 @@ const CHARTS = {
 };
 
 // Tool for listing all available components and documentation
-export const shadcnSvelteListTool = createTool({
-  id: "shadcn-svelte-list",
-  description:
-    "List all available shadcn-svelte components, blocks, charts, documentation sections, and Bits UI primitives by discovering them from the live websites",
-  inputSchema: z.object({
-    type: z
-      .enum(["components", "blocks", "charts", "docs", "bits-ui", "all"])
-      .optional()
-      .default("all")
-      .describe("What to list: components, blocks, charts, docs, bits-ui, or all"),
-  }),
-  execute: async ({ type }) => {
-
+export const shadcnSvelteListTool = defineTool(
+  {
+    name: "shadcn-svelte-list",
+    description:
+      "List all available shadcn-svelte components, blocks, charts, documentation sections, and Bits UI primitives by discovering them from the live websites",
+    schema: v.object({
+      type: v.optional(
+        v.pipe(
+          v.picklist([
+            "components",
+            "blocks",
+            "charts",
+            "docs",
+            "bits-ui",
+            "all",
+          ]),
+          v.description(
+            "What to list: components, blocks, charts, docs, bits-ui, or all",
+          ),
+        ),
+        "all",
+      ),
+    }),
+  },
+  async ({ type }) => {
     try {
       // Get all content from discovery service
       const content = await getAllContent();
@@ -75,7 +88,8 @@ export const shadcnSvelteListTool = createTool({
           result += `${row}\n`;
         }
         result += "\n";
-        result += "*These are the underlying headless components that shadcn-svelte builds upon.*\n\n";
+        result +=
+          "*These are the underlying headless components that shadcn-svelte builds upon.*\n\n";
       }
 
       // List blocks if requested
@@ -161,9 +175,9 @@ export const shadcnSvelteListTool = createTool({
       result +=
         "- Get installation docs: `{ name: 'sveltekit', type: 'doc' }`\n";
 
-      return result;
+      return tool.text(result);
     } catch (error) {
-      return `Error listing resources: ${error}`;
+      return tool.error(`Error listing resources: ${error}`);
     }
   },
-});
+);

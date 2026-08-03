@@ -29,8 +29,8 @@ pkg.version = version;
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 console.log(`Updated ${pkgPath} to ${version}`);
 
-// Update mcp-server.ts
-const targetPath = path.resolve(process.cwd(), "src/mastra/mcp-server.ts");
+// Update mcp server version
+const targetPath = path.resolve(process.cwd(), "src/mcp/server.ts");
 let code = fs.readFileSync(targetPath, "utf8");
 code = code.replace(/version:\s*"[^"]+",/, `version: "${version}",`);
 fs.writeFileSync(targetPath, code);

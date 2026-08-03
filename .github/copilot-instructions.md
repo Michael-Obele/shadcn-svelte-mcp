@@ -6,15 +6,17 @@ This file gives concise, actionable instructions for an AI coding agent to be pr
 
 1. What this repo is
 
-- A Mastra-based AI tooling project that bundles: workflows, agents, MCP servers and custom tools. See `src/index.ts` for the Mastra bootstrap (workflows, agents, mcpServers).
-- Documentation is fetched in real-time from shadcn-svelte.com using Crawlee (Playwright for JS-heavy pages) and Cheerio (fallback for simple pages) under `src/services/`.
+- A [tmcp](https://tmcp.io)-based MCP server (lightweight, schema-agnostic MCP SDK). See `src/mcp/server.ts` for the `McpServer` assembly, `src/index.ts` for the Node/Bun HTTP entry, `src/worker.ts` for the Cloudflare Worker entry, and `src/stdio.ts` for local MCP clients.
+- Documentation is fetched in real-time from shadcn-svelte.com using Cheerio + Turndown (HTML → Markdown) and direct `.md` / `llms.txt` endpoint fetching under `src/services/`.
 
 2. How to run / common developer commands
 
-- Node engine: use Node >= 20.9.0 (see `package.json` "engines").
-- Development (app-level): bun run dev (calls `mastra dev`).
-- Type checking: bun run check (runs `tsc --noEmit` to check for TypeScript errors across the entire project).
-- Note: for quick smoke-tests and CI checks, we use `bun run dev` only (see the smoke-test guideline below). Other MCP helper scripts exist in `package.json` but the canonical developer workflow relies on `bun run dev` for early error detection.
+- Runtimes: Node >= 20.9.0 or Bun >= 1.1 (see `package.json` "engines").
+- Development: `bun run dev` (HTTP server with watch on http://localhost:3000, MCP endpoint `/mcp`, health `/health`).
+- Type checking: `bun run check` (runs `tsc --noEmit` across the project).
+- Local MCP: `bun run mcp` (stdio transport).
+- Build: `bun run build` (bundles `src/index.ts` + `src/stdio.ts` → `dist/` for Fly.io/Render).
+- Deploy Worker: `bun run deploy:worker` (wrangler; requires `TMCP_KV` binding — see `wrangler.jsonc`).
 
 Important: AI-generated/progress documentation and ephemeral notes
 
@@ -27,20 +29,23 @@ Shell command preference
 
 3. Big-picture architecture (quick map)
 
-- Mastra instance (src/index.ts): central entry that composes workflows (src/mastra/workflows), agents (src/mastra/agents), and mcpServers (src/mastra/mcp-server). MCP clients are used directly in agent definitions, not registered here.
-- MCP Server (src/mastra/mcp-server.\*): exposes an object `shadcn` used by `src/dev-server.ts` and `src/server.ts` via startSSE/startHTTP/close. This SERVER exposes YOUR tools to external MCP clients.
-- MCP Client (src/mastra/mcp-client.ts): connects to EXTERNAL MCP servers (like Mastra's official server at mcp.mastra.ai) to USE their tools in your agents. This CLIENT consumes tools from other servers.
-- Tools (src/mastra/tools/\*): each tool is created with `createTool(...)` from `@mastra/core/tools` and follows the pattern: zod input schema, execute({context}) returns result. Example tools: `shadcn-svelte-get`, `shadcn-svelte-list`, `shadcn-svelte-icons`.
-- Web scraping services: `src/services/doc-fetcher.ts` handles real-time documentation fetching from shadcn-svelte.com; `src/services/component-discovery.ts` dynamically discovers available components.
+- MCP Server (`src/mcp/server.ts`): exports `server` (tmcp `McpServer`) and `serverVersion`. Registers 5 tools + 4 prompts, uses the Valibot adapter (`@tmcp/adapter-valibot`) — all schemas are valibot.
+- Entry points:
+  - `src/index.ts` — srvx HTTP server (Node/Bun): Streamable HTTP at `/mcp`, `/health` endpoint.
+  - `src/stdio.ts` — `StdioTransport` for local MCP clients.
+  - `src/worker.ts` — Cloudflare Worker: `HttpTransport` at `/mcp`, optional KV-backed cache (`TMCP_KV`).
+- Tools (`src/mcp/tools/*`): each is created with `defineTool(...)` from `tmcp/tool` and follows the pattern: valibot `schema`, `async (input) => tool.text(...) | tool.error(...)`. Examples: `shadcn-svelte-get`, `shadcn-svelte-list`, `shadcn-svelte-icons`, `shadcn-svelte-search`, `bits-ui-get`.
+- Prompts (`src/mcp/prompts/*`): created with `definePrompt(...)` from `tmcp/prompt`, valibot `schema`, return `{ messages: [...] }`.
+- Web scraping services: `src/services/doc-fetcher.ts` (real-time doc fetching), `src/services/component-discovery.ts` + `bits-ui-discovery.ts` (dynamic discovery), `src/services/cache-manager.ts` (memory + optional KV + optional disk tiers, 3-day TTL).
 
 4. Project-specific conventions and gotchas (do not invent alternatives)
 
-- Tools follow Mastra patterns using `createTool` with Zod schemas for input validation (see `shadcn-svelte-get.ts`). When creating new tools, follow the established patterns for tool development.
-- Tools use web scraping to fetch documentation in real-time from shadcn-svelte.com. The tooling parses markdown content returned from the scraping service.
-- File path resolution: tools resolve docs relative to the tool file (they use file URL + join with `../docs`) — prefer relative paths instead of hard-coded absolute paths.
-- Web scraping approach: tools use real-time web scraping to fetch documentation from shadcn-svelte.com. Components are discovered dynamically from the live website.
-- Input validation: tools MUST use `zod` to validate inputs. Mastra's createTool requires Zod schemas for proper type inference and runtime validation. When updating or creating tools, use zod schemas (see existing examples in `src/mastra/tools/*`). Follow the pattern: `import { z } from "zod"` and define schemas with `z.object({...})`.
-- **Test file organization**: ALWAYS place test files in the `test/` directory at the repository root, never in `src/`. Test files should be named descriptively (e.g., `test-crawlee.ts`, `test-mcp.ts`). Update package.json scripts when moving test files to reflect new paths. Use `git mv` when moving files to preserve version history.
+- Tools use `defineTool` from `tmcp/tool` with **valibot** schemas (`import * as v from "valibot"`) for input validation. Use `v.object({...})`, `v.string()`, `v.number()`, `v.picklist([...])` for string literals, `v.optional(schema, default)` for optional-with-default, and `v.pipe(schema, v.description("..."))` for field descriptions. Tool handlers MUST return content via `tool.text(...)` / `tool.error(...)` from `tmcp/utils` — never a bare string.
+- Prompts use `definePrompt` from `tmcp/prompt` with the same valibot schema conventions and return `{ messages: [...] }` (`role: "user" | "assistant"`, `content: { type: "text", text }`).
+- The version anchor: `version: "x.y.z"` in `src/mcp/server.ts` MUST stay in sync with `package.json` (see `scripts/check-versions.js` / `sync-versions*.js`; regex is `version:\s*"[^"]+",`).
+- Web scraping approach: tools fetch documentation in real-time from shadcn-svelte.com (`.md` endpoints, `llms.txt`, Cheerio+Turndown HTML fallback). Components are discovered dynamically from the live website.
+- The cache manager is runtime-agnostic: disk tier uses dynamic `node:fs` import and auto-degrades to memory/KV only on Workers. Do not add static `node:*` imports to shared services used by `src/worker.ts`.
+- **Test file organization**: ALWAYS place test files in the `test/` directory at the repository root, never in `src/`. Use `git mv` when moving files to preserve version history.
 
 Important runtime smoke-test: when running AI-driven tests or validations, always use the MCP testing channel `#test-mcp` rather than executing repository test scripts directly. Do NOT start or run `bun run dev` from within AI tests — the development server is expected to already be running. If a local manual smoke-test is required by a developer, run `bun run dev` locally for 10–15s, but AI agents must not start it.
 
@@ -50,29 +55,47 @@ If you need to validate tools programmatically, use the `#test-mcp` MCP channel 
 
 **MCP Tool Testing Rule**: When testing or validating MCP tools, ALWAYS use the dedicated MCP test tools (e.g., `#mcp_test-mcp_shadcnSvelteGetTool`) instead of running JavaScript test files directly. The MCP test tools provide proper integration testing through the MCP protocol and ensure tools work correctly in the actual MCP environment.
 
-Caching: component analysis tools use an in-memory cache (`componentCache`) with a 3-day timeout — expect stale cached results when iterating; clear cache or restart the process during development if necessary.
+Caching: tools use the shared cache-manager (3-day TTL; memory + `.cache/` disk on Node/Bun, KV on Workers). Expect stale cached results when iterating; clear `.cache/` or restart the process during development if necessary.
 
 5. Common edit patterns and examples (concrete references)
 
-To add a new tool, mirror `src/mastra/tools/shadcn-svelte-get.ts`: export a tool using `createTool({ id, description, inputSchema: /* use zod schema here */, execute: async ({context}) => { ... } })`. Use Zod for schema validation as Mastra requires it for type inference. Follow existing project patterns for input parsing and error messages.
+To add a new tool, mirror `src/mcp/tools/shadcn-svelte-get.ts`:
 
-- To examine how components are discovered, inspect `src/mastra/tools/shadcn-svelte-get.ts` and `src/services/component-discovery.ts`.
+```ts
+import { defineTool } from "tmcp/tool";
+import { tool } from "tmcp/utils";
+import * as v from "valibot";
+
+export const myTool = defineTool(
+  {
+    name: "my-tool",
+    description: "What it does",
+    schema: v.object({
+      param: v.pipe(v.string(), v.description("What param is")),
+    }),
+  },
+  async ({ param }) => tool.text(`Received: ${param}`),
+);
+```
+
+Then register it in `src/mcp/server.ts` via `server.tools([...])`. Prompts follow the same shape with `definePrompt` + `server.prompts([...])`.
+
+- To examine how components are discovered, inspect `src/mcp/tools/shadcn-svelte-get.ts` and `src/services/component-discovery.ts`.
 - To test changes quickly: use the `#test-mcp` MCP channel to run tests and validations. Do not invoke repo test scripts or start `bun run dev` from AI-driven runs.
 
 6. Integration & external deps
 
-- Key runtime deps (see `package.json`): @mastra/core, @mastra/mcp, @mastra/loggers, @mastra/libsql, mastra CLI. Respect the pinned major versions when adding features unless requested.
-- DB/storage: default `LibSQLStore` is configured in-memory (`url: ":memory:"`) in `src/index.ts` — switch to a file DB if persistence required.
+- Key runtime deps (see `package.json`): tmcp, @tmcp/adapter-valibot, @tmcp/transport-http, @tmcp/transport-stdio, valibot, srvx, cheerio, turndown, fuse.js. Respect the pinned major versions when adding features unless requested.
+- No database. Cache persistence is optional: disk (`./.cache`) on Node/Bun, KV binding `TMCP_KV` on Cloudflare Workers.
 
 7. Debugging tips for AI agents
 
 - If a tool returns "not found", check the web scraping services in `src/services/` and verify the component exists on shadcn-svelte.com.
-- Watch for Crawlee configuration in `src/services/doc-fetcher.ts`. Crawlee uses Playwright for JavaScript-heavy pages - ensure browser dependencies are installed.
+- Verify protocol behavior with curl: `curl -X POST http://localhost:3000/mcp -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'`.
 - For runtime discovery iterate: change code and run `bun run dev` for 10–15s to surface issues; focus on reproducing the failing scenario in that window.
 
 8. What not to change without confirmation
 
-- The Mastra bootstrap (`src/index.ts`) wiring of agents/workflows/mcpServers — changes affect all runtime behavior.
-- Registry format and field names used by tools (`items[].name`, `items[].files[].path`, `items[].type`).
-
-If anything above is unclear or you want more examples (e.g., a sample tool implementation or how to call the MCP endpoints from tests), tell me which area to expand and I will iterate.
+- The `McpServer` assembly in `src/mcp/server.ts` (server info, adapter, capabilities) — changes affect all transports.
+- The registry format and field names used by tools (`items[].name`, `items[].files[].path`, `items[].type`).
+- The version-sync tooling (`.releaserc.json`, `.github/workflows/version-and-release.yml`, `scripts/sync-versions*.js`) — they anchor on `src/mcp/server.ts`.

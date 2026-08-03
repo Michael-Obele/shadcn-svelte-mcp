@@ -1,46 +1,35 @@
-# syntax = docker/dockerfile:1
+# shadcn-svelte-mcp — Fly.io container image
+# Runs the HTTP entry (Streamable HTTP at /mcp) with bun.
 
-# Adjust BUN_VERSION as desired
-ARG BUN_VERSION=1.1.24
-FROM oven/bun:${BUN_VERSION}-slim AS base
+FROM oven/bun:1.2 AS build
 
-LABEL fly_launch_runtime="Bun"
-
-# Bun app lives here
 WORKDIR /app
 
-# Set production environment
-ENV NODE_ENV="production"
+# Install dependencies first for better layer caching
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-
-# Throw-away build stage to reduce size of final image
-FROM base AS build
-
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
-
-# Install node modules
-COPY bun.lock package.json ./
-RUN bun install
-
-# Copy application code
+# Copy the rest of the source
 COPY . .
 
-# Build application
+# Build the HTTP + stdio bundles
 RUN bun run build
 
-# Remove development dependencies
-RUN rm -rf node_modules && \
-    bun install --ci
+# --- runtime image ---
+FROM oven/bun:1.2-slim
 
+WORKDIR /app
 
-# Final stage for app image
-FROM base
+ENV NODE_ENV=production
+ENV PORT=3000
 
-# Copy built application
-COPY --from=build /app /app
+# Runtime needs only the built output
+COPY --from=build /app/dist ./dist
 
-# Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "bun", "run", "start" ]
+
+# Health check used by Fly.io (and Docker HEALTHCHECK)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD bun -e "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))" || exit 1
+
+CMD ["bun", "./dist/index.js"]

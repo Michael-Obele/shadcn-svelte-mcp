@@ -1,5 +1,6 @@
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import { defineTool } from "tmcp/tool";
+import { tool } from "tmcp/utils";
+import * as v from "valibot";
 import {
   fetchComponentDocs,
   fetchGeneralDocs,
@@ -95,30 +96,35 @@ interface ToolResponse {
 }
 
 // PRIMARY TOOL - Tool for getting detailed information about components or documentation
-export const shadcnSvelteGetTool = createTool({
-  id: "shadcn-svelte-get",
-  description:
-    "PRIMARY TOOL for shadcn-svelte components. Get detailed information about any shadcn-svelte component, block, chart, documentation section, or Svelte Sonner docs. Always use this tool FIRST for any shadcn-svelte-related query. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), charts, docs, and sonner. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. If the response includes tooling.bitsUi.exactName, that is the only exact value you should pass to bits-ui-get, and only when you truly need lower-level primitive internals.",
-  inputSchema: z.object({
-    name: z
-      .string()
-      .describe(
-        "Name of the component, documentation section, or 'sonner' for Svelte Sonner docs",
+export const shadcnSvelteGetTool = defineTool(
+  {
+    name: "shadcn-svelte-get",
+    description:
+      "PRIMARY tool for shadcn-svelte. Get docs for any component, block, chart, doc section, or Svelte Sonner. Use FIRST for shadcn-svelte questions. Svelte only, not React. If the response includes tooling.bitsUi.exactName, that is the only value to pass to bits-ui-get.",
+    schema: v.object({
+      name: v.pipe(
+        v.string(),
+        v.description(
+          "Name of the component, documentation section, or 'sonner' for Svelte Sonner docs",
+        ),
       ),
-    type: z
-      .enum(["component", "doc", "sonner"])
-      .describe(
-        "Type: 'component' for UI components/blocks/charts, 'doc' for documentation, 'sonner' for Svelte Sonner docs",
+      type: v.pipe(
+        v.picklist(["component", "doc", "sonner"]),
+        v.description(
+          "Type: 'component' for UI components/blocks/charts, 'doc' for documentation, 'sonner' for Svelte Sonner docs",
+        ),
       ),
-    packageManager: z
-      .enum(["npm", "yarn", "pnpm", "bun"]) // optional package manager override for generated snippets
-      .optional()
-      .describe(
-        "Preferred package manager to use when rendering installation commands",
+      packageManager: v.optional(
+        v.pipe(
+          v.picklist(["npm", "yarn", "pnpm", "bun"]),
+          v.description(
+            "Preferred package manager to use when rendering installation commands",
+          ),
+        ),
       ),
-  }),
-  execute: async ({ name, type, packageManager }): Promise<string> => {
-
+    }),
+  },
+  async ({ name, type, packageManager }) => {
     try {
       if (type === "component") {
         // Check if this is a block/chart (uses different API)
@@ -137,7 +143,7 @@ export const shadcnSvelteGetTool = createTool({
                 `4. Blocks often have numerical suffixes (e.g., sidebar-03, dashboard-01)`,
               ],
             };
-            return JSON.stringify(response, null, 2);
+            return tool.text(JSON.stringify(response, null, 2));
           }
 
           const response: ToolResponse = {
@@ -155,7 +161,7 @@ export const shadcnSvelteGetTool = createTool({
             ],
             rawContent: blockResult.code,
           };
-          return JSON.stringify(response, null, 2);
+          return tool.text(JSON.stringify(response, null, 2));
         }
 
         // Regular component - fetch from component docs
@@ -173,7 +179,7 @@ export const shadcnSvelteGetTool = createTool({
               `4. Only use bits-ui-get after shadcn-svelte-get exposes docs.bitsuiName for an underlying primitive`,
             ],
           };
-          return JSON.stringify(response, null, 2);
+          return tool.text(JSON.stringify(response, null, 2));
         }
 
         const rawContent = sanitizeContent(result.content);
@@ -232,7 +238,7 @@ export const shadcnSvelteGetTool = createTool({
           ],
           rawContent,
         };
-        return JSON.stringify(response, null, 2);
+        return tool.text(JSON.stringify(response, null, 2));
       } else if (type === "doc") {
         let result: FetchResult | null = null;
 
@@ -264,7 +270,7 @@ export const shadcnSvelteGetTool = createTool({
             success: false,
             error: result?.error || `Documentation "${name}" not found`,
           };
-          return JSON.stringify(response, null, 2);
+          return tool.text(JSON.stringify(response, null, 2));
         }
 
         const content = sanitizeContent(result.content);
@@ -283,7 +289,7 @@ export const shadcnSvelteGetTool = createTool({
           rawContent: content,
           metadata: result.metadata,
         };
-        return JSON.stringify(response, null, 2);
+        return tool.text(JSON.stringify(response, null, 2));
       } else if (type === "sonner") {
         const result = await fetchSvelteSonnerDocs({ useCache: true });
 
@@ -293,7 +299,7 @@ export const shadcnSvelteGetTool = createTool({
             error:
               result.error || "Failed to fetch Svelte Sonner documentation",
           };
-          return JSON.stringify(response, null, 2);
+          return tool.text(JSON.stringify(response, null, 2));
         }
 
         const content = sanitizeContent(result.content);
@@ -314,19 +320,21 @@ export const shadcnSvelteGetTool = createTool({
           rawContent: content,
           metadata: result.metadata,
         };
-        return JSON.stringify(response, null, 2);
+        return tool.text(JSON.stringify(response, null, 2));
       }
 
       throw new Error(`Invalid type "${type}"`);
     } catch (error) {
-      return JSON.stringify(
-        {
-          success: false,
-          error: `Error retrieving ${type} "${name}": ${error instanceof Error ? error.message : error}`,
-        },
-        null,
-        2,
+      return tool.text(
+        JSON.stringify(
+          {
+            success: false,
+            error: `Error retrieving ${type} "${name}": ${error instanceof Error ? error.message : error}`,
+          },
+          null,
+          2,
+        ),
       );
     }
   },
-});
+);

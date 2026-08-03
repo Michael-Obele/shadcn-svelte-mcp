@@ -32,7 +32,7 @@
     [
       "@semantic-release/git",
       {
-        "assets": ["package.json", "CHANGELOG.md", "src/mastra/mcp-server.ts"],
+        "assets": ["package.json", "CHANGELOG.md", "src/mcp/server.ts"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],

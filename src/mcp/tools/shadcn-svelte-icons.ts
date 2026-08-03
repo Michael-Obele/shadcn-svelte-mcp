@@ -1,5 +1,6 @@
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import { defineTool } from "tmcp/tool";
+import { tool } from "tmcp/utils";
+import * as v from "valibot";
 import { getFromCache, saveToCache } from "../../services/cache-manager.js";
 
 function normalizeIconName(input: string): string {
@@ -80,42 +81,56 @@ function scoreIconMatch(
 }
 
 // Tool for searching and browsing Lucide icons
-export const shadcnSvelteIconsTool = createTool({
-  id: "shadcn-svelte-icons",
-  description:
-    "Search and browse Lucide icons available for use with lucide-svelte. Browse all 1600+ Lucide icons with search by name and tags. No AI hallucination - returns only real icons that exist. IMPORTANT: ONLY use this tool for Lucide icons - do NOT use for shadcn-svelte component information. For components, use shadcn-svelte-get, shadcn-svelte-search, or shadcn-svelte-list instead. Can handle multiple icon names: pass comma-separated names like 'truck, package, dashboard' or space-separated names like 'truck package dashboard' in the query parameter.",
-  inputSchema: z.object({
-    query: z
-      .string()
-      .optional()
-      .describe(
-        "Search term to filter icons (searches icon names and tags), or multiple icon names separated by commas or spaces (e.g., 'truck, package, dashboard' or 'truck package dashboard')",
+export const shadcnSvelteIconsTool = defineTool(
+  {
+    name: "shadcn-svelte-icons",
+    description:
+      "Search real Lucide icons for lucide-svelte by name or tag (1600+ icons, no hallucination). Icons only — for components use shadcn-svelte-get, shadcn-svelte-search, or shadcn-svelte-list. Accepts comma- or space-separated names (e.g. 'truck, package').",
+    schema: v.object({
+      query: v.optional(
+        v.pipe(
+          v.string(),
+          v.description(
+            "Search term to filter icons (searches icon names and tags), or multiple icon names separated by commas or spaces (e.g., 'truck, package, dashboard' or 'truck package dashboard')",
+          ),
+        ),
       ),
-    // `names` allows an agent to request a specific set of icons by name
-    names: z
-      .array(z.string())
-      .optional()
-      .describe("Specific icon names to return (e.g., ['arrow-left', 'user'])"),
-    importLimit: z
-      .number()
-      .optional()
-      .default(10)
-      .describe(
-        "Maximum number of icon imports to show in the snippet (default: 10). This prevents long import lines but can be increased if needed.",
+      // `names` allows an agent to request a specific set of icons by name
+      names: v.optional(
+        v.pipe(
+          v.array(v.string()),
+          v.description(
+            "Specific icon names to return (e.g., ['arrow-left', 'user'])",
+          ),
+        ),
       ),
-    limit: z
-      .number()
-      .optional()
-      .default(100)
-      .describe("Maximum number of icons to return (default: 50)"),
-    packageManager: z
-      .enum(["npm", "yarn", "pnpm", "bun"])
-      .optional()
-      .describe(
-        "Optional package manager for install commands. If omitted, the tool will use a recommended default (npx/PNPM/Yarn/bun as appropriate).",
+      importLimit: v.optional(
+        v.pipe(
+          v.number(),
+          v.description(
+            "Maximum number of icon imports to show in the snippet (default: 10). This prevents long import lines but can be increased if needed.",
+          ),
+        ),
+        10,
       ),
-  }),
-  execute: async (input) => {
+      limit: v.optional(
+        v.pipe(
+          v.number(),
+          v.description("Maximum number of icons to return (default: 50)"),
+        ),
+        100,
+      ),
+      packageManager: v.optional(
+        v.pipe(
+          v.picklist(["npm", "yarn", "pnpm", "bun"]),
+          v.description(
+            "Optional package manager for install commands. If omitted, the tool will use a recommended default (npx/PNPM/Yarn/bun as appropriate).",
+          ),
+        ),
+      ),
+    }),
+  },
+  async (input) => {
     const { query, limit = 100, importLimit = 10, packageManager } = input;
     let { names } = input;
 
@@ -312,9 +327,9 @@ export const shadcnSvelteIconsTool = createTool({
         }
       }
 
-      return iconList;
+      return tool.text(iconList);
     } catch (error) {
-      return `Error fetching icon data: ${error}`;
+      return tool.error(`Error fetching icon data: ${error}`);
     }
   },
-});
+);

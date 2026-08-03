@@ -340,36 +340,6 @@ export function parseBitsUiApi(content: string): {
 }
 
 /**
- * Fetches and parses Bits UI API documentation for structured data (DEPRECATED: parse content directly)
- */
-export async function fetchBitsUiApi(bitsUiLlmUrl?: string): Promise<{
-  properties?: Array<{
-    name: string;
-    type: string;
-    description: string;
-    default?: string;
-    required?: boolean;
-  }>;
-  dataAttributes?: Array<{
-    name: string;
-    value: string;
-    description: string;
-  }>;
-  raw?: string;
-} | null> {
-  if (!bitsUiLlmUrl) return null;
-
-  try {
-    const response = await fetch(bitsUiLlmUrl);
-    if (!response.ok) return null;
-    const content = await response.text();
-    return parseBitsUiApi(content);
-  } catch (error) {
-    return null;
-  }
-}
-
-/**
  * Gets installation command details including package manager variants and CLI options
  */
 export function getInstallCommand(
@@ -476,39 +446,3 @@ export function getFirstCodeBlock(content: string): string | undefined {
   return match ? match[1].trim() : undefined;
 }
 
-// CLI commands information for AI automation
-export const CLI_COMMANDS = {
-  add: {
-    description:
-      "Add components and dependencies to your project. Use -y flag for automated, non-interactive installation.",
-    usage: [
-      "npx shadcn-svelte@latest add <component>",
-      "pnpm dlx shadcn-svelte@latest add <component>",
-      "yarn dlx shadcn-svelte@latest add <component>",
-      "bun x shadcn-svelte@latest add <component>",
-    ],
-    options: [
-      {
-        flag: "--no-deps",
-        description: "skips adding & installing package dependencies",
-      },
-      {
-        flag: "--skip-preflight",
-        description: "ignore preflight checks and continue (default: false)",
-      },
-      {
-        flag: "-y, --yes",
-        description:
-          "skip confirmation prompt - USE THIS FOR AUTOMATION (default: false)",
-      },
-      {
-        flag: "-o, --overwrite",
-        description: "overwrite existing files (default: false)",
-      },
-      {
-        flag: "-a, --all",
-        description: "install all components to your project (default: false)",
-      },
-    ],
-  },
-};

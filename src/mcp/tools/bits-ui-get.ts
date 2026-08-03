@@ -1,5 +1,6 @@
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import { defineTool } from "tmcp/tool";
+import { tool } from "tmcp/utils";
+import * as v from "valibot";
 import {
   fetchComponentDocs,
   fetchGeneralDocs,
@@ -149,21 +150,24 @@ interface ToolResponse {
 
 // Tool for getting detailed information about Bits UI components
 // NOTE: This is a SECONDARY tool - only use after shadcn-svelte-get or when you need deeper API details
-export const bitsUiGetTool = createTool({
-  id: "bits-ui-get",
-  description:
-    "SECONDARY TOOL for lower-level Bits UI primitive internals. Use this only after shadcn-svelte-get returns docs.bitsuiName or tooling.bitsUi.exactName, and only when you need the underlying primitive API rather than standard shadcn-svelte usage. Accepts canonical Bits UI names, PascalCase names, or Bits UI component URLs, and can resolve some shadcn component names to their underlying primitive. For normal shadcn-svelte component usage, installation, or page composition, stay with shadcn-svelte-get.",
-  inputSchema: z.object({
-    name: z.string().describe("Name of the Bits UI component"),
-    packageManager: z
-      .enum(["npm", "yarn", "pnpm", "bun"])
-      .optional()
-      .describe(
-        "Preferred package manager to use when rendering installation commands",
+export const bitsUiGetTool = defineTool(
+  {
+    name: "bits-ui-get",
+    description:
+      "Bits UI primitive internals. Use only after shadcn-svelte-get returns docs.bitsuiName or tooling.bitsUi.exactName, and only when you need the underlying primitive API. Accepts canonical Bits UI names, PascalCase names, component URLs, or some shadcn component names.",
+    schema: v.object({
+      name: v.pipe(v.string(), v.description("Name of the Bits UI component")),
+      packageManager: v.optional(
+        v.pipe(
+          v.picklist(["npm", "yarn", "pnpm", "bun"]),
+          v.description(
+            "Preferred package manager to use when rendering installation commands",
+          ),
+        ),
       ),
-  }),
-  execute: async ({ name }): Promise<string> => {
-
+    }),
+  },
+  async ({ name }) => {
     try {
       const resolution = await resolveBitsUiComponentName(name);
 
@@ -183,7 +187,7 @@ export const bitsUiGetTool = createTool({
             `4. Or visit https://bits-ui.com/docs/components to browse the canonical Bits UI primitive names`,
           ],
         };
-        return JSON.stringify(response, null, 2);
+        return tool.text(JSON.stringify(response, null, 2));
       }
 
       const llmUrl = `https://bits-ui.com/docs/components/${resolution.resolvedName}/llms.txt`;
@@ -214,7 +218,7 @@ export const bitsUiGetTool = createTool({
             `5. Note: shadcn-svelte component names may differ from Bits UI names`,
           ],
         };
-        return JSON.stringify(response, null, 2);
+        return tool.text(JSON.stringify(response, null, 2));
       }
 
       // Parse structured API data from content
@@ -251,7 +255,7 @@ export const bitsUiGetTool = createTool({
         ],
         rawContent,
       };
-      return JSON.stringify(response, null, 2);
+      return tool.text(JSON.stringify(response, null, 2));
     } catch (error) {
       const response: ToolResponse = {
         success: false,
@@ -264,7 +268,7 @@ export const bitsUiGetTool = createTool({
           `4. Or visit https://bits-ui.com/docs/components to browse all components`,
         ],
       };
-      return JSON.stringify(response, null, 2);
+      return tool.text(JSON.stringify(response, null, 2));
     }
   },
-});
+);

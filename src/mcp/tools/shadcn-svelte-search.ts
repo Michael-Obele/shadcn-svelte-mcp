@@ -5,8 +5,9 @@
  * by keyword or phrase. Uses Fuse.js for intelligent fuzzy matching with typo tolerance.
  */
 
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import { defineTool } from "tmcp/tool";
+import { tool } from "tmcp/utils";
+import * as v from "valibot";
 import Fuse from "fuse.js";
 import { getAllContent } from "../../services/component-discovery.js";
 
@@ -302,12 +303,7 @@ function combineCommaSeparatedResults(
     const scored = performFuzzySearch(filtered, fragment, { limit });
 
     for (const { item, score, similarity } of scored) {
-      const result = buildSearchResult(
-        item,
-        score,
-        similarity,
-        packageManager,
-      );
+      const result = buildSearchResult(item, score, similarity, packageManager);
       const key = `${result.type}:${result.url}`;
       const existing = resultsByKey.get(key);
 
@@ -502,33 +498,42 @@ function formatResults(
 /**
  * Main search tool
  */
-export const shadcnSvelteSearchTool = createTool({
-  id: "shadcn-svelte-search",
-  description:
-    "Search shadcn-svelte documentation, components, blocks, and charts by keyword or phrase. Features advanced fuzzy matching for typo tolerance, returns relevant results with descriptions, links, install commands, and similarity scores. When no exact matches found, provides intelligent suggestions. Use this for both discovery (exploring options) and direct action (finding specific components to install).",
-  inputSchema: z.object({
-    query: z
-      .string()
-      .describe("Search query (keywords or phrase, typo-tolerant)"),
-    type: z
-      .enum(["all", "component", "block", "chart", "doc", "example"])
-      .optional()
-      .default("all")
-      .describe("Filter results by resource type"),
-    limit: z
-      .number()
-      .optional()
-      .default(10)
-      .describe("Maximum number of results to return"),
-    packageManager: z
-      .enum(["npm", "yarn", "pnpm", "bun"])
-      .optional()
-      .describe(
-        "Optional package manager for install commands. If omitted, defaults to 'npx' for npm-style one-time commands",
+export const shadcnSvelteSearchTool = defineTool(
+  {
+    name: "shadcn-svelte-search",
+    description:
+      "Fuzzy-search shadcn-svelte components, blocks, charts, and docs by keyword or phrase. Returns links, install commands, and similarity scores; suggests alternatives when nothing matches. Use for discovery or finding components to install.",
+    schema: v.object({
+      query: v.pipe(
+        v.string(),
+        v.description("Search query (keywords or phrase, typo-tolerant)"),
       ),
-  }),
-  execute: async ({ query, type = "all", limit = 10, packageManager = "npm" }) => {
-
+      type: v.optional(
+        v.pipe(
+          v.picklist(["all", "component", "block", "chart", "doc", "example"]),
+          v.description("Filter results by resource type"),
+        ),
+        "all",
+      ),
+      limit: v.optional(
+        v.pipe(
+          v.number(),
+          v.description("Maximum number of results to return"),
+        ),
+        10,
+      ),
+      packageManager: v.optional(
+        v.pipe(
+          v.picklist(["npm", "yarn", "pnpm", "bun"]),
+          v.description(
+            "Optional package manager for install commands. If omitted, defaults to 'npx' for npm-style one-time commands",
+          ),
+        ),
+        "npm",
+      ),
+    }),
+  },
+  async ({ query, type = "all", limit = 10, packageManager = "npm" }) => {
     console.log(
       `[shadcn-svelte-search] Searching for: "${query}" (type: ${type}, limit: ${limit}, packageManager: ${packageManager})`,
     );
@@ -545,18 +550,14 @@ export const shadcnSvelteSearchTool = createTool({
       const scored = performFuzzySearch(filtered, query, { limit });
 
       // Build results
-      const results: SearchResult[] = scored.map(({ item, score, similarity }) =>
-        buildSearchResult(item, score, similarity, packageManager),
+      const results: SearchResult[] = scored.map(
+        ({ item, score, similarity }) =>
+          buildSearchResult(item, score, similarity, packageManager),
       );
 
       const commaSeparatedFallback =
         results.length === 0
-          ? combineCommaSeparatedResults(
-              filtered,
-              query,
-              packageManager,
-              limit,
-            )
+          ? combineCommaSeparatedResults(filtered, query, packageManager, limit)
           : null;
 
       if (commaSeparatedFallback && commaSeparatedFallback.results.length > 0) {
@@ -569,18 +570,13 @@ export const shadcnSvelteSearchTool = createTool({
           items,
         );
 
-        return {
-          markdown: buildCommaSeparatedFallbackMarkdown(
+        return tool.text(
+          buildCommaSeparatedFallbackMarkdown(
             markdown,
             query,
             commaSeparatedFallback.fragments,
           ),
-          results: fallbackResults,
-          query,
-          totalResults: fallbackResults.length,
-          suggestions: undefined,
-          nextSteps: undefined,
-        };
+        );
       }
 
       // Format as markdown (pass allItems for suggestions if no results)
@@ -592,38 +588,12 @@ export const shadcnSvelteSearchTool = createTool({
         items,
       );
 
-      return {
-        markdown,
-        results,
-        query,
-        totalResults: results.length,
-        suggestions: results.length === 0 ? suggestions : undefined,
-        nextSteps:
-          results.length === 0 && suggestions.length > 0
-            ? [
-                `Try using shadcn-svelte-get directly with one of these suggestions: ${suggestions.map((s) => `"${s.name}"`).join(", ")}`,
-                "Keep your search query simple - just the component name works best",
-                "If the name above doesn't match, try the 'list' tool to browse all available items",
-              ]
-            : undefined,
-      };
+      return tool.text(markdown);
     } catch (error) {
       console.error("[shadcn-svelte-search] Error during search:", error);
-      const { markdown, suggestions } = formatResults(
-        [],
-        query,
-        type,
-        packageManager,
-        [],
-      );
+      const { markdown } = formatResults([], query, type, packageManager, []);
 
-      return {
-        markdown,
-        results: [],
-        query,
-        totalResults: 0,
-        suggestions,
-      };
+      return tool.text(markdown);
     }
   },
-});
+);

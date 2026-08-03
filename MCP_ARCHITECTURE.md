@@ -19,19 +19,19 @@ This project does NOT implement an MCP client - it only provides tools to extern
 
 The server supports two transport protocols:
 
-#### HTTP Transport
+#### Streamable HTTP Transport (recommended)
 
-- **Endpoint**: `/api/mcp/shadcn/mcp`
-- **Method**: HTTP POST
-- **Use case**: One-off requests, CLI tools, simple integrations
-- **Example**: `curl -X POST https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp`
+- **Endpoint**: `/mcp` (both `src/index.ts` for Node/Bun and `src/worker.ts` for Cloudflare Workers)
+- **Method**: HTTP POST (Streamable HTTP per the MCP spec)
+- **Use case**: One-off requests, CLI tools, remote clients, serverless deployments
+- **Example**: `curl -X POST http://localhost:3000/mcp`
 
-#### Server-Sent Events (SSE) Transport
+#### STDIO Transport
 
-- **Endpoint**: `/api/mcp/shadcn/sse`
-- **Protocol**: HTTP with SSE for bidirectional communication
-- **Use case**: Long-lived connections, real-time updates, editor integrations
-- **Example**: Persistent connection for editor plugins
+- **Entry**: `src/stdio.ts`
+- **Protocol**: JSON-RPC over stdin/stdout
+- **Use case**: Local MCP clients (Claude Desktop, Cursor, VS Code, etc.)
+- **Example**: `bun run src/stdio.ts`
 
 ## Architecture
 
@@ -40,45 +40,54 @@ The server supports two transport protocols:
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   AI Editor     │────│   MCP Transport  │────│  MCP Server     │
-│   (Client)      │    │   (HTTP/SSE)     │    │  (This Project) │
+│   (Client)      │    │  (HTTP / STDIO)  │    │  (tmcp)         │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                                        │
                                                ┌───────┴───────┐
-                                               │   Mastra      │
-                                               │   Framework   │
+                                               │  McpServer    │
+                                               │  (tmcp)       │
                                                └───────┬───────┘
                                                        │
                                                ┌───────┴───────┐
-                                               │   Tools       │
-                                               │   (4 total)   │
+                                               │  Tools (5) +  │
+                                               │  Prompts (4)  │
                                                └───────────────┘
 ```
 
-### Mastra Framework Integration
+### tmcp Framework Integration
 
-The server is built using the [Mastra](https://mastra.ai) framework, which provides:
+The server is built using [tmcp](https://tmcp.io) — a lightweight, schema-agnostic
+MCP SDK — with the Valibot adapter (`@tmcp/adapter-valibot`):
 
-- **Agent orchestration**: Manages AI agent workflows
-- **Tool registration**: Exposes tools to MCP clients
-- **MCP protocol handling**: Manages HTTP/SSE transport
-- **Configuration management**: Environment and deployment settings
+- **`McpServer` assembly**: `src/mcp/server.ts` (name, version, description, capabilities)
+- **Tool registration**: `defineTool` from `tmcp/tool` + `server.tools([...])`
+- **Prompt registration**: `definePrompt` from `tmcp/prompt` + `server.prompts([...])`
+- **HTTP transport**: `HttpTransport` from `@tmcp/transport-http` (`respond(request) → Response | null`)
+- **STDIO transport**: `StdioTransport` from `@tmcp/transport-stdio` (`.listen()`)
+- **Runtime-agnostic**: Web `Request`/`Response` based — runs on Node, Bun, Deno, and Cloudflare Workers
 
 ### Tool Implementation
 
-Tools are implemented using Mastra's `createTool` function with Zod schemas:
+Tools are implemented using tmcp's `defineTool` with Valibot schemas, and return
+content blocks via the `tool.text(...)` / `tool.error(...)` helpers from `tmcp/utils`:
 
 ```typescript
-export const myTool = createTool({
-  id: "tool-name",
-  description: "Tool description",
-  inputSchema: z.object({
-    param: z.string(),
-  }),
-  execute: async ({ context }) => {
-    // Tool implementation
-    return result;
+import { defineTool } from "tmcp/tool";
+import { tool } from "tmcp/utils";
+import * as v from "valibot";
+
+export const myTool = defineTool(
+  {
+    name: "tool-name",
+    description: "Tool description",
+    schema: v.object({
+      param: v.string(),
+    }),
   },
-});
+  async ({ param }) => {
+    return tool.text(`Received: ${param}`);
+  },
+);
 ```
 
 ## Available Tools
@@ -133,55 +142,63 @@ The server uses multi-strategy web scraping to fetch documentation:
 
 ### Caching Strategy
 
-- **Memory Cache**: Fast in-memory storage for active sessions
-- **Disk Cache**: Persistent storage with 3-day TTL
-- **Cache Keys**: URL + content hash for invalidation
+- **Memory Cache**: Fast in-memory LRU (50 entries) for hot docs
+- **KV Cache**: Cloudflare KV tier (Workers) with the same 3-day TTL
+- **Disk Cache**: Persistent `.cache/` storage on Node/Bun (3-day TTL)
+- **Cache Keys**: URL hash → `cache_<hash>.json`
 - **Fallback**: Real-time fetching when cache misses
 
 ## Deployment Architecture
 
 ### Production Hosts
 
-#### Mastra Cloud (Primary)
+#### Cloudflare Workers (Primary)
 
-- **URL**: `https://shadcn-svelte-mcp.server.mastra.cloud`
-- **Characteristics**: Zero cold start, high responsiveness
-- **Limitation**: Occasional tool visibility issues (4 tools may hide)
-- **Use case**: Fastest response times, acceptable tool visibility quirks
+- **URL**: `https://shadcn-svelte-mcp.<account>.workers.dev/mcp`
+- **Characteristics**: Zero cold start, global edge network
+- **Sessions**: Persisted in KV (`TMCP_KV`) via `KVInfoSessionManager` so any
+  isolate can serve any session; cache uses the same namespace
+- **Config**: `wrangler.jsonc` — deploy with `bun run deploy:worker`
 
-#### Railway (Fallback)
+#### Fly.io
 
-- **URL**: `https://shadcn-svelte-mcp.up.railway.app`
-- **Characteristics**: Split-second cold start, consistent tool visibility
-- **Limitation**: Initial request may fail and need retry
-- **Use case**: Guaranteed tool access, reliable fallbacks
+- **URL**: `https://shadcn-svelte-mcp.fly.dev/mcp`
+- **Characteristics**: Long-running bun container (`Dockerfile`), 1-2s cold start
+- **Config**: `fly.toml` with `/health` checks — deploy with `fly deploy`
+
+#### Render
+
+- **URL**: `https://shadcn-svelte-mcp.onrender.com/mcp`
+- **Config**: `render.yaml` (bun build + start, `healthCheckPath: /health`)
 
 ### Cold Start Behavior
 
-- **Mastra Cloud**: No cold start - always warm
-- **Railway**: ~1-2 second cold start on first request
+- **Cloudflare Workers**: No cold start - always warm
+- **Fly.io / Render**: ~1-2 second cold start on first request
 - **Mitigation**: Automatic retry logic in client implementations
 
 ## Client Integration Examples
 
-### Cursor (HTTP Transport)
+### Remote (Streamable HTTP — Cursor, Claude, etc.)
 
 ```json
 {
   "shadcn-svelte": {
     "type": "http",
-    "url": "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp"
+    "url": "https://shadcn-svelte-mcp.<account>.workers.dev/mcp"
   }
 }
 ```
 
-### VS Code (SSE Transport)
+### Local (STDIO — Claude Desktop, VS Code, Cursor)
 
 ```json
 {
-  "shadcn-svelte": {
-    "type": "sse",
-    "url": "https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse"
+  "mcpServers": {
+    "shadcn-svelte": {
+      "command": "bun",
+      "args": ["run", "src/stdio.ts"]
+    }
   }
 }
 ```
@@ -189,7 +206,7 @@ The server uses multi-strategy web scraping to fetch documentation:
 ### Claude Code CLI
 
 ```bash
-claude mcp add shadcn-svelte --url https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp
+claude mcp add shadcn-svelte --url https://shadcn-svelte-mcp.<account>.workers.dev/mcp
 ```
 
 ## Error Handling
@@ -216,7 +233,8 @@ claude mcp add shadcn-svelte --url https://shadcn-svelte-mcp.server.mastra.cloud
 
 ### Scaling
 
-- **Concurrent requests**: Mastra framework handles load balancing
+- **Concurrent requests**: tmcp `HttpTransport` is stateless; Workers scale
+  horizontally with KV-backed sessions
 - **Cache efficiency**: 3-day TTL reduces external API calls
 - **Resource limits**: Configurable timeouts and rate limits
 
@@ -239,9 +257,9 @@ claude mcp add shadcn-svelte --url https://shadcn-svelte-mcp.server.mastra.cloud
 ### Local Setup
 
 ```bash
-npm run dev  # Development server with hot reload
-npm run build  # Production build
-npm run start  # Production server
+bun run dev  # Development server with watch on http://localhost:3000
+bun run build  # Production bundle to dist/
+bun run mcp  # STDIO transport for local MCP clients
 ```
 
 ### Testing
@@ -253,9 +271,9 @@ npm run test:integration  # Integration tests
 
 ### Tool Development
 
-1. Create tool in `src/mastra/tools/`
-2. Use `createTool` with Zod schema
-3. Register in `src/mastra/index.ts`
+1. Create tool in `src/mcp/tools/`
+2. Use `defineTool` with Valibot schema
+3. Register in `src/mcp/server.ts`
 4. Test with MCP client
 
 ## Troubleshooting
@@ -264,46 +282,48 @@ npm run test:integration  # Integration tests
 
 #### Tools not appearing in editor
 
-- **Mastra Cloud**: Refresh the MCP connection
-- **Railway**: Wait for cold start, retry if needed
-- **Check**: Verify endpoint URLs are correct
+- **Workers**: Refresh the MCP connection; verify the KV binding exists
+- **Fly/Render**: Wait for cold start, retry if needed
+- **Check**: Verify endpoint URLs are correct (`/mcp`)
 
 #### Slow responses
 
 - **Check**: Cache status and TTL
-- **Mitigation**: Clear cache or use alternative host
+- **Mitigation**: Clear `.cache/` (local) or KV keys (Workers)
 
 #### Connection failures
 
 - **HTTP**: Check network connectivity
-- **SSE**: Verify WebSocket support
-- **Retry**: Use alternative transport or host
+- **Retry**: Use an alternative host
 
 ### Debug Commands
 
 ```bash
-# Test HTTP endpoint
-curl -I https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp
+# Health check
+curl http://localhost:3000/health
 
-# Test SSE endpoint
-curl -N https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/sse
+# Test MCP endpoint
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 
-# Test with MCP client
-npx mcp-remote https://shadcn-svelte-mcp.server.mastra.cloud/api/mcp/shadcn/mcp
+# Test with MCP Inspector
+npx @modelcontextprotocol/inspector
 ```
 
 ## Contributing
 
 When contributing MCP-related changes:
 
-1. **Test both transports**: HTTP and SSE
-2. **Test both hosts**: Mastra Cloud and Railway
+1. **Test both transports**: HTTP and STDIO
+2. **Test all hosts**: Workers (wrangler dry-run), Fly.io, Render
 3. **Update documentation**: Keep this file current
 4. **Follow patterns**: Use existing tool implementation patterns
 5. **Add tests**: Cover new functionality
 
 ## Related Documentation
 
-- [Mastra Framework Documentation](https://mastra.ai)
+- [tmcp Documentation](https://tmcp.io)
 - [MCP Specification](https://modelcontextprotocol.io)
 - [shadcn-svelte Documentation](https://shadcn-svelte.com)

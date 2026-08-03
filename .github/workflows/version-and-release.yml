@@ -104,7 +104,7 @@ jobs:
         run: |
           NEW_VERSION=${{ steps.version.outputs.new_version }}
           # Stage package.json, CHANGELOG.md, and mcp-server.ts
-          git add package.json CHANGELOG.md src/mastra/mcp-server.ts || true
+          git add package.json CHANGELOG.md src/mcp/server.ts || true
 
           # Commit only if there are staged changes
           if ! git diff --staged --quiet; then
@@ -127,7 +127,7 @@ jobs:
 
             ### Changes
             - Updated `package.json` version
-            - Updated `src/mastra/mcp-server.ts` version
+            - Updated `src/mcp/server.ts` version
             - Updated `CHANGELOG.md` with release entry
 
             ### Merge Instructions
