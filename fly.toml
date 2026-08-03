@@ -1,42 +1,66 @@
-# shadcn-svelte-mcp — Fly.io deployment configuration (tmcp)
+# shadcn-svelte-mcp — Fly.io deployment configuration (tmcp, TOML v2)
 # Docs: https://fly.io/docs/reference/configuration/
 #
+# Cost strategy for the $5/mo Hobby plan (one-time $5 credit):
+#   - shared-cpu-1x @ 256MB  → ~$2/mo if ALWAYS ON (region-dependent)
+#   - auto-stop when idle    → machine stops after minutes without traffic,
+#     so the real bill is usually <$1/mo (stopped machines ~free)
+#   - 100GB/mo free egress   → plenty for doc scraping traffic
+#   - 512MB swap             → OOM safety net during heavy doc parsing,
+#                             without paying for a bigger machine
+#
 # Quick start:
-#   fly launch --no-deploy     (first time; picks up this file)
+#   fly launch --no-deploy    (first time; picks up this file)
 #   fly deploy
+#
+# Useful commands:
+#   fly status                (check machine state: running / stopped)
+#   fly logs                  (see server logs)
+#   fly scale memory 512      (bump RAM later if ever needed)
 
 app = "shadcn-svelte-mcp"
 primary_region = "ord"
 
 [build]
-dockerfile = "Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
-PORT = "3000"
+  PORT = "3000"
+  NODE_ENV = "production"
 
-# HTTP service — MCP over Streamable HTTP at /mcp
-[[services]]
-protocol = "tcp"
-internal_port = 3000
-processes = ["app"]
+# ────────────────────────────────────────────────────────────────────────────
+# HTTP service — MCP over Streamable HTTP at /mcp, health at /health
+# (TOML v2 service block; supports scale-to-zero)
+# ────────────────────────────────────────────────────────────────────────────
+[http_service]
+  internal_port = 3000
+  force_https = true
 
-[[services.ports]]
-port = 80
-handlers = ["http"]
+  # Scale to zero: stop the machine when idle, auto-start on the next request.
+  # The first request after an idle stop takes ~5-15s to boot — MCP clients
+  # retry, and this is what keeps the bill tiny.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
 
-[[services.ports]]
-port = 443
-handlers = ["tls", "http"]
+[http_service.concurrency]
+  type = "connections"
+  hard_limit = 250
+  soft_limit = 200
 
-# Health checks hit /health (see src/index.ts)
-[[services.http_checks]]
-interval = "30s"
-timeout = "5s"
-grace_period = "10s"
-method = "get"
-path = "/health"
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "10s"
+  method = "get"
+  path = "/health"
 
-[[services.concurrency]]
-type = "connections"
-hard_limit = 1000
-soft_limit = 500
+# ────────────────────────────────────────────────────────────────────────────
+# VM sizing — right-sized, not overkill
+# The server is I/O-bound (web scraping + caching); 1 shared vCPU is plenty.
+# 256MB RAM covers Bun + cheerio/turndown doc parsing; swap absorbs spikes.
+# ────────────────────────────────────────────────────────────────────────────
+[vm]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  memory_swap = "512mb"
