@@ -438,7 +438,6 @@ Want to run the MCP server locally or contribute to the project?
 - `src/mcp/` - The MCP server: `server.ts` (tmcp `McpServer` assembly), `tools/`, `prompts/`
 - `src/services/` - Web scraping services for real-time documentation fetching
 - `scripts/` - Version management and automation scripts
-- `legacy-mastra/` - The pre-migration Mastra implementation (kept for reference)
 
 ### Quick start (development smoke-test)
 

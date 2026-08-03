@@ -1,23 +1,27 @@
 # Keep the Docker build context lean — only what `bun run build` needs.
 
 # Dependencies & build outputs (regenerated inside the container)
+
 node_modules
 dist
 .wrangler
 .cache
 
 # VCS & tooling
+
 .git
 .gitignore
 .vscode
 .fallow
 
 # Secrets
+
 .env
-.env.*
+.env.\*
 !.env.example
 
 # Not needed in the Fly image
+
 legacy-mastra
 ai-generated-docs
 skills
@@ -25,6 +29,7 @@ test
 scripts
 
 # Docs & deploy configs (not part of the runtime image)
+
 README.md
 CHANGELOG.md
 CONTRIBUTING.md
@@ -36,4 +41,4 @@ wrangler.jsonc
 render.yaml
 fly.toml
 Dockerfile
-*.log
+\*.log

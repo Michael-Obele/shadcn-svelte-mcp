@@ -8,13 +8,12 @@ This file gives concise, actionable instructions for an AI coding agent to be pr
 
 - A [tmcp](https://tmcp.io)-based MCP server (lightweight, schema-agnostic MCP SDK). See `src/mcp/server.ts` for the `McpServer` assembly, `src/index.ts` for the Node/Bun HTTP entry, `src/worker.ts` for the Cloudflare Worker entry, and `src/stdio.ts` for local MCP clients.
 - Documentation is fetched in real-time from shadcn-svelte.com using Cheerio + Turndown (HTML → Markdown) and direct `.md` / `llms.txt` endpoint fetching under `src/services/`.
-- The pre-migration Mastra implementation is archived under `legacy-mastra/` for reference — do NOT edit it; it is not part of the build.
 
 2. How to run / common developer commands
 
 - Runtimes: Node >= 20.9.0 or Bun >= 1.1 (see `package.json` "engines").
 - Development: `bun run dev` (HTTP server with watch on http://localhost:3000, MCP endpoint `/mcp`, health `/health`).
-- Type checking: `bun run check` (runs `tsc --noEmit` across the project; `legacy-mastra/` is excluded).
+- Type checking: `bun run check` (runs `tsc --noEmit` across the project).
 - Local MCP: `bun run mcp` (stdio transport).
 - Build: `bun run build` (bundles `src/index.ts` + `src/stdio.ts` → `dist/` for Fly.io/Render).
 - Deploy Worker: `bun run deploy:worker` (wrangler; requires `TMCP_KV` binding — see `wrangler.jsonc`).

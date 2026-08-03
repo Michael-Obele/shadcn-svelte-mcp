@@ -72,7 +72,6 @@ This is our standard smoke-test procedure.
 - `src/services/` - Web scraping services for real-time documentation fetching
 - `src/services/doc-fetcher.ts` - Multi-strategy documentation fetcher (direct `.md`, `llms.txt`, Cheerio+Turndown HTML)
 - `src/services/component-discovery.ts` - Component discovery via web scraping
-- `legacy-mastra/` - Pre-migration Mastra implementation (reference only, not part of the build)
 
 ## Pull Request Process
 
@@ -109,60 +108,63 @@ This is our standard smoke-test procedure.
 
 ### Tool Development
 
-- Follow Mastra tool patterns using `createTool`:
+- Follow the tmcp tool pattern using `defineTool` with valibot schemas:
 
   ```typescript
-  import { createTool } from "@mastra/core/tools";
-  import { z } from "zod";
+  import { defineTool } from "tmcp/tool";
+  import { tool } from "tmcp/utils";
+  import * as v from "valibot";
 
-  export const yourTool = createTool({
-    id: "your-tool-id",
-    description: "Clear description of what your tool does",
-    inputSchema: z.object({
-      parameter: z.string().describe("Description of parameter"),
-    }),
-    execute: async ({ context, input }) => {
-      // Your tool logic here
-      return { result: "your result" };
+  export const yourTool = defineTool(
+    {
+      name: "your-tool",
+      description: "Clear description of what your tool does",
+      schema: v.object({
+        parameter: v.pipe(
+          v.string(),
+          v.description("Description of parameter"),
+        ),
+      }),
     },
-  });
+    async ({ parameter }) => tool.text(`Received: ${parameter}`),
+  );
   ```
 
-- Use descriptive tool IDs and descriptions
-- Include proper Zod schemas for input validation
+- Use descriptive tool names and descriptions
+- Use valibot schemas (`v.object`, `v.string`, `v.picklist`, `v.optional`) for input validation
+- Tool handlers must return content via `tool.text(...)` / `tool.error(...)` — never a bare string
 
 ### Tools Development
 
 When creating new tools, follow the pattern in existing tools:
 
 ```typescript
-import { z } from "zod";
-import { createTool } from "@mastra/core/tools";
-import {
-  fetchComponentDocs,
-  fetchGeneralDocs,
-} from "../../services/doc-fetcher.js";
+import { defineTool } from "tmcp/tool";
+import { tool } from "tmcp/utils";
+import * as v from "valibot";
+import { fetchComponentDocs } from "../../services/doc-fetcher.js";
 
-export const yourTool = createTool({
-  id: "your-tool-id",
-  description: "Clear description of what your tool does and when to use it",
-  inputSchema: z.object({
-    // Define your input schema using Zod with descriptive parameter names
-    parameter: z
-      .string()
-      .describe("Description of parameter and expected format"),
-  }),
-  outputSchema: z.object({
-    // Define output structure for better type safety
-    result: z.string().describe("Description of what the output contains"),
-  }),
-  execute: async ({ context, input }) => {
-    // Use web scraping services for real-time data
-    const result = await fetchComponentDocs(input.parameter);
-    return { result: result.markdown || "No data found" };
+export const yourTool = defineTool(
+  {
+    name: "your-tool",
+    description: "Clear description of what your tool does and when to use it",
+    schema: v.object({
+      // Define your input schema using valibot with descriptive parameter names
+      parameter: v.pipe(
+        v.string(),
+        v.description("Description of parameter and expected format"),
+      ),
+    }),
   },
-});
+  async ({ parameter }) => {
+    // Use web scraping services for real-time data
+    const result = await fetchComponentDocs(parameter);
+    return tool.text(result.content || "No data found");
+  },
+);
 ```
+
+- Register new tools in `src/mcp/server.ts` via `server.tools([...])`
 
 ## Testing
 
