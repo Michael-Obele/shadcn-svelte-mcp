@@ -154,7 +154,7 @@ export const bitsUiGetTool = defineTool(
   {
     name: "bits-ui-get",
     description:
-      "SECONDARY TOOL for lower-level Bits UI primitive internals. Use this only after shadcn-svelte-get returns docs.bitsuiName or tooling.bitsUi.exactName, and only when you need the underlying primitive API rather than standard shadcn-svelte usage. Accepts canonical Bits UI names, PascalCase names, or Bits UI component URLs, and can resolve some shadcn component names to their underlying primitive. For normal shadcn-svelte component usage, installation, or page composition, stay with shadcn-svelte-get.",
+      "Bits UI primitive internals. Use only after shadcn-svelte-get returns docs.bitsuiName or tooling.bitsUi.exactName, and only when you need the underlying primitive API. Accepts canonical Bits UI names, PascalCase names, component URLs, or some shadcn component names.",
     schema: v.object({
       name: v.pipe(v.string(), v.description("Name of the Bits UI component")),
       packageManager: v.optional(

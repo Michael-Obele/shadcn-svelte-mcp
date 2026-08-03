@@ -502,7 +502,7 @@ export const shadcnSvelteSearchTool = defineTool(
   {
     name: "shadcn-svelte-search",
     description:
-      "Search shadcn-svelte documentation, components, blocks, and charts by keyword or phrase. Features advanced fuzzy matching for typo tolerance, returns relevant results with descriptions, links, install commands, and similarity scores. When no exact matches found, provides intelligent suggestions. Use this for both discovery (exploring options) and direct action (finding specific components to install).",
+      "Fuzzy-search shadcn-svelte components, blocks, charts, and docs by keyword or phrase. Returns links, install commands, and similarity scores; suggests alternatives when nothing matches. Use for discovery or finding components to install.",
     schema: v.object({
       query: v.pipe(
         v.string(),

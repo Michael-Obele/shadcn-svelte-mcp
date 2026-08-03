@@ -100,7 +100,7 @@ export const shadcnSvelteGetTool = defineTool(
   {
     name: "shadcn-svelte-get",
     description:
-      "PRIMARY TOOL for shadcn-svelte components. Get detailed information about any shadcn-svelte component, block, chart, documentation section, or Svelte Sonner docs. Always use this tool FIRST for any shadcn-svelte-related query. Returns structured JSON with content, metadata, code blocks, and warnings. Supports components (UI primitives), blocks (pre-built sections like dashboards/sidebars), charts, docs, and sonner. IMPORTANT: This is for SVELTE components only - do NOT use React-specific props like 'asChild' or React patterns. If the response includes tooling.bitsUi.exactName, that is the only exact value you should pass to bits-ui-get, and only when you truly need lower-level primitive internals.",
+      "PRIMARY tool for shadcn-svelte. Get docs for any component, block, chart, doc section, or Svelte Sonner. Use FIRST for shadcn-svelte questions. Svelte only, not React. If the response includes tooling.bitsUi.exactName, that is the only value to pass to bits-ui-get.",
     schema: v.object({
       name: v.pipe(
         v.string(),

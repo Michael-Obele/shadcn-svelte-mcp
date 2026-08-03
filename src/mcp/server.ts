@@ -9,6 +9,7 @@ import { installComponentPrompt } from "./prompts/install-component.js";
 import { setupThemingPrompt } from "./prompts/setup-theming.js";
 import { cliUsagePrompt } from "./prompts/cli-usage.js";
 import { projectInitPrompt } from "./prompts/project-init.js";
+import { toolUsagePrompt } from "./prompts/tool-usage.js";
 
 export const serverVersion = "1.10.0";
 
@@ -32,7 +33,7 @@ export const server = new McpServer(
       prompts: { listChanged: true },
     },
     instructions:
-      "Use the shadcn-svelte-get tool FIRST for any shadcn-svelte-related query, then shadcn-svelte-search for fuzzy discovery, shadcn-svelte-list to enumerate available resources, shadcn-svelte-icons for Lucide icons, and bits-ui-get only when the get tool exposes docs.bitsuiName.",
+      "Tool routing: shadcn-svelte-get FIRST for any shadcn-svelte query (components, blocks, charts, docs, Sonner). shadcn-svelte-search for fuzzy discovery, shadcn-svelte-list to enumerate resources, shadcn-svelte-icons ONLY for Lucide icons. bits-ui-get ONLY after shadcn-svelte-get returns docs.bitsuiName or tooling.bitsUi.exactName, and only for lower-level primitive internals. SVELTE only — never use React-specific props like 'asChild'. For the full guide, use the tool-usage prompt.",
   },
 );
 
@@ -49,4 +50,5 @@ server.prompts([
   setupThemingPrompt,
   cliUsagePrompt,
   projectInitPrompt,
+  toolUsagePrompt,
 ]);
