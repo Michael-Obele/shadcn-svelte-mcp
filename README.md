@@ -519,3 +519,9 @@ We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING
 - **Issues & Support**: support@svelte-apps.me
 - **Contributions**: contrib@svelte-apps.me
 - **Maintainer**: Michael Obele (michael@svelte-apps.me)
+
+## Related Projects
+
+Built by the same maintainer:
+
+- **[Sepia — Memory MCP Server](https://sepia.svelte-apps.me/)** — A self-hosted, remote knowledge-graph memory MCP server for AI coding agents. 7 tools, one purpose: remember everything so your AI doesn't forget — and never needs to be reminded. Includes MCP server instructions auto-injected into the model's system prompt, a bundled agent skill, a web dashboard, and support for online AIs (Grok, ChatGPT, Claude, Gemini, Perplexity). Pair it with this server so your AI remembers your shadcn-svelte preferences across sessions.
