@@ -3,30 +3,36 @@
 [![latest release](https://img.shields.io/github/v/tag/Michael-Obele/shadcn-svelte-mcp?sort=semver)](https://github.com/Michael-Obele/shadcn-svelte-mcp/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoic3NlIiwidXJsIjoiaHR0cHM6Ly9zaGFkY24tc3ZlbHRlLW1jcC5zdmVsdGUtYXBwcy53b3JrZXJzLmRldi9hcGkvbWNwL3NoYWRjbi9zc2UifQ==)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vc2hhZGNubWNwLnN2ZWx0ZS1hcHBzLm1lL21jcCJ9)
+
+> [!IMPORTANT]
+> **URL Update Notification:** This MCP server is now hosted at
+> `https://shadcnmcp.svelte-apps.me/mcp`. Earlier configs pointing at the
+> `*.workers.dev` / `*.server.mastra.cloud` `/api/mcp/shadcn/...` endpoints should
+> be updated to the new URL below (health check: `https://shadcnmcp.svelte-apps.me/health`).
 
 tmcp (lightweight MCP) server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping. Built with [tmcp](https://tmcp.io) — schema-agnostic, runs anywhere JavaScript runs: Cloudflare Workers, Fly.io, Render, or your laptop via stdio.
 
-## Production Deployments
+## Production Deployment
 
-Cloudflare Workers is the primary deployment: zero cold start, high availability,
-fast tool discovery, and the same toolset over both transports. Fly.io and Render
-are fully supported alternatives (see [Deployment](#deployment)).
+The MCP server is hosted at a single production endpoint and serves Streamable
+HTTP. Point your editor, CLI, or agent at the URL below. It can also be run
+locally over stdio for development (see [Local Development](#local-development)).
 
-| Transport | URL                                                   | Best for                         |
-| --------- | ----------------------------------------------------- | -------------------------------- |
-| HTTP      | `https://shadcn-svelte-mcp.<account>.workers.dev/mcp` | CLIs, scripts, and one-off calls |
-| STDIO     | `bun run src/stdio.ts` (local)                        | Editors and local agents         |
+| Transport            | URL                                             | Best for                         |
+| -------------------- | ----------------------------------------------- | -------------------------------- |
+| HTTP (Streamable)    | `https://shadcnmcp.svelte-apps.me/mcp`          | Editors, CLIs, scripts, one-offs |
+| STDIO                | `bun run src/stdio.ts` (local)                  | Editors and local agents         |
 
 > [!NOTE]
-> This project follows our [Code of ConTIPduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
+> This project follows our [Code of Conduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 This repository contains a tmcp-based MCP server that provides real-time access to shadcn-svelte component documentation using web scraping. Use it in your AI-powered code editor to get instant access to the latest shadcn-svelte component information directly from the official website.
 
 ## Table of Contents
 
 - [shadcn-svelte-mcp](#shadcn-svelte-mcp)
-  - [Production Deployments](#production-deployments)
+  - [Production Deployment](#production-deployment)
   - [Table of Contents](#table-of-contents)
   - [🎉 Features](#-features)
   - [Bits UI Integration](#bits-ui-integration)
@@ -57,7 +63,7 @@ This repository contains a tmcp-based MCP server that provides real-time access 
 
 ## 🎉 Features
 
-- ✅ Production deployment on Cloudflare Workers
+- ✅ Production hosting on a single always-on HTTP endpoint
 - ✅ **Five main MCP tools** for comprehensive shadcn-svelte ecosystem support (see 'Available Tools')
 - ✅ **Bits UI API documentation** - Direct access to underlying component library API docs with AI-optimized content
 - ✅ Advanced fuzzy search with typo tolerance and intelligent suggestions
@@ -92,33 +98,20 @@ This ensures that AI assistants receive the most relevant and well-structured in
 
 ## Editor Setup
 
-Cloudflare Workers is the recommended deployment for all editors. Use SSE for persistent editor connections and HTTP for one-off requests or scripts. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add server` to paste either URL.
+The hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` serves Streamable HTTP, which all major editors connect to using the `http` transport. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add Server` to paste the URL.
 
 <details>
 <summary>Cursor</summary>
 
 1. Open Cursor Settings (`Cmd/Ctrl` + `,`).
 2. Navigate to "MCP" / "Model Context Protocol" and add a new server configuration.
-3. Add either the SSE or HTTP endpoint shown below.
-
-Cloudflare Workers — SSE example:
-
-```json
-{
-  "shadcn-svelte": {
-    "type": "sse",
-    "url": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse"
-  }
-}
-```
-
-Cloudflare Workers — HTTP example:
+3. Add the hosted endpoint shown below.
 
 ```json
 {
   "shadcn-svelte": {
     "type": "http",
-    "url": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
+    "url": "https://shadcnmcp.svelte-apps.me/mcp"
   }
 }
 ```
@@ -129,33 +122,20 @@ Cloudflare Workers — HTTP example:
 <summary>Windsurf</summary>
 
 1. Edit `~/.codeium/windsurf/mcp_config.json`.
-2. Add the SSE transport as shown:
+2. Add the hosted endpoint using the `http` transport:
 
 ```json
 {
   "mcpServers": {
     "shadcn-svelte": {
-      "url": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse",
-      "transport": "sse"
+      "type": "http",
+      "url": "https://shadcnmcp.svelte-apps.me/mcp"
     }
   }
 }
 ```
 
 3. Save, restart Windsurf, then open `mcp.json` in Agent mode and click "start".
-
-Use the HTTP variant if you need it:
-
-```json
-{
-  "servers": {
-    "shadcn-svelte": {
-      "type": "http",
-      "url": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
-    }
-  }
-}
-```
 
 </details>
 
@@ -174,7 +154,7 @@ Use the HTTP variant if you need it:
       "args": [
         "-y",
         "mcp-remote",
-        "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse"
+        "https://shadcnmcp.svelte-apps.me/mcp"
       ],
       "env": {}
     }
@@ -182,7 +162,7 @@ Use the HTTP variant if you need it:
 }
 ```
 
-4. Save, restart Zed, and confirm the server shows a green indicator in the Agent panel. Zed also offers a UI flow via Settings → Agent to paste either endpoint without editing JSON.
+3. Save, restart Zed, and confirm the server shows a green indicator in the Agent panel. Zed also offers a UI flow via Settings → Agent to add the endpoint without editing JSON.
 
 </details>
 
@@ -191,15 +171,13 @@ Use the HTTP variant if you need it:
 
 Two supported workflows (both work for either user/global settings or workspace/project settings):
 
-- **Option A — Command Palette (quick):** Run `MCP: Add Server` (Ctrl/Cmd+Shift+P) and paste the SSE or HTTP URL. This is the simplest interactive flow and can be used from the global (user) or workspace context.
+- **Option A — Command Palette (quick):** Run `MCP: Add Server` (Ctrl/Cmd+Shift+P) and paste the hosted endpoint. This is the simplest interactive flow and can be used from the global (user) or workspace context.
 
-  Examples to paste:
-  - SSE: `https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse`
-  - HTTP: `https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp`
+  URL to paste: `https://shadcnmcp.svelte-apps.me/mcp`
 
 - **Option B — mcp-remote JSON (scriptable):** Create or update `.vscode/mcp.json` (or your user-level MCP config) to use the `mcp-remote` helper. This works equally well as a workspace or global config and is handy for reproducible setups.
 
-  Example `.vscode/mcp.json` using `mcp-remote` (SSE):
+  Example `.vscode/mcp.json` using `mcp-remote`:
 
   ```json
   {
@@ -209,24 +187,7 @@ Two supported workflows (both work for either user/global settings or workspace/
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse"
-        ]
-      }
-    }
-  }
-  ```
-
-  And for the HTTP transport replace the URL with the `/mcp` endpoint:
-
-  ```json
-  {
-    "mcpServers": {
-      "shadcn-svelte": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "mcp-remote",
-          "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
+          "https://shadcnmcp.svelte-apps.me/mcp"
         ]
       }
     }
@@ -242,7 +203,7 @@ Two supported workflows (both work for either user/global settings or workspace/
 
 ## CLI & Agent Configuration
 
-The same base URLs work across CLIs. **Cloudflare Workers is the recommended primary deployment** for the fastest responses with zero cold start.
+The same hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` works across CLIs.
 
 <details>
 <summary>Claude Code CLI (Anthropic)</summary>
@@ -257,7 +218,7 @@ The same base URLs work across CLIs. **Cloudflare Workers is the recommended pri
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
+          "https://shadcnmcp.svelte-apps.me/mcp"
         ]
       }
     }
@@ -274,7 +235,7 @@ The same base URLs work across CLIs. **Cloudflare Workers is the recommended pri
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
+          "https://shadcnmcp.svelte-apps.me/mcp"
         ]
       }
     }
@@ -292,24 +253,20 @@ The same base URLs work across CLIs. **Cloudflare Workers is the recommended pri
 - **Command palette alternative:**
 
   ```bash
-  claude mcp add --transport http shadcn-svelte https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp
+  claude mcp add --transport http shadcn-svelte https://shadcnmcp.svelte-apps.me/mcp
   ```
 
 - Use `/permissions` inside Claude Code to grant tool access if prompted.
-
-<!-- Alternative hosts are not required in most cases; Cloudflare Workers is the recommended default. -->
-
-<!-- Cloudflare Workers is recommended; an organization-hosted endpoint may be used if needed. -->
 
 </details>
 
 <details>
 <summary>OpenAI Codex CLI</summary>
 
-Register the Cloudflare Workers endpoint for codex or use your own privately hosted MCP endpoint.
+Register the hosted endpoint for codex or use your own privately hosted MCP endpoint.
 
 ```bash
-codex mcp add shadcn-svelte --url https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse
+codex mcp add shadcn-svelte --url https://shadcnmcp.svelte-apps.me/mcp
 codex mcp list
 ```
 
@@ -325,13 +282,13 @@ codex mcp list
    nano ~/.gemini/settings.json
    ```
 
-2. Add a configuration. Cloudflare Workers example:
+2. Add a configuration pointing at the hosted endpoint:
 
    ```json
    {
      "mcpServers": {
        "shadcn-svelte": {
-         "httpUrl": "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
+         "httpUrl": "https://shadcnmcp.svelte-apps.me/mcp"
        }
      }
    }
@@ -346,7 +303,7 @@ codex mcp list
          "command": "npx",
          "args": [
            "mcp-remote",
-           "https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp"
+           "https://shadcnmcp.svelte-apps.me/mcp"
          ]
        }
      }
@@ -391,13 +348,13 @@ The skill assumes the `shadcn-svelte` MCP server is already configured in the ag
 
 ## Verification & Quick Tests
 
-Use these checks after configuration. Prefer SSE for editor connections and HTTP for CLI probing.
+Use these checks after configuration.
 
 - `claude mcp list`
 - `codex mcp list`
-- `npx mcp-remote https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp`
-- `curl -I https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/mcp`
-- `curl -N https://shadcn-svelte-mcp.svelte-apps.workers.dev/api/mcp/shadcn/sse`
+- `npx mcp-remote https://shadcnmcp.svelte-apps.me/mcp`
+- `curl -I https://shadcnmcp.svelte-apps.me/mcp`
+- `curl -N https://shadcnmcp.svelte-apps.me/mcp`
 
 Claude Code may prompt for tool permissions. Use `/permissions` or set `allowedTools` in `~/.claude.json` if needed.
 

@@ -152,7 +152,15 @@ The server uses multi-strategy web scraping to fetch documentation:
 
 ### Production Hosts
 
-#### Cloudflare Workers (Primary)
+#### Hosted endpoint (primary)
+
+- **URL**: `https://shadcnmcp.svelte-apps.me/mcp`
+- **Protocol**: Streamable HTTP at `/mcp`; health check at
+  `https://shadcnmcp.svelte-apps.me/health`
+- **Characteristics**: Always-on hosted instance of the same `src/index.ts`
+  (Node/Bun) entry; no SSE path — clients connect via the `http` transport
+
+#### Cloudflare Workers (self-host alternative)
 
 - **URL**: `https://shadcn-svelte-mcp.<account>.workers.dev/mcp`
 - **Characteristics**: Zero cold start, global edge network
@@ -185,7 +193,7 @@ The server uses multi-strategy web scraping to fetch documentation:
 {
   "shadcn-svelte": {
     "type": "http",
-    "url": "https://shadcn-svelte-mcp.<account>.workers.dev/mcp"
+    "url": "https://shadcnmcp.svelte-apps.me/mcp"
   }
 }
 ```
@@ -206,7 +214,7 @@ The server uses multi-strategy web scraping to fetch documentation:
 ### Claude Code CLI
 
 ```bash
-claude mcp add shadcn-svelte --url https://shadcn-svelte-mcp.<account>.workers.dev/mcp
+claude mcp add shadcn-svelte --url https://shadcnmcp.svelte-apps.me/mcp
 ```
 
 ## Error Handling
