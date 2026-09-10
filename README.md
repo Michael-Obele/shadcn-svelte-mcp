@@ -3,7 +3,7 @@
 [![latest release](https://img.shields.io/github/v/tag/Michael-Obele/shadcn-svelte-mcp?sort=semver)](https://github.com/Michael-Obele/shadcn-svelte-mcp/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vc2hhZGNubWNwLnN2ZWx0ZS1hcHBzLm1lL21jcCJ9)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vc2hhZGNuLnN2ZWx0ZS1hcHBzLm1lL21jcCJ9)
 
 Mastra MCP server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping.
 
@@ -11,14 +11,14 @@ Mastra MCP server and tooling that provides real-time access to shadcn-svelte co
 
 > [!IMPORTANT]
 > **URL Update Notification:** The MCP server is now hosted at
-> `https://shadcnmcp.svelte-apps.me/mcp` (Streamable HTTP). The previous
+> `https://shadcn.svelte-apps.me/mcp` (Streamable HTTP). The previous
 > `*.workers.dev` endpoints still work but have been overloaded — update your
 > editor and CLI configurations to the new endpoint below for better
-> reliability. Health check: `https://shadcnmcp.svelte-apps.me/health`.
+> reliability. Health check: `https://shadcn.svelte-apps.me/health`.
 
 | Transport            | URL                                             | Best for                         |
 | -------------------- | ----------------------------------------------- | -------------------------------- |
-| HTTP (Streamable)    | `https://shadcnmcp.svelte-apps.me/mcp`          | Editors, CLIs, scripts, one-offs |
+| HTTP (Streamable)    | `https://shadcn.svelte-apps.me/mcp`          | Editors, CLIs, scripts, one-offs |
 
 > [!NOTE]
 > This project follows our [Code of Conduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
@@ -94,7 +94,7 @@ This ensures that AI assistants receive the most relevant and well-structured in
 
 ## Editor Setup
 
-The hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` serves Streamable HTTP, which all major editors connect to using the `http` transport. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add server` to paste the URL.
+The hosted endpoint `https://shadcn.svelte-apps.me/mcp` serves Streamable HTTP, which all major editors connect to using the `http` transport. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add server` to paste the URL.
 
 <details>
 <summary>Cursor</summary>
@@ -107,7 +107,7 @@ The hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` serves Streamable HTT
 {
   "shadcn-svelte": {
     "type": "http",
-    "url": "https://shadcnmcp.svelte-apps.me/mcp"
+    "url": "https://shadcn.svelte-apps.me/mcp"
   }
 }
 ```
@@ -125,7 +125,7 @@ The hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` serves Streamable HTT
   "mcpServers": {
     "shadcn-svelte": {
       "type": "http",
-      "url": "https://shadcnmcp.svelte-apps.me/mcp"
+      "url": "https://shadcn.svelte-apps.me/mcp"
     }
   }
 }
@@ -150,7 +150,7 @@ The hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` serves Streamable HTT
       "args": [
         "-y",
         "mcp-remote",
-        "https://shadcnmcp.svelte-apps.me/mcp"
+        "https://shadcn.svelte-apps.me/mcp"
       ],
       "env": {}
     }
@@ -169,7 +169,7 @@ Two supported workflows (both work for either user/global settings or workspace/
 
 - **Option A — Command Palette (quick):** Run `MCP: Add Server` (Ctrl/Cmd+Shift+P) and paste the hosted endpoint. This is the simplest interactive flow and can be used from the global (user) or workspace context.
 
-  URL to paste: `https://shadcnmcp.svelte-apps.me/mcp`
+  URL to paste: `https://shadcn.svelte-apps.me/mcp`
 
 - **Option B — mcp-remote JSON (scriptable):** Create or update `.vscode/mcp.json` (or your user-level MCP config) to use the `mcp-remote` helper. This works equally well as a workspace or global config and is handy for reproducible setups.
 
@@ -183,7 +183,7 @@ Two supported workflows (both work for either user/global settings or workspace/
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcnmcp.svelte-apps.me/mcp"
+          "https://shadcn.svelte-apps.me/mcp"
         ]
       }
     }
@@ -199,7 +199,7 @@ Two supported workflows (both work for either user/global settings or workspace/
 
 ## CLI & Agent Configuration
 
-The same hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` works across CLIs.
+The same hosted endpoint `https://shadcn.svelte-apps.me/mcp` works across CLIs.
 
 <details>
 <summary>Claude Code CLI (Anthropic)</summary>
@@ -214,7 +214,7 @@ The same hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` works across CLI
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcnmcp.svelte-apps.me/mcp"
+          "https://shadcn.svelte-apps.me/mcp"
         ]
       }
     }
@@ -231,7 +231,7 @@ The same hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` works across CLI
         "args": [
           "-y",
           "mcp-remote",
-          "https://shadcnmcp.svelte-apps.me/mcp"
+          "https://shadcn.svelte-apps.me/mcp"
         ]
       }
     }
@@ -249,7 +249,7 @@ The same hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` works across CLI
 - **Command palette alternative:**
 
   ```bash
-  claude mcp add --transport http shadcn-svelte https://shadcnmcp.svelte-apps.me/mcp
+  claude mcp add --transport http shadcn-svelte https://shadcn.svelte-apps.me/mcp
   ```
 
 - Use `/permissions` inside Claude Code to grant tool access if prompted.
@@ -262,7 +262,7 @@ The same hosted endpoint `https://shadcnmcp.svelte-apps.me/mcp` works across CLI
 Register the hosted endpoint for codex or use your own privately hosted MCP endpoint.
 
 ```bash
-codex mcp add shadcn-svelte --url https://shadcnmcp.svelte-apps.me/mcp
+codex mcp add shadcn-svelte --url https://shadcn.svelte-apps.me/mcp
 codex mcp list
 ```
 
@@ -284,7 +284,7 @@ codex mcp list
    {
      "mcpServers": {
        "shadcn-svelte": {
-         "httpUrl": "https://shadcnmcp.svelte-apps.me/mcp"
+         "httpUrl": "https://shadcn.svelte-apps.me/mcp"
        }
      }
    }
@@ -299,7 +299,7 @@ codex mcp list
          "command": "npx",
          "args": [
            "mcp-remote",
-           "https://shadcnmcp.svelte-apps.me/mcp"
+           "https://shadcn.svelte-apps.me/mcp"
          ]
        }
      }
@@ -348,9 +348,9 @@ Use these checks after configuration.
 
 - `claude mcp list`
 - `codex mcp list`
-- `npx mcp-remote https://shadcnmcp.svelte-apps.me/mcp`
-- `curl -I https://shadcnmcp.svelte-apps.me/mcp`
-- `curl -N https://shadcnmcp.svelte-apps.me/mcp`
+- `npx mcp-remote https://shadcn.svelte-apps.me/mcp`
+- `curl -I https://shadcn.svelte-apps.me/mcp`
+- `curl -N https://shadcn.svelte-apps.me/mcp`
 
 Claude Code may prompt for tool permissions. Use `/permissions` or set `allowedTools` in `~/.claude.json` if needed.
 
