@@ -33,6 +33,7 @@ console.log(`Updated ${pkgPath} to ${version}`);
 const targetPath = path.resolve(process.cwd(), "src/mcp/server.ts");
 let code = fs.readFileSync(targetPath, "utf8");
 code = code.replace(/version:\s*"[^"]+",/, `version: "${version}",`);
+code = code.replace(/serverVersion\s*=\s*"[^"]+"/, `serverVersion = "${version}"`);
 fs.writeFileSync(targetPath, code);
 console.log(`Updated ${targetPath} to ${version}`);
 
