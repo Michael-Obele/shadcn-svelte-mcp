@@ -1,0 +1,45 @@
+name: Publish to npm (trusted publishing + provenance)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  id-token: write # required for npm trusted publishing (OIDC) + provenance
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run check
+
+      - name: Build npm bundle (node target)
+        run: bun run build:npm
+
+      - name: Publish to npm with provenance
+        # No NODE_AUTH_TOKEN needed: OIDC trusted publishing mints a short-lived token.
+        # Provenance is generated automatically for public packages from public repos.
+        run: npm publish --provenance --access public

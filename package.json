@@ -1,12 +1,35 @@
 {
   "name": "shadcn-svelte-mcp",
   "version": "1.10.0",
+  "description": "shadcn-svelte documentation MCP server built with tmcp — works on Cloudflare Workers, Fly.io, Render, or any JS runtime",
+  "type": "module",
   "main": "src/index.ts",
+  "bin": {
+    "shadcn-svelte-mcp": "dist/stdio.js"
+  },
+  "files": [
+    "dist/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Michael-Obele/shadcn-svelte-mcp.git"
+  },
+  "homepage": "https://github.com/Michael-Obele/shadcn-svelte-mcp",
+  "bugs": {
+    "url": "https://github.com/Michael-Obele/shadcn-svelte-mcp/issues"
+  },
+  "author": "Michael-Obele",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "mcp": "bun run src/stdio.ts",
     "build": "bun build ./src/index.ts --target=bun --outdir=dist && bun build ./src/stdio.ts --target=bun --outdir=dist",
+    "build:npm": "bun build ./src/stdio.ts --target=node --outdir=dist --external:@cloudflare/workers-types && chmod +x ./dist/stdio.js",
     "deploy:worker": "wrangler deploy",
     "build:worker": "wrangler deploy --dry-run --outdir=.wrangler/dist",
     "check": "tsc --noEmit",
@@ -23,10 +46,7 @@
     "bits-ui",
     "model-context-protocol"
   ],
-  "author": "",
   "license": "MIT",
-  "description": "shadcn-svelte documentation MCP server built with tmcp — works on Cloudflare Workers, Fly.io, Render, or any JS runtime",
-  "type": "module",
   "engines": {
     "node": ">=20.9.0",
     "bun": ">=1.1.0"

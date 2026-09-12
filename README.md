@@ -4,7 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vc2hhZGNuLnN2ZWx0ZS1hcHBzLm1lL21jcCJ9)
-
+> [!WARNING]
+> **Help keep the hosted server online:** the hosted endpoint at
+> `https://shadcn.svelte-apps.me/mcp` costs money to run. If running costs are
+> not covered by donations within ~30 days, the hosted instance may go down.
+> The server keeps working via self-host — `npx -y shadcn-svelte-mcp`, or deploy
+> it yourself to Fly.io / Render / Cloudflare Workers.
+> [❤️ Sponsor @Michael-Obele](https://github.com/sponsors/Michael-Obele) to keep it hosted.
 > [!IMPORTANT]
 > **URL Update Notification:** This MCP server is now hosted at
 > `https://shadcn.svelte-apps.me/mcp`. Earlier configs pointing at the
@@ -19,10 +25,10 @@ The MCP server is hosted at a single production endpoint and serves Streamable
 HTTP. Point your editor, CLI, or agent at the URL below. It can also be run
 locally over stdio for development (see [Local Development](#local-development)).
 
-| Transport            | URL                                             | Best for                         |
-| -------------------- | ----------------------------------------------- | -------------------------------- |
-| HTTP (Streamable)    | `https://shadcn.svelte-apps.me/mcp`            | Editors, CLIs, scripts, one-offs |
-| STDIO                | `bun run src/stdio.ts` (local)                  | Editors and local agents         |
+| Transport         | URL                                 | Best for                         |
+| ----------------- | ----------------------------------- | -------------------------------- |
+| HTTP (Streamable) | `https://shadcn.svelte-apps.me/mcp` | Editors, CLIs, scripts, one-offs |
+| STDIO             | `bun run src/stdio.ts` (local)      | Editors and local agents         |
 
 > [!NOTE]
 > This project follows our [Code of Conduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
@@ -151,11 +157,7 @@ The hosted endpoint `https://shadcn.svelte-apps.me/mcp` serves Streamable HTTP, 
     "shadcn-svelte": {
       "source": "custom",
       "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "https://shadcn.svelte-apps.me/mcp"
-      ],
+      "args": ["-y", "mcp-remote", "https://shadcn.svelte-apps.me/mcp"],
       "env": {}
     }
   }
@@ -184,11 +186,7 @@ Two supported workflows (both work for either user/global settings or workspace/
     "mcpServers": {
       "shadcn-svelte": {
         "command": "npx",
-        "args": [
-          "-y",
-          "mcp-remote",
-          "https://shadcn.svelte-apps.me/mcp"
-        ]
+        "args": ["-y", "mcp-remote", "https://shadcn.svelte-apps.me/mcp"]
       }
     }
   }
@@ -215,11 +213,7 @@ The same hosted endpoint `https://shadcn.svelte-apps.me/mcp` works across CLIs.
     "mcpServers": {
       "shadcn-svelte": {
         "command": "npx",
-        "args": [
-          "-y",
-          "mcp-remote",
-          "https://shadcn.svelte-apps.me/mcp"
-        ]
+        "args": ["-y", "mcp-remote", "https://shadcn.svelte-apps.me/mcp"]
       }
     }
   }
@@ -232,11 +226,7 @@ The same hosted endpoint `https://shadcn.svelte-apps.me/mcp` works across CLIs.
     "mcpServers": {
       "shadcn-svelte": {
         "command": "npx",
-        "args": [
-          "-y",
-          "mcp-remote",
-          "https://shadcn.svelte-apps.me/mcp"
-        ]
+        "args": ["-y", "mcp-remote", "https://shadcn.svelte-apps.me/mcp"]
       }
     }
   }
@@ -301,10 +291,7 @@ codex mcp list
      "mcpServers": {
        "shadcn-svelte": {
          "command": "npx",
-         "args": [
-           "mcp-remote",
-           "https://shadcn.svelte-apps.me/mcp"
-         ]
+         "args": ["mcp-remote", "https://shadcn.svelte-apps.me/mcp"]
        }
      }
    }
