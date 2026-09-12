@@ -9,6 +9,7 @@ export const shadcn = new MCPServer({
   id: "shadcn",
   name: "Shadcn Svelte Docs",
   version: "1.10.0",
+  protocolVersion: "2026-07-28",
   description:
     "Access shadcn-svelte component documentation, Bits UI API docs, and guides. IMPORTANT: This is for SVELTE components only, NOT React. Do not confuse with shadcn/ui (React version). Bits UI provides the underlying components for shadcn-svelte.",
   tools: {
