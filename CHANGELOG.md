@@ -1,3 +1,18 @@
+# [1.11.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.10.0...v1.11.0) (2026-09-12)
+
+
+### Bug Fixes
+
+* keep stdio protocol stream clean by redirecting logs to stderr ([277908c](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/277908c5bc53760acaf121178571d062655b0414))
+
+
+### Features
+
+* add tool-usage prompt with centralized ([fa70d13](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/fa70d13c251b6160dd9d44a799a05690d15e72da))
+* complete tmcp migration — KV-backed Worker sessions and docs ([787560f](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/787560f18a354abf7e2fda7eaac8c3a1b40194a0))
+* migrate Mastra MCP server to tmcp with valibot schemas ([b4c7b15](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/b4c7b15f4a19a1bfb3328b2ee21806ac9876e8cf))
+* remove legacy Mastra codebase from docs and configs ([60fe1a2](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/60fe1a24ad80d87444a27a2f5eb11ad9fc364708))
+
 # [1.10.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.9.1...v1.10.0) (2026-05-02)
 
 
