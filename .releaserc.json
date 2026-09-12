@@ -26,9 +26,10 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "node ./scripts/sync-versions.js ${nextRelease.version}"
+        "prepareCmd": "node ./scripts/sync-versions.js ${nextRelease.version} && bun run build:npm"
       }
     ],
+    ["@semantic-release/npm", {}],
     [
       "@semantic-release/git",
       {

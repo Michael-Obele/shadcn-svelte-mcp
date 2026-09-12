@@ -1,9 +1,10 @@
-name: Publish to npm (trusted publishing + provenance)
+name: Publish to npm (manual backup — releases publish via semantic-release)
 
+# NOTE: npm publishing now happens automatically inside the semantic-release
+# workflow (`.github/workflows/semantic-release.yml` via `@semantic-release/npm`
+# with OIDC trusted publishing + provenance). This workflow is kept as a manual
+# backup only. Do NOT re-enable tag triggers here — that would double-publish.
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions:
