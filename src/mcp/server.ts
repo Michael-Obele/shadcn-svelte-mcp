@@ -11,7 +11,7 @@ import { cliUsagePrompt } from "./prompts/cli-usage.js";
 import { projectInitPrompt } from "./prompts/project-init.js";
 import { toolUsagePrompt } from "./prompts/tool-usage.js";
 
-export const serverVersion = "1.10.0";
+export const serverVersion = "1.11.0";
 
 /**
  * The shadcn-svelte MCP server.
