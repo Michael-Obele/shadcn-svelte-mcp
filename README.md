@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vc2hhZGNuLnN2ZWx0ZS1hcHBzLm1lL21jcCJ9)
+
 > [!WARNING]
 > **Help keep the hosted server online:** the hosted endpoint at
 > `https://shadcn.svelte-apps.me/mcp` costs money to run. If running costs are
@@ -11,514 +12,124 @@
 > The server keeps working via self-host — `npx -y shadcn-svelte-mcp`, or deploy
 > it yourself to Fly.io / Render / Cloudflare Workers.
 > [❤️ Sponsor @Michael-Obele](https://github.com/sponsors/Michael-Obele) to keep it hosted.
+
 > [!IMPORTANT]
 > **URL Update Notification:** This MCP server is now hosted at
 > `https://shadcn.svelte-apps.me/mcp`. Earlier configs pointing at the
 > `*.workers.dev` / `*.server.mastra.cloud` `/api/mcp/shadcn/...` endpoints should
 > be updated to the new URL below (health check: `https://shadcn.svelte-apps.me/health`).
 
-tmcp (lightweight MCP) server and tooling that provides real-time access to shadcn-svelte component documentation and developer utilities using web scraping. Built with [tmcp](https://tmcp.io) — schema-agnostic, runs anywhere JavaScript runs: Cloudflare Workers, Fly.io, Render, or your laptop via stdio.
+Real-time shadcn-svelte docs for AI editors, via [tmcp](https://tmcp.io). Scrapes shadcn-svelte.com and bits-ui.com live — no stale docs.
 
-## Production Deployment
+**Hosted:** `https://shadcn.svelte-apps.me/mcp` (Streamable HTTP) · Health: `https://shadcn.svelte-apps.me/health` · Local: `bun run src/stdio.ts`
 
-The MCP server is hosted at a single production endpoint and serves Streamable
-HTTP. Point your editor, CLI, or agent at the URL below. It can also be run
-locally over stdio for development (see [Local Development](#local-development)).
+## What you get
 
-| Transport         | URL                                 | Best for                         |
-| ----------------- | ----------------------------------- | -------------------------------- |
-| HTTP (Streamable) | `https://shadcn.svelte-apps.me/mcp` | Editors, CLIs, scripts, one-offs |
-| STDIO             | `bun run src/stdio.ts` (local)      | Editors and local agents         |
+- Live shadcn-svelte + [Bits UI](https://bits-ui.com) docs (no stale bundles)
+- 5 tools: list, get, search, icons, Bits UI API
+- Fuzzy search with typo tolerance + install snippets per package manager
+- ~1,600 Lucide icons with import snippets
+- 3-day cache (memory / disk / KV) for fast repeats
 
-> [!NOTE]
-> This project follows our [Code of Conduct](CODE_OF_CONDUCT.md) and welcomes contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for details.
+## Connect (30 seconds)
 
-This repository contains a tmcp-based MCP server that provides real-time access to shadcn-svelte component documentation using web scraping. Use it in your AI-powered code editor to get instant access to the latest shadcn-svelte component information directly from the official website.
+**Hosted (recommended):** `https://shadcn.svelte-apps.me/mcp`
 
-## Table of Contents
-
-- [shadcn-svelte-mcp](#shadcn-svelte-mcp)
-  - [Production Deployment](#production-deployment)
-  - [Table of Contents](#table-of-contents)
-  - [🎉 Features](#-features)
-  - [Bits UI Integration](#bits-ui-integration)
-    - [AI-Optimized Content](#ai-optimized-content)
-  - [🔧 UX Observations \& Suggestions](#-ux-observations--suggestions)
-  - [Editor Setup](#editor-setup)
-    - [Verification](#verification)
-  - [CLI \& Agent Configuration](#cli--agent-configuration)
-  - [Skills.sh Skill](#skillssh-skill)
-    - [Install from GitHub](#install-from-github)
-    - [Local validation](#local-validation)
-    - [Expected skills.sh page](#expected-skillssh-page)
-  - [Verification \& Quick Tests](#verification--quick-tests)
-  - [Available Tools](#available-tools)
-  - [Example Usage](#example-usage)
-  - [Local Development](#local-development)
-    - [Contents](#contents)
-    - [Quick start (development smoke-test)](#quick-start-development-smoke-test)
-  - [Developer Scripts](#developer-scripts)
-  - [Project Architecture](#project-architecture)
-    - [Core Components](#core-components)
-    - [Key Features](#key-features)
-  - [Conventions \& notes](#conventions--notes)
-  - [Development tips](#development-tips)
-  - [License](#license)
-  - [Contributing](#contributing)
-  - [Contact](#contact)
-
-## 🎉 Features
-
-- ✅ Production hosting on a single always-on HTTP endpoint
-- ✅ **Five main MCP tools** for comprehensive shadcn-svelte ecosystem support (see 'Available Tools')
-- ✅ **Bits UI API documentation** - Direct access to underlying component library API docs with AI-optimized content
-- ✅ Advanced fuzzy search with typo tolerance and intelligent suggestions
-- ✅ **Lucide Svelte icon search** - Browse and search ~1,600 icons (dynamic) with smart filtering
-- ✅ Support for all major AI code editors (Cursor, Windsurf, VS Code, Zed, Claude Code, Codex)
-- ✅ HTTP and SSE transport protocols
-- ✅ Real-time web scraping from shadcn-svelte.com and bits-ui.com
-
-## Bits UI Integration
-
-shadcn-svelte components are built on top of [Bits UI](https://bits-ui.com), the underlying component library that provides the core functionality. This MCP server provides direct access to Bits UI's comprehensive API documentation through AI-optimized content endpoints.
-
-### AI-Optimized Content
-
-The `bits-ui-get` tool fetches content from Bits UI's dedicated `/llms.txt` endpoints, which provide:
-
-- **Structured API reference tables** with Property/Type/Description/Details columns
-- **Clean markdown formatting** optimized for AI consumption
-- **Implementation details** and usage examples
-- **Data attributes and event handlers** documentation
-- **Navigation links** to related components
-
-This ensures that AI assistants receive the most relevant and well-structured information for implementing shadcn-svelte components correctly.
-
-## 🔧 UX Observations & Suggestions
-
-- The `shadcn-svelte-icons` tool previously showed an awkward message "No icons found matching \"undefined\"" when explicit `names` were requested and none were found — this has been fixed so the response now shows `No icons found for names: ...` instead. ✅
-- Imports in the `icons` tool are intentionally limited to the first 10 names in the response to keep usage snippets tidy; increase the `limit` if you need more icons returned (the snippet still only imports the first 10). 💡
-- The icons tool now supports `importLimit` (default 10) and `limit` (default 100) to control how many icons are returned, and how many are included in `import` statements.
-- The `shadcn-svelte-get` tool now respects an optional `packageManager` parameter and adjusts the installation snippet accordingly (`pnpm dlx`, `yarn dlx`, `npx`, `bunx`). ✅
-- If you notice any remaining odd messages or install command inconsistencies, please file an issue — we keep the MCP server behavior stable but will gladly refine UX in following pull requests.
-
-## Editor Setup
-
-The hosted endpoint `https://shadcn.svelte-apps.me/mcp` serves Streamable HTTP, which all major editors connect to using the `http` transport. VS Code users can open the Command Palette (`Cmd/Ctrl+Shift+P`) and run `MCP: Add Server` to paste the URL.
-
-<details>
-<summary>Cursor</summary>
-
-1. Open Cursor Settings (`Cmd/Ctrl` + `,`).
-2. Navigate to "MCP" / "Model Context Protocol" and add a new server configuration.
-3. Add the hosted endpoint shown below.
-
-```json
-{
-  "shadcn-svelte": {
-    "type": "http",
-    "url": "https://shadcn.svelte-apps.me/mcp"
-  }
-}
-```
-
-</details>
-
-<details>
-<summary>Windsurf</summary>
-
-1. Edit `~/.codeium/windsurf/mcp_config.json`.
-2. Add the hosted endpoint using the `http` transport:
+VS Code: `MCP: Add Server` → paste the URL. Cursor / Windsurf: add an `http` server with the same URL. Zed: use `npx -y mcp-remote https://shadcn.svelte-apps.me/mcp`. Verify: `MCP: List Servers`.
 
 ```json
 {
   "mcpServers": {
     "shadcn-svelte": {
-      "type": "http",
-      "url": "https://shadcn.svelte-apps.me/mcp"
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://shadcn.svelte-apps.me/mcp"]
     }
   }
 }
 ```
 
-3. Save, restart Windsurf, then open `mcp.json` in Agent mode and click "start".
+CLIs:
 
-</details>
+```bash
+claude mcp add --transport http shadcn-svelte https://shadcn.svelte-apps.me/mcp
+codex mcp add shadcn-svelte --url https://shadcn.svelte-apps.me/mcp
+```
 
-<details>
-<summary>Zed</summary>
+### NPM fallback (if hosted is down)
 
-1. Open Zed settings (`Cmd/Ctrl` + `,`).
-2. Edit `~/.config/zed/settings.json` and add an entry under `context_servers`:
+Run locally via npm — same tools, no server:
 
 ```json
 {
-  "context_servers": {
-    "shadcn-svelte": {
-      "source": "custom",
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://shadcn.svelte-apps.me/mcp"],
-      "env": {}
-    }
+  "mcpServers": {
+    "shadcn-svelte": { "command": "npx", "args": ["-y", "shadcn-svelte-mcp"] }
   }
 }
 ```
 
-3. Save, restart Zed, and confirm the server shows a green indicator in the Agent panel. Zed also offers a UI flow via Settings → Agent to add the endpoint without editing JSON.
-
-</details>
-
-<details>
-<summary>VS Code</summary>
-
-Two supported workflows (both work for either user/global settings or workspace/project settings):
-
-- **Option A — Command Palette (quick):** Run `MCP: Add Server` (Ctrl/Cmd+Shift+P) and paste the hosted endpoint. This is the simplest interactive flow and can be used from the global (user) or workspace context.
-
-  URL to paste: `https://shadcn.svelte-apps.me/mcp`
-
-- **Option B — mcp-remote JSON (scriptable):** Create or update `.vscode/mcp.json` (or your user-level MCP config) to use the `mcp-remote` helper. This works equally well as a workspace or global config and is handy for reproducible setups.
-
-  Example `.vscode/mcp.json` using `mcp-remote`:
-
-  ```json
-  {
-    "mcpServers": {
-      "shadcn-svelte": {
-        "command": "npx",
-        "args": ["-y", "mcp-remote", "https://shadcn.svelte-apps.me/mcp"]
-      }
-    }
-  }
-  ```
-
-### Verification
-
-- Use the Command Palette and run `MCP: List Servers` to view configured servers.
-- Use `MCP: List Servers > Configure Model Access` to manage which models can use MCP servers.
-
-</details>
-
-## CLI & Agent Configuration
-
-The same hosted endpoint `https://shadcn.svelte-apps.me/mcp` works across CLIs.
-
-<details>
-<summary>Claude Code CLI (Anthropic)</summary>
-
-- **Global settings** (`~/.claude/settings.json`):
-
-  ```json
-  {
-    "mcpServers": {
-      "shadcn-svelte": {
-        "command": "npx",
-        "args": ["-y", "mcp-remote", "https://shadcn.svelte-apps.me/mcp"]
-      }
-    }
-  }
-  ```
-
-- **Project-scoped override** (`.mcp.json`):
-
-  ```json
-  {
-    "mcpServers": {
-      "shadcn-svelte": {
-        "command": "npx",
-        "args": ["-y", "mcp-remote", "https://shadcn.svelte-apps.me/mcp"]
-      }
-    }
-  }
-  ```
-
-  Enable project servers with:
-
-  ```json
-  {
-    "enableAllProjectMcpServers": true
-  }
-  ```
-
-- **Command palette alternative:**
-
-  ```bash
-  claude mcp add --transport http shadcn-svelte https://shadcn.svelte-apps.me/mcp
-  ```
-
-- Use `/permissions` inside Claude Code to grant tool access if prompted.
-
-</details>
-
-<details>
-<summary>OpenAI Codex CLI</summary>
-
-Register the hosted endpoint for codex or use your own privately hosted MCP endpoint.
+CLI (stdio):
 
 ```bash
-codex mcp add shadcn-svelte --url https://shadcn.svelte-apps.me/mcp
-codex mcp list
+claude mcp add shadcn-svelte -- npx -y shadcn-svelte-mcp
+codex mcp add shadcn-svelte -- npx -y shadcn-svelte-mcp
 ```
 
-</details>
+Needs Node >= 20.9. Bun users: swap `npx` for `bunx`.
 
 <details>
-<summary>Gemini CLI (Google)</summary>
+<summary>Editor-specific notes</summary>
 
-1. Create or edit `~/.gemini/settings.json`:
-
-   ```bash
-   mkdir -p ~/.gemini
-   nano ~/.gemini/settings.json
-   ```
-
-2. Add a configuration pointing at the hosted endpoint:
-
-   ```json
-   {
-     "mcpServers": {
-       "shadcn-svelte": {
-         "httpUrl": "https://shadcn.svelte-apps.me/mcp"
-       }
-     }
-   }
-   ```
-
-3. Prefer the `npx mcp-remote` command variant if your CLI version expects a command:
-
-   ```json
-   {
-     "mcpServers": {
-       "shadcn-svelte": {
-         "command": "npx",
-         "args": ["mcp-remote", "https://shadcn.svelte-apps.me/mcp"]
-       }
-     }
-   }
-   ```
-
-4. Restart the CLI to apply changes.
+- Cursor: Settings → MCP → add `http` server with the hosted URL.
+- Windsurf: `~/.codeium/windsurf/mcp_config.json` → `mcpServers`, restart.
+- Zed: Settings → Agent, or `npx -y mcp-remote https://shadcn.svelte-apps.me/mcp`.
+- Gemini CLI: `~/.gemini/settings.json` → `httpUrl`, or use `mcp-remote` variant.
 
 </details>
 
-## Skills.sh Skill
+## Tools
 
-This repository includes a publishable agent skill at `skills/shadcn-sveltekit-design/SKILL.md` for designing and implementing polished SvelteKit pages and reusable components with shadcn-svelte while grounding component choices in this MCP.
+| Tool                   | Use for                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| `shadcn-svelte-get`    | Details + install snippet for a known component / block / doc (`packageManager` supported) |
+| `shadcn-svelte-search` | Fuzzy find when you don't know the exact name                                              |
+| `shadcn-svelte-list`   | Full inventory of components, blocks, charts, docs                                         |
+| `shadcn-svelte-icons`  | Lucide icons (`names`, `limit`, `importLimit`)                                             |
+| `bits-ui-get`          | Low-level Bits UI API (props, events, data attributes)                                     |
 
-### Install from GitHub
+Start with `get`, fall back to `search`, use `bits-ui-get` only for primitive internals.
+
+Try: "Install button", "List all components", "Find date-picker-like components", "Icons for settings", "Bits UI Dialog API".
+
+## Skill
+
+Polished SvelteKit UI skill at `skills/shadcn-sveltekit-design/SKILL.md`:
 
 ```bash
 npx skills add Michael-Obele/shadcn-svelte-mcp --skill shadcn-sveltekit-design
 ```
 
-For GitHub Copilot specifically:
+## Verify
 
 ```bash
-npx skills add Michael-Obele/shadcn-svelte-mcp --skill shadcn-sveltekit-design --agent github-copilot -g -y
+claude mcp list
+codex mcp list
+curl -I https://shadcn.svelte-apps.me/health
 ```
 
-### Local validation
-
-```bash
-npx skills add . --list
-```
-
-### Expected skills.sh page
-
-Once this repository change is pushed to the public GitHub repository and indexed by the `skills` ecosystem, the skill should resolve at:
-
-```text
-https://skills.sh/Michael-Obele/shadcn-svelte-mcp/shadcn-sveltekit-design
-```
-
-The skill assumes the `shadcn-svelte` MCP server is already configured in the agent environment.
-
-## Verification & Quick Tests
-
-Use these checks after configuration.
-
-- `claude mcp list`
-- `codex mcp list`
-- `npx mcp-remote https://shadcn.svelte-apps.me/mcp`
-- `curl -I https://shadcn.svelte-apps.me/mcp`
-- `curl -N https://shadcn.svelte-apps.me/mcp`
-
-Claude Code may prompt for tool permissions. Use `/permissions` or set `allowedTools` in `~/.claude.json` if needed.
-
-## Available Tools
-
-These are the tool IDs exposed by the MCP server:
-
-| Tool                   | Use for                                                                    | Returns                                                |
-| ---------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `shadcn-svelte-list`   | Inventory of components, blocks, charts, docs, and Bits UI primitives      | Markdown list                                          |
-| `shadcn-svelte-get`    | Detailed lookup for components, blocks, charts, docs, and install snippets | Structured JSON; supports `packageManager`             |
-| `shadcn-svelte-search` | Fuzzy discovery when you do not know the exact component or docs name      | Markdown summary plus structured results               |
-| `shadcn-svelte-icons`  | Lucide icon discovery with install and import snippets                     | Markdown; supports `names`, `limit`, and `importLimit` |
-| `bits-ui-get`          | Lower-level Bits UI API reference and implementation details               | Structured JSON from Bits UI `llms.txt` endpoints      |
-
-Use `shadcn-svelte-get` first for known components or docs, `shadcn-svelte-search` when the exact name is unknown, and `bits-ui-get` only when you need lower-level primitive details.
-
-## Example Usage
-
-After installing the MCP server in your editor, you can ask your AI assistant:
-
-- "Show me how to install the shadcn-svelte button component"
-- "List all available shadcn-svelte components"
-- "Find components similar to a date picker and tell me which ones actually exist"
-- "List the available chart components"
-- "How do I customize themes in shadcn-svelte?"
-- "Find Lucide icons for user profile and settings"
-- "Show me the Bits UI API details for Dialog"
-- "Give me the install steps for dashboard-01 using yarn"
-
-## Local Development
-
-Want to run the MCP server locally or contribute to the project?
-
-### Contents
-
-- `src/` - Entry points: `index.ts` (HTTP server), `stdio.ts` (local MCP), `worker.ts` (Cloudflare Worker)
-- `src/mcp/` - The MCP server: `server.ts` (tmcp `McpServer` assembly), `tools/`, `prompts/`
-- `src/services/` - Web scraping services for real-time documentation fetching
-- `scripts/` - Version management and automation scripts
-
-### Quick start (development smoke-test)
-
-1. Install dependencies (using your preferred package manager).
-
-```bash
-# bun (recommended)
-bun install
-
-# or npm
-npm install
-
-# or pnpm
-pnpm install
-```
-
-2. Run the development server:
-
-```bash
-# Starts the HTTP server with file watching on http://localhost:3000
-bun run dev
-```
-
-The MCP endpoint is at `http://localhost:3000/mcp` and a health check at
-`http://localhost:3000/health`.
-
-For local MCP clients (Claude Desktop, Cursor, etc.), use the stdio entry:
-
-```json
-{
-  "mcpServers": {
-    "shadcn-svelte": {
-      "command": "bun",
-      "args": ["run", "src/stdio.ts"]
-    }
-  }
-}
-```
-
-## Developer Scripts
-
-- `bun run dev` - HTTP server in watch mode (port 3000, `/mcp` endpoint).
-- `bun run mcp` - Run the stdio transport for local MCP clients.
-- `bun run build` - Bundle the HTTP + stdio entries to `dist/` (for Fly.io/Render).
-- `bun run deploy:worker` - Deploy the Cloudflare Worker (`wrangler deploy`).
-- `bun run check` - TypeScript check (`tsc --noEmit`).
-- `bun run check-versions` - Check if package.json and src/mcp/server.ts versions match (fails if mismatched).
-- `bun run sync-versions-auto` - Check versions and auto-sync if mismatched (package.json is source of truth).
-- `bun run sync-versions` - Sync versions from latest git tag to both files.
-
-## Deployment
-
-### Cloudflare Workers
+## Local development
 
 ```bash
 bun install
-npx wrangler kv:namespace create TMCP_KV   # once — paste the id into wrangler.jsonc
-bun run deploy:worker
+bun run dev # http://localhost:3000/mcp, health at /health
+bun run check # type check
 ```
 
-The worker serves Streamable HTTP at `/mcp` on your `*.workers.dev` domain, with
-a `/health` endpoint. Sessions and doc cache are persisted in KV (`TMCP_KV`)
-when the binding is present; the server degrades to in-memory without it.
+Stdio for local clients: `bun run src/stdio.ts`. Layout: `src/index.ts` (HTTP), `src/stdio.ts`, `src/worker.ts`, `src/mcp/tools/`, `src/mcp/prompts/`, `src/services/`.
 
-### Fly.io
-
-```bash
-fly launch --no-deploy   # first time — picks up fly.toml
-fly deploy
-```
-
-Runs the bundled `dist/index.js` in a bun container (`Dockerfile`), served at
-`/mcp` with health checks against `/health`.
-
-### Render
-
-`render.yaml` builds with bun and starts the same bundle. `PORT` is set
-automatically by the platform.
-
-## Project Architecture
-
-### Core Components
-
-- **tmcp `McpServer`** (`src/mcp/server.ts`): The MCP server with a Valibot schema
-  adapter (`@tmcp/adapter-valibot`) and HTTP/STDIO transports
-- **HTTP Transport** (`@tmcp/transport-http`): Streamable HTTP at `/mcp` —
-  used by the Node/Bun server (`src/index.ts`) and the Cloudflare Worker
-  (`src/worker.ts`)
-- **STDIO Transport** (`@tmcp/transport-stdio`): Local MCP clients (`src/stdio.ts`)
-- **Web Scraping Services** (`src/services/`): Multi-strategy documentation fetching:
-  - Direct `.md` endpoint fetching for shadcn-svelte components
-  - AI-optimized `/llms.txt` endpoint fetching for Bits UI API documentation
-  - Cheerio + Turndown for HTML pages
-- **Intelligent Caching**: 3-day TTL cache with memory, disk (Node), and KV
-  (Workers) tiers
-- **Component Discovery**: Dynamic scraping of component registry from shadcn-svelte.com
-- **Advanced Search**: Fuse.js-powered fuzzy search with typo tolerance
-
-### Key Features
-
-The project combines real-time documentation fetching, Bits UI API access, multi-strategy scraping, intelligent caching, Lucide icon search, semantic version synchronization, and production deployment on Cloudflare Workers, Fly.io, or Render.
-
-## Conventions & notes
-
-- Tools are implemented under `src/mcp/tools` with `defineTool` from `tmcp/tool`
-  and use `valibot` schemas for input validation
-- Prompts live in `src/mcp/prompts` and use `definePrompt` from `tmcp/prompt`
-- Web scraping services are implemented under `src/services/` and use Cheerio + Turndown for real-time documentation fetching
-- Tool handlers return `tool.text(...)` / `tool.error(...)` from `tmcp/utils`
-- The `version: "x.y.z"` literal in `src/mcp/server.ts` is the version anchor —
-  keep it in sync with `package.json` (see `scripts/check-versions.js`)
-
-## Development tips
-
-- Node >= 20.9.0 or Bun >= 1.1 is required (see `package.json` engines)
-- When adding tools, follow the patterns in `src/mcp/tools/shadcn-svelte-get.ts` and `src/mcp/tools/shadcn-svelte-list.ts`
-- After making changes, run `bun run check` (type check) and a short `bun run dev` smoke-test to surface runtime issues early
-- Verify protocol behavior with the MCP Inspector: `npx @modelcontextprotocol/inspector` and point it at `http://localhost:3000/mcp`
-- The system uses intelligent caching (3-day TTL) - clear the `.cache/` folder if you need fresh data during development
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Notes: Node >= 20.9 / Bun >= 1.1. Tools use `defineTool` + valibot, return `tool.text()` / `tool.error()`. Keep `version` in `src/mcp/server.ts` in sync with `package.json`. Cache is 3-day TTL — clear `.cache/` for fresh docs. Deploy: `bun run build` (Fly.io/Render) or `bun run deploy:worker` (Cloudflare, needs `TMCP_KV`).
 
 ## Contributing
 
-We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before getting started.
+MIT — see [LICENSE](LICENSE). Please read [Contributing](CONTRIBUTING.md) + [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## Contact
-
-- **Issues & Support**: support@svelte-apps.me
-- **Contributions**: contrib@svelte-apps.me
-- **Maintainer**: Michael Obele (michael@svelte-apps.me)
-
-## Related Projects
-
-Built by the same maintainer:
-
-- **[Sepia — Memory MCP Server](https://sepia.svelte-apps.me/)** — A self-hosted, remote knowledge-graph memory MCP server for AI coding agents. 7 tools, one purpose: remember everything so your AI doesn't forget — and never needs to be reminded. Includes MCP server instructions auto-injected into the model's system prompt, a bundled agent skill, a web dashboard, and support for online AIs (Grok, ChatGPT, Claude, Gemini, Perplexity). Pair it with this server so your AI remembers your shadcn-svelte preferences across sessions.
-- **[DocShark — Documentation MCP Server](https://github.com/Michael-Obele/docshark)** — A TMCP-powered MCP server that scrapes, indexes, and searches any documentation website, creating a local, highly-searchable knowledge base from public docs. Pair it with this server to keep your AI grounded in the latest docs from other libraries and frameworks.
+Contact: support@svelte-apps.me · Maintainer: Michael Obele
