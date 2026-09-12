@@ -1,3 +1,11 @@
+## [1.11.1](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.11.0...v1.11.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* **release:** publish to npm via semantic-release with trusted publishing ([bb82f6d](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/bb82f6dc766ac76a35106bf23ec8f5361f6d6183))
+* **release:** sync serverVersion export in version scripts ([f80fe4c](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/f80fe4c00838757a3712bbee3e836361736d5d2c))
+
 # [1.11.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.10.0...v1.11.0) (2026-09-12)
 
 
