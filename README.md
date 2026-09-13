@@ -126,8 +126,6 @@ bun run check # type check
 
 Stdio for local clients: `bun run src/stdio.ts`. Layout: `src/index.ts` (HTTP), `src/stdio.ts`, `src/worker.ts`, `src/mcp/tools/`, `src/mcp/prompts/`, `src/services/`.
 
-Notes: Node >= 20.9 / Bun >= 1.1. Tools use `defineTool` + valibot, return `tool.text()` / `tool.error()`. Keep `version` in `src/mcp/server.ts` in sync with `package.json`. Cache is 3-day TTL — clear `.cache/` for fresh docs. Deploy: `bun run build` (Fly.io/Render) or `bun run deploy:worker` (Cloudflare, needs `TMCP_KV`).
-
 ## Contributing
 
 MIT — see [LICENSE](LICENSE). Please read [Contributing](CONTRIBUTING.md) + [Code of Conduct](CODE_OF_CONDUCT.md).
