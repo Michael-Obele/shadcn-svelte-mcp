@@ -11,12 +11,13 @@ import * as v from "valibot";
 import Fuse from "fuse.js";
 import { getAllContent } from "../../services/component-discovery.js";
 import {
-  getInstallPrefix,
-  npmClient,
-  addVerb,
+  buildInstallLine,
+  packageInstallLine,
   titleCase as formatTitle,
-  SHADCN_WWW,
-  BITS_WWW,
+  bitsUiComponentUrl,
+  shadcnComponentUrl,
+  shadcnDocUrl,
+  sectionAnchorUrl,
 } from "./utils/shadcn-utils.js";
 
 // Types
@@ -146,29 +147,19 @@ function getSuggestionsForNoResults(
  */
 function buildUrl(item: SearchableItem): string {
   if (item.category === "bits-ui-component") {
-    return `${BITS_WWW}/docs/components/${item.name}`;
+    return bitsUiComponentUrl(item.name);
   }
 
   switch (item.type) {
     case "component":
-      return `${SHADCN_WWW}/docs/components/${item.name}`;
+      return shadcnComponentUrl(item.name);
     case "block":
-      return `${SHADCN_WWW}/blocks#${item.name}`;
+      return sectionAnchorUrl("blocks", item.name);
     case "chart":
-      return `${SHADCN_WWW}/charts#${item.name}`;
-    case "doc":
-      // Handle different doc categories
-      if (item.category === "installation") {
-        return `${SHADCN_WWW}/docs/installation/${item.name}`;
-      } else if (item.category === "darkMode") {
-        return `${SHADCN_WWW}/docs/dark-mode/${item.name}`;
-      } else if (item.category === "migration") {
-        return `${SHADCN_WWW}/docs/migration/${item.name}`;
-      } else {
-        return `${SHADCN_WWW}/docs/${item.name}`;
-      }
+      return sectionAnchorUrl("charts", item.name);
     default:
-      return `${SHADCN_WWW}/docs/${item.name}`;
+      // Docs (category refines the root) and anything else.
+      return shadcnDocUrl(item.name, item.category);
   }
 }
 
@@ -181,7 +172,7 @@ function buildInstallCommand(
 ): string | null {
   // Bits UI components are part of the bits-ui package
   if (item.category === "bits-ui-component") {
-    return `${npmClient(packageManager)} ${addVerb(packageManager)} bits-ui`;
+    return packageInstallLine("bits-ui", packageManager);
   }
 
   // Only components, blocks, and charts have install commands
@@ -190,7 +181,7 @@ function buildInstallCommand(
     item.type === "block" ||
     item.type === "chart"
   ) {
-    return `${getInstallPrefix(packageManager)} shadcn-svelte@latest add ${item.name}`;
+    return buildInstallLine(item.name, packageManager);
   }
   return null;
 }
@@ -304,58 +295,57 @@ function generateDescription(item: SearchableItem): string {
   }
 }
 
-/**
- * Format results as markdown with install commands
- * Returns both markdown and structured suggestions
- */
-function formatResults(
-  results: SearchResult[],
+/** Markdown for a no-result search, with fuzzy "did you mean" suggestions. */
+function formatNoResults(
   query: string,
-  type: string,
-  packageManager: "npm" | "yarn" | "pnpm" | "bun" = "npm",
+  packageManager: "npm" | "yarn" | "pnpm" | "bun",
   allItems?: SearchableItem[],
 ): { markdown: string; suggestions: Suggestion[] } {
   const suggestions: Suggestion[] = [];
+  let markdown = `# No Results Found\n\nNo matches found for query: **"${query}"**\n\n`;
 
-  if (results.length === 0) {
-    let markdown = `# No Results Found\n\nNo matches found for query: **"${query}"**\n\n`;
+  // Provide suggestions if we have all items
+  if (allItems) {
+    const fuzzyResults = getSuggestionsForNoResults(allItems, query);
+    if (fuzzyResults.length > 0) {
+      markdown += `## 💡 Did you mean?\n\n`;
+      fuzzyResults.forEach(
+        (
+          suggestion: { item: SearchableItem; similarity: number },
+          index: number,
+        ) => {
+          const { item, similarity } = suggestion;
+          const installCmd = buildInstallCommand(item, packageManager);
 
-    // Provide suggestions if we have all items
-    if (allItems) {
-      const fuzzyResults = getSuggestionsForNoResults(allItems, query);
-      if (fuzzyResults.length > 0) {
-        markdown += `## 💡 Did you mean?\n\n`;
-        fuzzyResults.forEach(
-          (
-            suggestion: { item: SearchableItem; similarity: number },
-            index: number,
-          ) => {
-            const { item, similarity } = suggestion;
-            const installCmd = buildInstallCommand(item, packageManager);
+          // Build suggestion for structured data
+          suggestions.push({
+            name: item.name,
+            type: item.type,
+            similarity: Math.round(similarity),
+            nextAction: `Try shadcn-svelte-get("${item.name}", "${item.type}")`,
+          });
 
-            // Build suggestion for structured data
-            suggestions.push({
-              name: item.name,
-              type: item.type,
-              similarity: Math.round(similarity),
-              nextAction: `Try shadcn-svelte-get("${item.name}", "${item.type}")`,
-            });
-
-            markdown += `${index + 1}. **${formatTitle(item.name)}** (${similarity}% similar)\n`;
-            markdown += `   Type: ${item.type}\n`;
-            if (installCmd) {
-              markdown += `   📦 Install: \`${installCmd}\`\n`;
-            }
-            markdown += `   🔗 [View docs](${buildUrl(item)})\n\n`;
-          },
-        );
-      }
+          markdown += `${index + 1}. **${formatTitle(item.name)}** (${similarity}% similar)\n`;
+          markdown += `   Type: ${item.type}\n`;
+          if (installCmd) {
+            markdown += `   📦 Install: \`${installCmd}\`\n`;
+          }
+          markdown += `   🔗 [View docs](${buildUrl(item)})\n\n`;
+        },
+      );
     }
-
-    markdown += `\n**Try:**\n- Using different keywords\n- Checking spelling\n- Being more general\n\nYou can use the \`list\` tool to see all available components and docs.\n`;
-    return { markdown, suggestions };
   }
 
+  markdown += `\n**Try:**\n- Using different keywords\n- Checking spelling\n- Being more general\n\nYou can use the \`list\` tool to see all available components and docs.\n`;
+  return { markdown, suggestions };
+}
+
+/** Markdown for a non-empty result set, grouped by resource type. */
+function formatGroupedResults(
+  results: SearchResult[],
+  query: string,
+  type: string,
+): { markdown: string; suggestions: Suggestion[] } {
   // Group by type
   const grouped = results.reduce(
     (acc, result) => {
@@ -425,7 +415,23 @@ function formatResults(
   markdown += "---\n\n";
   markdown += `**Query**: "${query}" | **Type Filter**: ${type} | **Total Results**: ${results.length}\n`;
 
-  return { markdown, suggestions };
+  return { markdown, suggestions: [] };
+}
+
+/**
+ * Format results as markdown with install commands
+ * Returns both markdown and structured suggestions
+ */
+function formatResults(
+  results: SearchResult[],
+  query: string,
+  type: string,
+  packageManager: "npm" | "yarn" | "pnpm" | "bun" = "bun",
+  allItems?: SearchableItem[],
+): { markdown: string; suggestions: Suggestion[] } {
+  return results.length === 0
+    ? formatNoResults(query, packageManager, allItems)
+    : formatGroupedResults(results, query, type);
 }
 
 /**

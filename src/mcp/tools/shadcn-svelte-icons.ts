@@ -2,11 +2,12 @@ import { defineTool } from "tmcp/tool";
 import { tool } from "tmcp/utils";
 import * as v from "valibot";
 import { getFromCache, saveToCache } from "../../services/cache-manager.js";
+import { fetchWithTimeout } from "../../services/http.js";
 import {
+  codeBlock,
   normalizeName as normalizeIconName,
+  packageInstallLine,
   pascalCase,
-  npmClient,
-  addVerb,
 } from "./utils/shadcn-utils.js";
 
 function tokenVariants(token: string): string[] {
@@ -150,6 +151,157 @@ function scoreIconMatch(
   return score;
 }
 
+/** Loads a JSON asset: cache first (memory/KV/disk), then the CDN. */
+async function loadIconAsset<T extends object>(
+  url: string,
+  label: string,
+  required = true,
+): Promise<T | null> {
+  const cached = await getFromCache<T>(url);
+  if (cached && Object.keys(cached).length > 0) return cached;
+
+  console.log(`[Icons] Fetching ${label} from CDN...`);
+  const response = await fetchWithTimeout(url);
+  if (!response.ok) {
+    if (required) {
+      throw new Error(`Failed to fetch ${label}: ${response.status}`);
+    }
+    return null;
+  }
+  const data = (await response.json()) as T;
+  await saveToCache(url, data);
+  return data;
+}
+
+interface IconsRenderData {
+  query?: string;
+  requestedNames: string[];
+  allIconsCount: number;
+  totalCount: number;
+  icons: string[];
+  hasMore: boolean;
+  limit: number;
+  tags: Record<string, string[]>;
+  importLimit: number;
+  packageManager?: "npm" | "yarn" | "pnpm" | "bun";
+  missingIcons: string[];
+}
+
+/** Renders the icons response: matches, usage examples, recommendation. */
+function renderIconsMarkdown(data: IconsRenderData): string {
+  const {
+    query,
+    requestedNames,
+    allIconsCount,
+    totalCount,
+    icons,
+    hasMore,
+    limit,
+    tags,
+    importLimit,
+    packageManager,
+    missingIcons,
+  } = data;
+
+  let iconList = `# Lucide Icons${query ? ` (search: "${query}")` : ""}\n\n`;
+  iconList += `Found **${totalCount}** icon${totalCount !== 1 ? "s" : ""}`;
+  iconList += ` (showing ${icons.length})${hasMore ? ` — showing first ${limit}` : ""}\n\n`;
+
+  if (icons.length === 0) {
+    // Build friendly message depending on query/names provided
+    if (requestedNames.length > 0) {
+      iconList += `No icons found for names: ${requestedNames.join(", ")}.\n\n`;
+    } else if (query) {
+      iconList += `No icons found matching "${query}".\n\n`;
+    } else {
+      iconList += `No icons found.\n\n`;
+    }
+    iconList += `**Tips:**\n`;
+    iconList += `- Try different keywords (e.g., "arrow", "user", "file")\n`;
+    iconList += `- Use singular form (e.g., "star" instead of "stars")\n`;
+    iconList += `- Be more generic (e.g., "shape" instead of "triangle")\n`;
+  } else {
+    iconList += `## Icons\n\n`;
+    for (const iconName of icons) {
+      const iconTags = tags[iconName];
+      iconList += `- **${iconName}**`;
+      if (iconTags && iconTags.length > 0) {
+        const displayTags = iconTags.slice(0, 5);
+        iconList += ` (${displayTags.join(", ")})`;
+        if (iconTags.length > 5) {
+          iconList += ` +${iconTags.length - 5} more`;
+        }
+      }
+      iconList += `\n`;
+    }
+
+    if (hasMore) {
+      iconList += `\n_...and ${totalCount - limit} more. Refine your search or increase the limit._\n`;
+    }
+
+    iconList += `\n\n## Usage\n\n`;
+    iconList += `${codeBlock(
+      "bash",
+      `# Install @lucide/svelte (only if not already installed)\n${packageInstallLine(
+        "@lucide/svelte",
+        packageManager,
+      )}`,
+    )}\n\n`;
+
+    // Show individual examples for each icon (up to importLimit)
+    const exampleIcons = icons.slice(0, importLimit);
+    for (const iconName of exampleIcons) {
+      const pascalName = pascalCase(iconName);
+      iconList += `${codeBlock(
+        "svelte",
+        `<script>\n  import { ${pascalName} } from '@lucide/svelte';\n</script>\n\n<${pascalName} />`,
+      )}\n\n`;
+    }
+
+    if (icons.length > importLimit) {
+      const remaining = icons.length - importLimit;
+      iconList += `*...and ${remaining} more icon${remaining !== 1 ? "s" : ""}. Increase \`importLimit\` to see more examples.*\n\n`;
+    }
+  }
+
+  iconList += `\n**Total icons available:** ${allIconsCount}\n`;
+  iconList += `**Search tips:** Try keywords like "arrow", "user", "file", "check", "heart", "star", etc.\n`;
+
+  if (missingIcons.length) {
+    iconList += `\n**Missing icons:** ${missingIcons.join(", ")}\n`;
+  }
+
+  // Heuristic & recommendation: if many matches, recommend the best candidate
+  if (query && icons.length > 1) {
+    let recommendedIcon: string | null = null;
+    let recommendedReason = "";
+    let bestScore = -1;
+    for (const ic of icons) {
+      const sc = scoreIconMatch(ic, query || "", tags[ic] || []);
+      if (sc > bestScore) {
+        bestScore = sc;
+        recommendedIcon = ic;
+      }
+    }
+    if (recommendedIcon && bestScore > 0) {
+      // determine simple reason label
+      if (query && query.toLowerCase() === recommendedIcon.toLowerCase())
+        recommendedReason = "exact match";
+      else if (
+        query &&
+        recommendedIcon.toLowerCase().startsWith(query.toLowerCase())
+      )
+        recommendedReason = "name starts with query";
+      else recommendedReason = "highest relevance based on tags and name";
+      iconList += `\n**Recommended icon:** **${recommendedIcon}** (${recommendedReason}).\n`;
+      iconList += `If you only need one icon, request it by passing the name in the \`names\` parameter or set \`limit: 1\`.\n`;
+      iconList += `\n**Heuristics used:**\n- Exact name match\n- Name prefix\n- Tag overlap\n- Highest relevance score\n`;
+    }
+  }
+
+  return iconList;
+}
+
 // Tool for searching and browsing Lucide icons
 export const shadcnSvelteIconsTool = defineTool(
   {
@@ -210,17 +362,9 @@ export const shadcnSvelteIconsTool = defineTool(
       const tagsUrl = "https://unpkg.com/lucide-static@latest/tags.json";
 
       // Fetch icon data with caching
-      let iconData = await getFromCache<Record<string, unknown>>(iconsUrl);
-      if (!iconData) {
-        console.log("[Icons] Fetching icon data from CDN...");
-        const iconResponse = await fetch(iconsUrl);
-        if (!iconResponse.ok) {
-          throw new Error(`Failed to fetch icon data: ${iconResponse.status}`);
-        }
-        iconData = (await iconResponse.json()) as Record<string, unknown>;
-        await saveToCache(iconsUrl, iconData);
-      }
-
+      const iconData =
+        (await loadIconAsset<Record<string, unknown>>(iconsUrl, "icon data")) ??
+        {};
       const allIcons = Object.keys(iconData);
 
       // Resolve multi-name queries against the real icon list. Needs the
@@ -237,15 +381,11 @@ export const shadcnSvelteIconsTool = defineTool(
       let tagsData: Record<string, string[]> = {};
       if (query || (names && names.length > 0)) {
         tagsData =
-          (await getFromCache<Record<string, string[]>>(tagsUrl)) || {};
-        if (Object.keys(tagsData).length === 0) {
-          console.log("[Icons] Fetching tags data from CDN...");
-          const tagsResponse = await fetch(tagsUrl);
-          if (tagsResponse.ok) {
-            tagsData = (await tagsResponse.json()) as Record<string, string[]>;
-            await saveToCache(tagsUrl, tagsData);
-          }
-        }
+          (await loadIconAsset<Record<string, string[]>>(
+            tagsUrl,
+            "tags data",
+            false,
+          )) ?? {};
       }
 
       // Filter icons if query provided
@@ -285,14 +425,9 @@ export const shadcnSvelteIconsTool = defineTool(
       const limitedIcons = filteredIcons.slice(0, limit);
       const hasMore = filteredIcons.length > limit;
 
-      // Build response
-      let iconList = `# Lucide Icons${query ? ` (search: "${query}")` : ""}\n\n`;
-      iconList += `Found **${filteredIcons.length}** icon${filteredIcons.length !== 1 ? "s" : ""}`;
-      iconList += ` (showing ${limitedIcons.length})${hasMore ? ` — showing first ${limit}` : ""}\n\n`;
-
+      // Determine missing names (explicit `names` that don't exist)
       const missingIcons: string[] = [];
       if (names && names.length > 0) {
-        // Determine missing names
         for (const nm of names) {
           const normalizedName = normalizeIconName(nm);
           if (!allIcons.some((a) => a.toLowerCase() === normalizedName)) {
@@ -300,97 +435,22 @@ export const shadcnSvelteIconsTool = defineTool(
           }
         }
       }
-      if (limitedIcons.length === 0) {
-        // Build friendly message depending on query/names provided
-        if (names && names.length > 0) {
-          iconList += `No icons found for names: ${names.join(", ")}.\n\n`;
-        } else if (query) {
-          iconList += `No icons found matching "${query}".\n\n`;
-        } else {
-          iconList += `No icons found.\n\n`;
-        }
-        iconList += `**Tips:**\n`;
-        iconList += `- Try different keywords (e.g., "arrow", "user", "file")\n`;
-        iconList += `- Use singular form (e.g., "star" instead of "stars")\n`;
-        iconList += `- Be more generic (e.g., "shape" instead of "triangle")\n`;
-      } else {
-        iconList += `## Icons\n\n`;
-        for (const iconName of limitedIcons) {
-          const tags = tagsData[iconName];
-          iconList += `- **${iconName}**`;
-          if (tags && tags.length > 0) {
-            const displayTags = tags.slice(0, 5);
-            iconList += ` (${displayTags.join(", ")})`;
-            if (tags.length > 5) {
-              iconList += ` +${tags.length - 5} more`;
-            }
-          }
-          iconList += `\n`;
-        }
 
-        if (hasMore) {
-          iconList += `\n_...and ${filteredIcons.length - limit} more. Refine your search or increase the limit._\n`;
-        }
-
-        iconList += `\n\n## Usage\n\n`;
-        iconList += `\`\`\`bash\n`;
-        iconList += `# Install @lucide/svelte (only if not already installed)\n`;
-        iconList += `${npmClient(packageManager)} ${addVerb(packageManager)} @lucide/svelte\n`;
-        iconList += `\`\`\`\n\n`;
-
-        // Show individual examples for each icon (up to importLimit)
-        const exampleIcons = limitedIcons.slice(0, importLimit);
-        for (const iconName of exampleIcons) {
-          const pascalName = pascalCase(iconName);
-          iconList += `\`\`\`svelte\n`;
-          iconList += `<script>\n`;
-          iconList += `  import { ${pascalName} } from '@lucide/svelte';\n`;
-          iconList += `</script>\n\n`;
-          iconList += `<${pascalName} />\n`;
-          iconList += `\`\`\`\n\n`;
-        }
-
-        if (limitedIcons.length > importLimit) {
-          const remaining = limitedIcons.length - importLimit;
-          iconList += `*...and ${remaining} more icon${remaining !== 1 ? "s" : ""}. Increase \`importLimit\` to see more examples.*\n\n`;
-        }
-      }
-      iconList += `\n**Total icons available:** ${allIcons.length}\n`;
-      iconList += `**Search tips:** Try keywords like "arrow", "user", "file", "check", "heart", "star", etc.\n`;
-
-      if (missingIcons.length) {
-        iconList += `\n**Missing icons:** ${missingIcons.join(", ")}\n`;
-      }
-
-      // Heuristic & recommendation: if many matches, recommend the best candidate
-      if (query && limitedIcons.length > 1) {
-        let recommendedIcon: string | null = null;
-        let recommendedReason = "";
-        let bestScore = -1;
-        for (const ic of limitedIcons) {
-          const sc = scoreIconMatch(ic, query || "", tagsData[ic] || []);
-          if (sc > bestScore) {
-            bestScore = sc;
-            recommendedIcon = ic;
-          }
-        }
-        if (recommendedIcon && bestScore > 0) {
-          // determine simple reason label
-          if (query && query.toLowerCase() === recommendedIcon.toLowerCase())
-            recommendedReason = "exact match";
-          else if (
-            query &&
-            recommendedIcon.toLowerCase().startsWith(query.toLowerCase())
-          )
-            recommendedReason = "name starts with query";
-          else recommendedReason = "highest relevance based on tags and name";
-          iconList += `\n**Recommended icon:** **${recommendedIcon}** (${recommendedReason}).\n`;
-          iconList += `If you only need one icon, request it by passing the name in the \`names\` parameter or set \`limit: 1\`.\n`;
-          iconList += `\n**Heuristics used:**\n- Exact name match\n- Name prefix\n- Tag overlap\n- Highest relevance score\n`;
-        }
-      }
-
-      return tool.text(iconList);
+      return tool.text(
+        renderIconsMarkdown({
+          query,
+          requestedNames: names ?? [],
+          allIconsCount: allIcons.length,
+          totalCount: filteredIcons.length,
+          icons: limitedIcons,
+          hasMore,
+          limit,
+          tags: tagsData,
+          importLimit,
+          packageManager,
+          missingIcons,
+        }),
+      );
     } catch (error) {
       return tool.error(`Error fetching icon data: ${error}`);
     }

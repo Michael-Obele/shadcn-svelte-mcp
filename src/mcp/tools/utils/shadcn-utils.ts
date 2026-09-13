@@ -1,6 +1,12 @@
 /**
- * Utility functions for shadcn-svelte MCP tools
+ * Shared utilities for shadcn-svelte MCP tools: naming, install commands,
+ * URL builders, markdown rendering, registry fetching, and doc parsing.
  */
+
+import { fetchJson } from "../../../services/http.js";
+
+/** Supported package managers for install commands. */
+export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 
 /** Detects if a component name is a block/chart (registry-sourced item). */
 export function isBlock(name: string): boolean {
@@ -9,10 +15,8 @@ export function isBlock(name: string): boolean {
   );
 }
 
-/**
- * Gets the installation prefix based on the package manager
- */
-export function getInstallPrefix(pm?: string): string {
+/** CLI prefix for one-off commands: npx / yarn dlx / pnpm dlx / bun x. */
+function getInstallPrefix(pm?: string): string {
   if (!pm) return "npx";
   if (pm === "npm") return "npx";
   if (pm === "yarn") return "yarn dlx";
@@ -25,10 +29,8 @@ export function getInstallPrefix(pm?: string): string {
 /* Shared kernel: naming, install lines, envelopes, registry fetching  */
 /* ------------------------------------------------------------------ */
 
-export const SHADCN_WWW = "https://www.shadcn-svelte.com";
-export const BITS_WWW = "https://bits-ui.com";
-const FETCH_UA =
-  "shadcn-svelte-mcp/1.0.0 (Block Fetcher; +https://github.com/Michael-Obele/shadcn-svelte-mcp)";
+const SHADCN_WWW = "https://www.shadcn-svelte.com";
+const BITS_WWW = "https://bits-ui.com";
 
 /** Canonical kebab-case normalization shared by all tools. */
 export function normalizeName(input: string): string {
@@ -57,20 +59,17 @@ export function extractBitsUiName(input?: string): string | undefined {
   return undefined;
 }
 
+const capitalize = (word: string) =>
+  word.charAt(0).toUpperCase() + word.slice(1);
+
 /** Title Case: "chart-area-default" -> "Chart Area Default". */
 export function titleCase(name: string): string {
-  return name
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  return name.split("-").map(capitalize).join(" ");
 }
 
 /** PascalCase for icon imports: "message-circle" -> "MessageCircle". */
 export function pascalCase(name: string): string {
-  return name
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join("");
+  return name.split("-").map(capitalize).join("");
 }
 
 /** JSON envelope — one call site instead of repeated stringify. */
@@ -79,7 +78,7 @@ export function toJson(obj: unknown): string {
 }
 
 /** npm client binary for a package manager choice. */
-export function npmClient(pm?: string): string {
+function npmClient(pm?: string): string {
   if (pm === "yarn") return "yarn";
   if (pm === "pnpm") return "pnpm";
   if (pm === "bun") return "bun";
@@ -87,16 +86,18 @@ export function npmClient(pm?: string): string {
 }
 
 /** `install` (npm) vs `add` (everyone else). */
-export function addVerb(pm?: string): string {
+function addVerb(pm?: string): string {
   return pm === "npm" ? "install" : "add";
 }
 
-/** Single-line install command for markdown output. */
-export function buildInstallLine(
-  name: string,
-  pm?: "npm" | "yarn" | "pnpm" | "bun",
-): string {
+/** Single-line shadcn-svelte CLI install command for markdown output. */
+export function buildInstallLine(name: string, pm?: PackageManager): string {
   return `${getInstallPrefix(pm)} shadcn-svelte@latest add ${name}`;
+}
+
+/** Single-line package install command: `bun add @lucide/svelte`. */
+export function packageInstallLine(pkg: string, pm?: PackageManager): string {
+  return `${npmClient(pm)} ${addVerb(pm)} ${pkg}`;
 }
 
 export function shadcnComponentUrl(name: string): string {
@@ -109,6 +110,20 @@ export function registryBlockUrl(name: string): string {
 
 export function bitsUiComponentUrl(name: string): string {
   return `${BITS_WWW}/docs/components/${name}`;
+}
+
+/** Anchor link into a listing page: `.../blocks#login-01`. */
+export function sectionAnchorUrl(section: string, name: string): string {
+  return `${SHADCN_WWW}/${section}#${name}`;
+}
+
+/** Docs page URL; category refines the root (installation, darkMode, migration). */
+export function shadcnDocUrl(name: string, category?: string): string {
+  if (category === "installation")
+    return `${SHADCN_WWW}/docs/installation/${name}`;
+  if (category === "darkMode") return `${SHADCN_WWW}/docs/dark-mode/${name}`;
+  if (category === "migration") return `${SHADCN_WWW}/docs/migration/${name}`;
+  return `${SHADCN_WWW}/docs/${name}`;
 }
 
 /** Shared guidance: discover via list/get before reaching for bits-ui-get. */
@@ -166,6 +181,16 @@ export function groupByPrefix(
   return new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)));
 }
 
+/** Fenced code block: ` ```lang\ncode\n``` `. */
+export function codeBlock(language: string, code: string): string {
+  return `\`\`\`${language}\n${code}\n\`\`\``;
+}
+
+/** Bullet list of backticked names, one per line. */
+export function bulletList(names: string[]): string {
+  return names.map((name) => `- \`${name}\`\n`).join("");
+}
+
 /** Renders names in backtick columns for list output. */
 export function renderColumns(names: string[], columns = 3): string {
   let out = "";
@@ -189,7 +214,7 @@ export function renderGroupedSection(
   for (const [category, items] of groupByPrefix(names, isChart)) {
     const title = category.charAt(0).toUpperCase() + category.slice(1);
     out += `### ${title}${headingSuffix}\n`;
-    for (const item of items) out += `- \`${item}\`\n`;
+    out += bulletList(items);
     out += "\n";
   }
   return out;
@@ -239,6 +264,14 @@ interface RegistryFile {
   highlightedContent?: string;
 }
 
+interface RegistryItem {
+  name?: string;
+  description?: string;
+  type?: string;
+  registryDependencies?: string[];
+  files?: RegistryFile[];
+}
+
 /** Detects code language from a registry file target path. */
 function detectLanguage(fileName: string): string {
   if (fileName.endsWith(".svelte")) return "svelte";
@@ -266,65 +299,53 @@ function decodeHighlighted(highlighted: string): string | undefined {
     .replace(/\\n/g, "\n");
 }
 
-/** Renders registry files to markdown, handling both API and raw JSON shapes. */
-function renderRegistryFiles(files: RegistryFile[], header: string): string {
-  let out = header;
-  for (const file of files) {
+/**
+ * Renders a registry item to markdown: header, install command, then one
+ * fenced code block per file (raw `content` or decoded `highlightedContent`).
+ */
+function renderRegistryMarkdown(
+  item: RegistryItem,
+  name: string,
+  packageManager?: PackageManager,
+): string {
+  let out = `# ${item.name}\n\n`;
+  if (item.description) out += `**Description:** ${item.description}\n\n`;
+  out += `**Type:** ${item.type}\n\n`;
+  if (
+    Array.isArray(item.registryDependencies) &&
+    item.registryDependencies.length > 0
+  ) {
+    out += `**Registry dependencies:** ${item.registryDependencies.join(", ")}\n\n`;
+  }
+  out += `**Installation:**\n${codeBlock("bash", buildInstallLine(name, packageManager))}\n\n`;
+
+  for (const file of item.files ?? []) {
     const fileName = file.target || file.path || "unknown";
     out += `## File: ${fileName}\n\n**Type:** ${file.type}\n\n`;
-    if (
+    const source =
       !file.highlightedContent &&
       typeof file.content === "string" &&
       file.content.length > 0
-    ) {
-      out += `\`\`\`${detectLanguage(fileName)}\n${file.content}\n\`\`\`\n\n`;
-      continue;
-    }
-    if (file.highlightedContent) {
-      const code = decodeHighlighted(file.highlightedContent);
-      if (code !== undefined) {
-        out += `\`\`\`${detectLanguage(fileName)}\n${code}\n\`\`\`\n\n`;
-      }
+        ? file.content
+        : file.highlightedContent
+          ? decodeHighlighted(file.highlightedContent)
+          : undefined;
+    if (source !== undefined) {
+      out += `${codeBlock(detectLanguage(fileName), source)}\n\n`;
     }
   }
   return out;
 }
 
 async function fetchRegistryData(url: string): Promise<{
-  data?: any;
+  data?: RegistryItem;
   error?: string;
 }> {
   try {
-    const response = await fetch(url, { headers: { "User-Agent": FETCH_UA } });
-    if (!response.ok)
-      return { error: `HTTP ${response.status}: ${response.statusText}` };
-    return { data: await response.json() };
+    return { data: await fetchJson<RegistryItem>(url) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Unknown error" };
   }
-}
-
-function registryHeader(
-  data: {
-    name: string;
-    description?: string;
-    type: string;
-    registryDependencies?: string[];
-  },
-  name: string,
-  packageManager?: "npm" | "yarn" | "pnpm" | "bun",
-): string {
-  let out = `# ${data.name}\n\n`;
-  if (data.description) out += `**Description:** ${data.description}\n\n`;
-  out += `**Type:** ${data.type}\n\n`;
-  if (
-    Array.isArray(data.registryDependencies) &&
-    data.registryDependencies.length > 0
-  ) {
-    out += `**Registry dependencies:** ${data.registryDependencies.join(", ")}\n\n`;
-  }
-  out += `**Installation:**\n\`\`\`bash\n${buildInstallLine(name, packageManager)}\n\`\`\`\n\n`;
-  return out;
 }
 
 /**
@@ -333,7 +354,7 @@ function registryHeader(
  */
 export async function fetchRegistryItem(
   name: string,
-  packageManager?: "npm" | "yarn" | "pnpm" | "bun",
+  packageManager?: PackageManager,
 ): Promise<RegistryFetchResult> {
   console.log(`[Fetcher] Fetching registry item: ${name}`);
   const block = await fetchRegistryData(
@@ -345,10 +366,7 @@ export async function fetchRegistryItem(
   ) {
     return {
       success: true,
-      code: renderRegistryFiles(
-        block.data.files || [],
-        registryHeader(block.data, name, packageManager),
-      ),
+      code: renderRegistryMarkdown(block.data, name, packageManager),
       registryType: block.data.type,
     };
   }
@@ -365,10 +383,7 @@ export async function fetchRegistryItem(
   }
   return {
     success: true,
-    code: renderRegistryFiles(
-      raw.data.files || [],
-      registryHeader(raw.data, name, packageManager),
-    ),
+    code: renderRegistryMarkdown(raw.data, name, packageManager),
     registryType: raw.data.type,
   };
 }
@@ -406,20 +421,9 @@ export function extractExamples(content: string): Array<{
       continue;
     }
 
-    // Extract code blocks from this section
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    const codes: Array<{ lang?: string; code: string }> = [];
-    let match;
-    while ((match = codeBlockRegex.exec(sectionContent)) !== null) {
-      codes.push({
-        lang: match[1],
-        code: match[2].trim(),
-      });
-    }
-
+    // One example per section; multiple code blocks are joined in order.
+    const codes = extractCodeBlocks(sectionContent);
     if (codes.length > 0) {
-      // Create separate entries for multiple code blocks in same section if they seem different
-      // or combine if they are small. For simplicity, we create one example per title.
       examples.push({
         title,
         code: codes.map((c) => c.code).join("\n\n"),
@@ -429,6 +433,19 @@ export function extractExamples(content: string): Array<{
   }
 
   return examples;
+}
+
+/** Extracts fenced code blocks (language + trimmed source) from markdown. */
+function extractCodeBlocks(
+  text: string,
+): Array<{ lang?: string; code: string }> {
+  const blocks: Array<{ lang?: string; code: string }> = [];
+  const regex = /```(\w+)?\n([\s\S]*?)```/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    blocks.push({ lang: match[1], code: match[2].trim() });
+  }
+  return blocks;
 }
 
 /**
@@ -589,13 +606,10 @@ export function parseBitsUiApi(content: string): {
 }
 
 /**
- * Gets installation command details including package manager variants and CLI options
+ * Gets installation command details: one line per package manager plus CLI
+ * options. Derived from the single `buildInstallLine` source.
  */
-export function getInstallCommand(
-  name: string,
-  pm?: string,
-  automated: boolean = true,
-): {
+export function getInstallCommand(name: string): {
   packageManagers: {
     npm: string;
     yarn: string;
@@ -604,14 +618,12 @@ export function getInstallCommand(
   };
   cliOptions: Record<string, string>;
 } {
-  const baseCommand = `shadcn-svelte@latest add ${name}`;
-
   return {
     packageManagers: {
-      npm: `npx ${baseCommand}`,
-      yarn: `npx ${baseCommand}`, // yarn uses npx
-      pnpm: `pnpm dlx ${baseCommand}`,
-      bun: `bun x ${baseCommand}`,
+      npm: buildInstallLine(name, "npm"),
+      yarn: buildInstallLine(name, "yarn"),
+      pnpm: buildInstallLine(name, "pnpm"),
+      bun: buildInstallLine(name, "bun"),
     },
     cliOptions: {
       "command-structure":
@@ -633,14 +645,8 @@ export function getInstallCommand(
  * Generates an import path for a component
  */
 export function getImportPath(name: string): string {
-  // Common pattern for shadcn-svelte components
-  // Some might be in different subdirs, but this is the primary one
-  const capitalized = name
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("");
-
-  return `import { ${capitalized} } from "$lib/components/ui/${name}/index.js";`;
+  // Common pattern for shadcn-svelte components — primary barrel import.
+  return `import { ${pascalCase(name)} } from "$lib/components/ui/${name}/index.js";`;
 }
 
 /**

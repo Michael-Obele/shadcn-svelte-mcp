@@ -1,19 +1,17 @@
 /**
  * Documentation Fetcher Service
- * Fetches documentation from shadcn-svelte.com using multi-strategy approach:
- * 1. Direct .md fetch for components
- * 2. Crawlee (Playwright) for JavaScript-heavy pages
- * 3. Cheerio + Turndown for simple HTML pages (fallback)
+ * Fetches documentation from shadcn-svelte.com using a two-strategy approach:
+ * 1. Direct .md fetch (fastest, preferred)
+ * 2. Cheerio + Turndown HTML conversion (fallback)
  */
 
 import * as cheerio from "cheerio";
 import TurndownService from "turndown";
 import { getFromCache, saveToCache } from "./cache-manager.js";
+import { fetchWithTimeout } from "./http.js";
 
 // Configuration
 const SHADCN_BASE_URL = "https://www.shadcn-svelte.com";
-const FETCH_TIMEOUT = 30000; // 30 seconds
-const CRAWLEE_TIMEOUT = 45000; // 45 seconds for Crawlee (needs more time for browser)
 
 // Initialize Turndown service for HTML to Markdown conversion
 const turndownService = new TurndownService({
@@ -28,9 +26,6 @@ const turndownService = new TurndownService({
 // Types
 export interface FetchOptions {
   useCache?: boolean;
-  timeout?: number;
-  includeMetadata?: boolean;
-  includeCodeBlocks?: boolean;
   baseUrl?: string;
 }
 
@@ -41,28 +36,14 @@ export interface DocumentMetadata {
   keywords?: string[];
   ogImage?: string;
   url?: string;
-  lastModified?: string;
-  bitsUiUrl?: string;
-  bitsUiLlmUrl?: string;
 }
 
 export interface FetchResult {
   success: boolean;
   content?: string; // Markdown content
-  markdown?: string; // Deprecated: use content instead
   html?: string;
   metadata?: DocumentMetadata;
-  bitsUiUrl?: string; // Link to Bits UI version
-  bitsUiLlmUrl?: string; // Link to Bits UI llms.txt
-  warnings?: string[];
-  notes?: string[];
-  type?: "component" | "doc" | "block" | "chart" | "theme" | "unknown";
-  source?: "cache" | "md" | "html" | "crawlee";
-  codeBlocks?: Array<{
-    language?: string;
-    code: string;
-    title?: string;
-  }>;
+  bitsUiUrl?: string; // Link to the Bits UI primitive docs (if any)
   error?: string;
 }
 
@@ -77,32 +58,6 @@ function unescapeMarkdown(markdown: string): string {
     .replace(/\\"/g, '"') // \" → "
     .replace(/\\'/g, "'") // \' → '
     .replace(/&apos;/g, "'"); // &apos; → '
-}
-
-/**
- * Fetches a URL with timeout support
- */
-async function fetchWithTimeout(
-  url: string,
-  timeout: number = FETCH_TIMEOUT,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent":
-          "shadcn-svelte-mcp/1.0.0 (Documentation Fetcher; +https://github.com/your-repo)",
-      },
-    });
-    clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
 }
 
 /**
@@ -124,33 +79,21 @@ async function tryFetchMarkdown(url: string): Promise<FetchResult | null> {
 
       // Extract title from first heading if possible
       const titleMatch = markdown.match(/^#\s+(.+)$/m);
-      const title = titleMatch ? titleMatch[1] : undefined;
 
-      // Extract Bits UI link from markdown if present
+      // Extract the Bits UI primitive link from the markdown if present
       const bitsUiMatch = markdown.match(
         /https:\/\/bits-ui\.com\/docs\/components\/[a-z-]+/,
       );
-      const bitsUiUrl = bitsUiMatch ? bitsUiMatch[0] : undefined;
-      const bitsUiLlmUrl = bitsUiUrl
-        ? bitsUiUrl.endsWith("/")
-          ? `${bitsUiUrl}llms.txt`
-          : `${bitsUiUrl}/llms.txt`
-        : undefined;
 
       console.log(`[Fetcher] ✓ Direct text fetch successful: ${textUrl}`);
       return {
         success: true,
         content: markdown,
-        markdown, // Deprecated: keep for backward compatibility
         metadata: {
-          title,
+          title: titleMatch ? titleMatch[1] : undefined,
           url: textUrl,
-          bitsUiUrl,
-          bitsUiLlmUrl,
         },
-        bitsUiUrl,
-        type: "component",
-        source: "md",
+        bitsUiUrl: bitsUiMatch ? bitsUiMatch[0] : undefined,
       };
     }
 
@@ -212,37 +155,15 @@ async function fetchHtmlAndConvert(url: string): Promise<FetchResult> {
     // Convert HTML to Markdown
     const markdown = turndownService.turndown(content);
 
-    // Extract code blocks from markdown
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    const codeBlocks: Array<{ language?: string; code: string }> = [];
-    let match;
-    while ((match = codeBlockRegex.exec(markdown)) !== null) {
-      codeBlocks.push({
-        language: match[1] || undefined,
-        code: match[2].trim(),
-      });
-    }
-
-    // Determine content type from URL
-    let type: FetchResult["type"] = "unknown";
-    if (url.includes("/docs/components/")) type = "component";
-    else if (url.includes("/docs/")) type = "doc";
-    else if (url.includes("/blocks")) type = "block";
-    else if (url.includes("/charts")) type = "chart";
-    else if (url.includes("/themes")) type = "theme";
-
     console.log(`[Fetcher] ✓ HTML fetch and conversion successful: ${url}`);
     return {
       success: true,
       content: markdown,
-      markdown, // Deprecated: keep for backward compatibility
       html: content,
       metadata,
-      bitsUiUrl: metadata.bitsUiUrl,
-      bitsUiLlmUrl: metadata.bitsUiLlmUrl,
-      type,
-      codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
-      source: "html",
+      bitsUiUrl: $('a[href*="bits-ui.com/docs/components/"]')
+        .first()
+        .attr("href"),
     };
   } catch (error) {
     console.error(`[Fetcher] Error fetching HTML for ${url}:`, error);
@@ -282,16 +203,6 @@ function extractMetadata($: cheerio.CheerioAPI, url: string): DocumentMetadata {
     ? keywordsStr.split(",").map((k) => k.trim())
     : undefined;
 
-  // Extract Bits UI link if present
-  const bitsUiUrl = $('a[href*="bits-ui.com/docs/components/"]')
-    .first()
-    .attr("href");
-  const bitsUiLlmUrl = bitsUiUrl
-    ? bitsUiUrl.endsWith("/")
-      ? `${bitsUiUrl}llms.txt`
-      : `${bitsUiUrl}/llms.txt`
-    : undefined;
-
   return {
     title,
     description,
@@ -299,35 +210,28 @@ function extractMetadata($: cheerio.CheerioAPI, url: string): DocumentMetadata {
     ogImage,
     url,
     keywords,
-    bitsUiUrl,
-    bitsUiLlmUrl,
   };
 }
 
 /**
- * Fetches documentation using multi-strategy approach with caching
+ * Fetches documentation with caching.
  * Strategy order:
  * 1. Cache (if enabled)
  * 2. Direct .md endpoint (fastest for components)
- * 3. Crawlee with Playwright (best for JavaScript-heavy pages)
- * 4. Simple HTML scraping + conversion (fallback for simple pages)
+ * 3. HTML scraping + conversion (fallback)
  */
 export async function fetchUrl(
   url: string,
   options: FetchOptions = {},
 ): Promise<FetchResult> {
-  const {
-    useCache = true,
-    timeout = FETCH_TIMEOUT,
-    includeMetadata = true,
-  } = options;
+  const { useCache = true } = options;
 
   // Check cache first if enabled
   if (useCache) {
     const cached = await getFromCache<FetchResult>(url);
     if (cached) {
       console.log(`[Fetcher] ✓ Retrieved from cache: ${url}`);
-      return { ...cached, source: "cache" };
+      return cached;
     }
   }
 
@@ -375,8 +279,3 @@ export async function fetchGeneralDocs(
   const url = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
   return fetchUrl(url, options);
 }
-
-// Export configuration for other modules
-export const config = {
-  SHADCN_BASE_URL,
-};

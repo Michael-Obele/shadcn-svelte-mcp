@@ -27,24 +27,18 @@ interface LookupResolution {
   shadcnComponentName?: string;
 }
 
-function extractBitsUiComponentName(input?: string): string | undefined {
-  return extractBitsUiName(input);
-}
-
-function normalizeBitsUiComponentName(input: string): string {
-  return normalizeName(extractBitsUiComponentName(input) ?? input);
-}
-
 async function resolveBitsUiComponentName(
   input: string,
 ): Promise<LookupResolution> {
   const requestedName = input.trim();
-  const normalizedName = normalizeBitsUiComponentName(requestedName);
+  const normalizedName = normalizeName(
+    extractBitsUiName(requestedName) ?? requestedName,
+  );
   const bitsUiComponents = await discoverBitsUIComponents();
   const bitsUiComponentNames = new Set(
     bitsUiComponents.map((component) => component.name),
   );
-  const urlComponentName = extractBitsUiComponentName(requestedName);
+  const urlComponentName = extractBitsUiName(requestedName);
 
   if (urlComponentName && bitsUiComponentNames.has(urlComponentName)) {
     return {
@@ -74,9 +68,7 @@ async function resolveBitsUiComponentName(
   const shadcnResult = await fetchComponentDocs(normalizedName, {
     useCache: true,
   });
-  const shadcnBitsUiName = extractBitsUiComponentName(
-    shadcnResult.metadata?.bitsUiUrl || shadcnResult.bitsUiUrl,
-  );
+  const shadcnBitsUiName = extractBitsUiName(shadcnResult.bitsUiUrl);
 
   if (
     shadcnResult.success &&

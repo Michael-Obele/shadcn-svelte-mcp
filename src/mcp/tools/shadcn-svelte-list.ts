@@ -3,6 +3,7 @@ import { tool } from "tmcp/utils";
 import * as v from "valibot";
 import { getAllContent } from "../../services/component-discovery.js";
 import {
+  bulletList,
   renderColumns,
   renderGroupedSection,
   LIST_FOOTER,
@@ -89,7 +90,7 @@ export const shadcnSvelteListTool = defineTool(
         ] as const;
         for (const [heading, names] of sections) {
           result += `### ${heading}\n`;
-          for (const doc of names) result += `- \`${doc}\`\n`;
+          result += bulletList(names);
           result += "\n";
         }
       }

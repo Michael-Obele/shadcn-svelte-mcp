@@ -154,23 +154,6 @@ async function saveToKv(
   }
 }
 
-async function clearKv(): Promise<void> {
-  if (!config.kv) return;
-  try {
-    // KV list is eventually consistent; best-effort cleanup
-    let cursor: string | undefined;
-    do {
-      const page = await config.kv.list({ prefix: KV_PREFIX, cursor });
-      for (const item of page.keys) {
-        await config.kv.delete(item.name);
-      }
-      cursor = page.cursor;
-    } while (cursor);
-  } catch (error) {
-    console.error("[Cache] Error clearing KV:", error);
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Disk tier (Node/Bun only — auto-degrades elsewhere)
 // ---------------------------------------------------------------------------
@@ -287,61 +270,6 @@ export async function saveToCache<T>(url: string, data: T): Promise<void> {
   addToMemoryCache(key, entry);
   await Promise.all([saveToKv(key, entry), saveToDisk(key, entry)]);
   log(`[Cache] Saved: ${url}`);
-}
-
-/** Clears all cache tiers. */
-export async function clearCache(): Promise<void> {
-  memoryCache.clear();
-  accessOrder.length = 0;
-
-  if (disk) {
-    try {
-      const files = await disk.fs.readdir(disk.dir);
-      await Promise.all(
-        files
-          .filter((f) => f.startsWith("cache_") && f.endsWith(".json"))
-          .map((f) => disk!.fs.unlink(disk!.path.join(disk!.dir, f))),
-      );
-    } catch (error) {
-      console.error("[Cache] Error clearing disk cache:", error);
-    }
-  }
-
-  await clearKv();
-  log("[Cache] Cleared all tiers");
-}
-
-/** Removes expired entries from all tiers. */
-export async function cleanupCache(): Promise<void> {
-  // Memory tier — evict expired entries
-  for (const key of [...memoryCache.keys()]) {
-    getFromMemoryCache(key);
-  }
-
-  if (disk) {
-    try {
-      const files = await disk.fs.readdir(disk.dir);
-      let removed = 0;
-      for (const file of files) {
-        if (!file.startsWith("cache_") || !file.endsWith(".json")) continue;
-        try {
-          const filePath = disk.path.join(disk.dir, file);
-          const content = await disk.fs.readFile(filePath, "utf-8");
-          const entry: CacheEntry<unknown> = JSON.parse(content);
-          if (Date.now() - entry.timestamp >= config.ttlMs) {
-            await disk.fs.unlink(filePath);
-            removed++;
-          }
-        } catch {
-          // Skip invalid cache files
-        }
-      }
-      if (removed > 0)
-        log(`[Cache] Cleanup: removed ${removed} expired disk entries`);
-    } catch (error) {
-      console.error("[Cache] Error during disk cleanup:", error);
-    }
-  }
 }
 
 /** Returns cache statistics. */

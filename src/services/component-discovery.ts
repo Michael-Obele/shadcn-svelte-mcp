@@ -5,6 +5,7 @@
 
 import { fetchUrl } from "./doc-fetcher.js";
 import { getFromCache, saveToCache } from "./cache-manager.js";
+import { fetchJson } from "./http.js";
 import {
   discoverBitsUIComponents,
   type BitsUIComponentInfo,
@@ -14,6 +15,32 @@ export interface ComponentInfo {
   name: string;
   category: string;
 }
+
+/** Adds a component to `list` once, preserving first-seen order. */
+function pushUnique(
+  list: ComponentInfo[],
+  seen: Set<string>,
+  name: string,
+): void {
+  if (seen.has(name)) return;
+  seen.add(name);
+  list.push({ name, category: "component" });
+}
+
+/** Unique capture group 1 matches of `pattern` in `text` (first-seen order). */
+function collectMatches(text: string, pattern: RegExp): string[] {
+  const seen = new Set<string>();
+  for (const match of text.matchAll(pattern)) seen.add(match[1]);
+  return [...seen];
+}
+
+/** Known docs sections — the fallback baseline when discovery is incomplete. */
+const BASE_DOCS = {
+  installation: ["sveltekit", "vite", "astro"],
+  darkMode: ["svelte"],
+  migration: ["svelte-5", "tailwind-v4"],
+  general: ["cli", "theming", "components-json", "figma", "changelog", "about"],
+};
 
 /**
  * Discovers all components by fetching llms.txt or scraping the components index page
@@ -40,9 +67,9 @@ export async function discoverComponents(): Promise<ComponentInfo[]> {
   const components: ComponentInfo[] = [];
   const seen = new Set<string>();
 
-  if (llmsResult.success && llmsResult.markdown) {
+  if (llmsResult.success && llmsResult.content) {
     // Extract components from ## Components section in llms.txt
-    const componentsSection = llmsResult.markdown
+    const componentsSection = llmsResult.content
       .split("## Components")[1]
       ?.split("##")[0];
     if (componentsSection) {
@@ -50,14 +77,7 @@ export async function discoverComponents(): Promise<ComponentInfo[]> {
         /\[([^\]]+)\]\(https?:\/\/[^\/]+\/docs\/components\/([a-z-]+)(?:\.md)?\)/g;
       let match;
       while ((match = componentRegex.exec(componentsSection)) !== null) {
-        const name = match[2];
-        if (!seen.has(name)) {
-          seen.add(name);
-          components.push({
-            name,
-            category: "component",
-          });
-        }
+        pushUnique(components, seen, match[2]);
       }
     }
   }
@@ -74,21 +94,13 @@ export async function discoverComponents(): Promise<ComponentInfo[]> {
       },
     );
 
-    if (result.success && result.markdown) {
+    if (result.success && result.content) {
       const componentRegex =
         /\[([^\]]+)\]\((?:https?:\/\/[^\/]+)?\/docs\/components\/([a-z-]+)\)/g;
 
       let match;
-      while ((match = componentRegex.exec(result.markdown)) !== null) {
-        const name = match[2];
-
-        if (!seen.has(name)) {
-          seen.add(name);
-          components.push({
-            name,
-            category: "component",
-          });
-        }
+      while ((match = componentRegex.exec(result.content)) !== null) {
+        pushUnique(components, seen, match[2]);
       }
     }
 
@@ -97,14 +109,7 @@ export async function discoverComponents(): Promise<ComponentInfo[]> {
       const linkRegex = /href="\/docs\/components\/([a-z-]+)"/g;
       let match;
       while ((match = linkRegex.exec(result.html)) !== null) {
-        const name = match[1];
-        if (!seen.has(name)) {
-          seen.add(name);
-          components.push({
-            name,
-            category: "component",
-          });
-        }
+        pushUnique(components, seen, match[1]);
       }
     }
   }
@@ -145,26 +150,12 @@ export async function discoverDocs(): Promise<{
     useCache: true,
   });
 
-  if (!result.success || !result.markdown) {
+  if (!result.success || !result.content) {
     console.error(
       "[Discovery] Failed to fetch docs page, falling back to hardcoded list",
     );
-    // Fallback to hardcoded list if scraping fails
-    const fallbackDocs = {
-      installation: ["sveltekit", "vite", "astro"],
-      darkMode: ["svelte"],
-      migration: ["svelte-5", "tailwind-v4"],
-      general: [
-        "cli",
-        "theming",
-        "components-json",
-        "figma",
-        "changelog",
-        "about",
-      ],
-    };
-    await saveToCache(cacheKey, fallbackDocs);
-    return fallbackDocs;
+    await saveToCache(cacheKey, BASE_DOCS);
+    return BASE_DOCS;
   }
 
   // Extract documentation links from markdown
@@ -194,22 +185,19 @@ export async function discoverDocs(): Promise<{
   const registryPattern = /\/docs\/registry\/([a-z-]+(?:\/[a-z-]+)*)/g;
 
   // Extract from markdown content
-  const content = result.markdown;
+  const content = result.content;
 
   // Process each category
   for (const [category, pattern] of Object.entries(categoryPatterns)) {
-    const matches = [...content.matchAll(pattern)];
-    const sections = matches
-      .map((match) => match[1])
-      .filter((value, index, self) => self.indexOf(value) === index); // deduplicate
+    const sections = collectMatches(content, pattern);
 
     if (category === "general") {
       // For general, also add registry sections
-      const registryMatches = [...content.matchAll(registryPattern)];
-      const registrySections = registryMatches
-        .map((match) => `registry/${match[1]}`)
-        .filter((value, index, self) => self.indexOf(value) === index);
-      sections.push(...registrySections);
+      sections.push(
+        ...collectMatches(content, registryPattern).map(
+          (section) => `registry/${section}`,
+        ),
+      );
     }
 
     docs[category as keyof typeof docs] = sections;
@@ -258,22 +246,8 @@ export async function discoverDocs(): Promise<{
     }
   }
 
-  // Ensure we have at least the basic sections that are known to exist
-  const ensureSections = {
-    installation: ["sveltekit", "vite", "astro"],
-    darkMode: ["svelte"],
-    migration: ["svelte-5", "tailwind-v4"],
-    general: [
-      "cli",
-      "theming",
-      "components-json",
-      "figma",
-      "changelog",
-      "about",
-    ],
-  };
-
-  for (const [category, requiredSections] of Object.entries(ensureSections)) {
+  // Ensure we have at least the base sections that are known to exist
+  for (const [category, requiredSections] of Object.entries(BASE_DOCS)) {
     for (const section of requiredSections) {
       if (!docs[category as keyof typeof docs].includes(section)) {
         docs[category as keyof typeof docs].push(section);
@@ -332,11 +306,9 @@ export async function discoverRegistry(): Promise<{
     charts: [] as ComponentInfo[],
   };
   try {
-    const response = await fetch(
+    const items = await fetchJson<RegistryIndexItem[]>(
       "https://shadcn-svelte.com/registry/index.json",
     );
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const items = (await response.json()) as RegistryIndexItem[];
     const ui: ComponentInfo[] = [];
     const blocks: ComponentInfo[] = [];
     const charts: ComponentInfo[] = [];
@@ -388,24 +360,26 @@ export async function getAllContent(): Promise<{
     discoverDocs(),
   ]);
 
-  // Union llms.txt components with registry UI (covers registry-only items like `form`)
-  const seen = new Set(components.map((c) => c.name));
+  // Union llms.txt components with registry UI (covers registry-only items
+  // like `form`). Clone first so the cached array is never mutated.
+  const merged = [...components];
+  const seen = new Set(merged.map((c) => c.name));
   for (const item of registry.ui) {
     if (!seen.has(item.name)) {
       seen.add(item.name);
-      components.push(item);
+      merged.push(item);
     }
   }
-  components.sort((a, b) => a.name.localeCompare(b.name));
+  merged.sort((a, b) => a.name.localeCompare(b.name));
 
-  console.log(`[getAllContent] shadcn-svelte components: ${components.length}`);
+  console.log(`[getAllContent] shadcn-svelte components: ${merged.length}`);
   console.log(
     `[getAllContent] blocks: ${registry.blocks.length}, charts: ${registry.charts.length}`,
   );
   console.log(`[getAllContent] Bits UI components: ${bitsUIComponents.length}`);
 
   return {
-    components,
+    components: merged,
     blocks: registry.blocks,
     charts: registry.charts,
     bitsUIComponents,

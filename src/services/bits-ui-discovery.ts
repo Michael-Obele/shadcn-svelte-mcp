@@ -4,6 +4,7 @@
  */
 
 import { getFromCache, saveToCache } from "./cache-manager.js";
+import { fetchWithTimeout } from "./http.js";
 
 export interface BitsUIComponentInfo {
   name: string;
@@ -33,8 +34,8 @@ export async function discoverBitsUIComponents(): Promise<
 
   try {
     // Fetch the raw TypeScript file directly from GitHub
-    const response = await fetch(
-      "https://raw.githubusercontent.com/huntabyte/bits-ui/main/docs/src/lib/content/api-reference/index.ts"
+    const response = await fetchWithTimeout(
+      "https://raw.githubusercontent.com/huntabyte/bits-ui/main/docs/src/lib/content/api-reference/index.ts",
     );
 
     if (!response.ok) {

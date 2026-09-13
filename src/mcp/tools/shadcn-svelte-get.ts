@@ -26,7 +26,6 @@ import {
 } from "./utils/shadcn-utils.js";
 
 /** Extract Bits UI component name from a docs URL. */
-const extractBitsUiComponentName = extractBitsUiName;
 
 /**
  * Response interface for structured JSON output
@@ -126,7 +125,7 @@ export const shadcnSvelteGetTool = defineTool(
         registryType === "registry:ui"
           ? `UI component (registry source): ${itemName}`
           : `Block/Chart component: ${itemName}`,
-      installCommand: getInstallCommand(itemName, packageManager),
+      installCommand: getInstallCommand(itemName),
       docs: { main: registryBlockUrl(itemName) },
       contextRules: BLOCK_CHART_RULES,
       rawContent: code,
@@ -186,9 +185,7 @@ export const shadcnSvelteGetTool = defineTool(
         const summary = extractSummary(rawContent);
         const examples = extractExamples(rawContent);
         const variants = extractVariants(rawContent);
-        const bitsUiName = extractBitsUiComponentName(
-          result.metadata?.bitsUiUrl || result.bitsUiUrl,
-        );
+        const bitsUiName = extractBitsUiName(result.bitsUiUrl);
         // Fallback for primary code if examples didn't catch it
         const primaryCode =
           examples.length > 0
@@ -214,12 +211,12 @@ export const shadcnSvelteGetTool = defineTool(
                     "No underlying Bits UI primitive was exposed for this component response, so bits-ui-get is not needed.",
                 },
           },
-          installCommand: getInstallCommand(name, packageManager),
+          installCommand: getInstallCommand(name),
           importPath: getImportPath(name),
           dependencies: bitsUiName ? ["bits-ui"] : [],
           docs: {
             main: shadcnComponentUrl(name),
-            primitive: result.metadata?.bitsUiUrl || result.bitsUiUrl,
+            primitive: result.bitsUiUrl,
             bitsuiName: bitsUiName,
           },
           usage: {
