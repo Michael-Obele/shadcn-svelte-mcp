@@ -203,7 +203,6 @@ export function renderColumns(names: string[], columns = 3): string {
   return `${out}\n`;
 }
 
-
 /** Renders grouped registry items (`### Category` + bullets per group). */
 export function renderGroupedSection(
   names: string[],
