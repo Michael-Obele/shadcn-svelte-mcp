@@ -1,3 +1,10 @@
+## [1.11.3](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.11.2...v1.11.3) (2026-09-13)
+
+
+### Bug Fixes
+
+* remove extra blank line in shadcn-utils ([7a347bd](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/7a347bd63633f74924d7a016301786a835a39af0))
+
 ## [1.11.2](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.11.1...v1.11.2) (2026-09-13)
 
 
