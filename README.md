@@ -5,13 +5,14 @@
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vc2hhZGNuLnN2ZWx0ZS1hcHBzLm1lL21jcCJ9)
 
-> [!WARNING]
-> **Help keep the hosted server online:** the hosted endpoint at
-> `https://shadcn.svelte-apps.me/mcp` costs money to run. If running costs are
-> not covered by donations within ~30 days, the hosted instance may go down.
-> The server keeps working via self-host — `npx -y shadcn-svelte-mcp`, or deploy
+> [!NOTE]
+> **Love the hosted server? Please help keep it online:** the hosted endpoint at
+> `https://shadcn.svelte-apps.me/mcp` is free to use but costs money to run. I'm covering
+> costs out of pocket right now — if it's been useful, please consider chipping in to help
+> keep it available for everyone over the next ~30 days and beyond.
+> Prefer to run it yourself? You always can — `npx -y shadcn-svelte-mcp`, or deploy
 > it yourself to Fly.io / Render / Cloudflare Workers.
-> [❤️ Sponsor @Michael-Obele](https://github.com/sponsors/Michael-Obele) to keep it hosted.
+> [❤️ Sponsor @Michael-Obele](https://github.com/sponsors/Michael-Obele) — thank you!
 
 > [!IMPORTANT]
 > **URL Update Notification:** This MCP server is now hosted at
