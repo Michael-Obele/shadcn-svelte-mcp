@@ -2,31 +2,59 @@ import { defineTool } from "tmcp/tool";
 import { tool } from "tmcp/utils";
 import * as v from "valibot";
 import { getFromCache, saveToCache } from "../../services/cache-manager.js";
+import {
+  normalizeName as normalizeIconName,
+  pascalCase,
+  npmClient,
+  addVerb,
+} from "./utils/shadcn-utils.js";
 
-function normalizeIconName(input: string): string {
-  return input
-    .trim()
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .replace(/[\s_]+/g, "-")
-    .replace(/[^a-zA-Z0-9-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
+function tokenVariants(token: string): string[] {
+  // Light plural tolerance: "messages" also matches "message".
+  if (token.length > 3 && token.endsWith("s") && !token.endsWith("ss")) {
+    return [token, token.slice(0, -1)];
+  }
+  return [token];
 }
 
-function parseMultiIconQuery(query: string): string[] | undefined {
+/**
+ * Resolves a query string to an exact icon-name lookup, or returns
+ * undefined to fall through to fuzzy scored search.
+ *
+ * - Comma-separated input is always treated as an explicit name list
+ *   (e.g. 'truck, package').
+ * - Otherwise the whole query is normalized first, so 'message circle'
+ *   resolves to the exact icon 'message-circle'.
+ * - Space-separated tokens are only treated as an exact lookup when
+ *   EVERY token is a real icon name; otherwise fuzzy search runs so
+ *   partial words like 'message circle chat' match across names + tags.
+ */
+function resolveNamesFromQuery(
+  query: string,
+  iconNameSet: Set<string>,
+): string[] | undefined {
   const trimmedQuery = query.trim();
-  if (!/[\s,]/.test(trimmedQuery)) {
-    return undefined;
+  if (!trimmedQuery) return undefined;
+
+  if (trimmedQuery.includes(",")) {
+    const parts = trimmedQuery
+      .split(",")
+      .map((name) => normalizeIconName(name))
+      .filter((name) => name.length > 0);
+    return parts.length > 0 ? parts : undefined;
   }
 
-  const parsedNames = trimmedQuery
-    .split(/[\s,]+/)
-    .map((name) => normalizeIconName(name))
-    .filter((name) => name.length > 0);
+  const normalizedFull = normalizeIconName(trimmedQuery);
+  if (normalizedFull && iconNameSet.has(normalizedFull)) {
+    return [normalizedFull];
+  }
 
-  return parsedNames.length > 0 ? parsedNames : undefined;
+  const tokens = tokenizeQuery(trimmedQuery);
+  if (tokens.length > 1 && tokens.every((token) => iconNameSet.has(token))) {
+    return tokens;
+  }
+
+  return undefined;
 }
 
 function tokenizeQuery(query: string): string[] {
@@ -58,22 +86,64 @@ function scoreIconMatch(
     score += 20;
   }
 
+  // Multi-word queries reward icons matching MANY tokens (coverage), so
+  // 'message circle chat' ranks 'message-circle' above plain 'circle'.
+  let matchedTokens = 0;
+
   for (const token of queryTokens) {
-    if (nameLower === token) {
-      score += 90;
-    } else if (nameLower.startsWith(token)) {
-      score += 35;
-    } else if (nameLower.includes(token)) {
-      score += 15;
+    let tokenMatched = false;
+    const variants = tokenVariants(token);
+
+    for (const variant of variants) {
+      // Singular fallbacks score slightly lower than the literal token.
+      const weight = variant === token ? 1 : 0.8;
+      if (nameLower === variant) {
+        score += 90 * weight;
+        tokenMatched = true;
+        break;
+      } else if (nameLower.startsWith(variant)) {
+        score += 35 * weight;
+        tokenMatched = true;
+        break;
+      } else if (variant.length > 2 && nameLower.includes(variant)) {
+        score += 15 * weight;
+        tokenMatched = true;
+        break;
+      }
     }
 
     for (const tag of tags) {
       const tagLower = tag.toLowerCase();
-      if (tagLower === token) {
-        score += 25;
-      } else if (tagLower.includes(token)) {
-        score += 8;
+      for (const variant of variants) {
+        const weight = variant === token ? 1 : 0.8;
+        if (tagLower === variant) {
+          score += 25 * weight;
+          tokenMatched = true;
+          break;
+        } else if (
+          variant.length > 2 &&
+          tagLower.length > 2 &&
+          (tagLower.includes(variant) ||
+            (variant.length >= 4 &&
+              tagLower.length >= 4 &&
+              variant.includes(tagLower)))
+        ) {
+          score += 8 * weight;
+          tokenMatched = true;
+          break;
+        }
       }
+    }
+
+    if (tokenMatched) {
+      matchedTokens += 1;
+    }
+  }
+
+  if (queryTokens.length > 1 && matchedTokens > 0) {
+    score += matchedTokens * 30;
+    if (matchedTokens === queryTokens.length) {
+      score += 50;
     }
   }
 
@@ -134,11 +204,6 @@ export const shadcnSvelteIconsTool = defineTool(
     const { query, limit = 100, importLimit = 10, packageManager } = input;
     let { names } = input;
 
-    // Parse query to detect multiple icon names
-    if (query && !names) {
-      names = parseMultiIconQuery(query);
-    }
-
     try {
       // URLs for Lucide data
       const iconsUrl = "https://unpkg.com/lucide-static@latest/icon-nodes.json";
@@ -157,6 +222,16 @@ export const shadcnSvelteIconsTool = defineTool(
       }
 
       const allIcons = Object.keys(iconData);
+
+      // Resolve multi-name queries against the real icon list. Needs the
+      // fetched data: space-separated words fall through to fuzzy search
+      // unless every word (or the dashed whole) is an exact icon name.
+      if (query && !names) {
+        names = resolveNamesFromQuery(
+          query,
+          new Set(allIcons.map((name) => name.toLowerCase())),
+        );
+      }
 
       // Fetch tags data with caching (only if searching)
       let tagsData: Record<string, string[]> = {};
@@ -260,25 +335,13 @@ export const shadcnSvelteIconsTool = defineTool(
         iconList += `\n\n## Usage\n\n`;
         iconList += `\`\`\`bash\n`;
         iconList += `# Install @lucide/svelte (only if not already installed)\n`;
-        iconList += `${(() => {
-          if (!packageManager) return "npm install";
-          if (packageManager === "npm") return "npm install";
-          if (packageManager === "yarn") return "yarn add";
-          if (packageManager === "pnpm") return "pnpm add";
-          if (packageManager === "bun") return "bun add";
-          return "npm install";
-        })()} @lucide/svelte\n`;
+        iconList += `${npmClient(packageManager)} ${addVerb(packageManager)} @lucide/svelte\n`;
         iconList += `\`\`\`\n\n`;
 
         // Show individual examples for each icon (up to importLimit)
         const exampleIcons = limitedIcons.slice(0, importLimit);
-        const pascalize = (name: string) =>
-          name
-            .split("-")
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join("");
         for (const iconName of exampleIcons) {
-          const pascalName = pascalize(iconName);
+          const pascalName = pascalCase(iconName);
           iconList += `\`\`\`svelte\n`;
           iconList += `<script>\n`;
           iconList += `  import { ${pascalName} } from '@lucide/svelte';\n`;

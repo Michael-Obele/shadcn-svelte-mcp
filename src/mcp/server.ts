@@ -33,7 +33,7 @@ export const server = new McpServer(
       prompts: { listChanged: true },
     },
     instructions:
-      "Tool routing: shadcn-svelte-get FIRST for any shadcn-svelte query (components, blocks, charts, docs, Sonner). shadcn-svelte-search for fuzzy discovery, shadcn-svelte-list to enumerate resources, shadcn-svelte-icons ONLY for Lucide icons. bits-ui-get ONLY after shadcn-svelte-get returns docs.bitsuiName or tooling.bitsUi.exactName, and only for lower-level primitive internals. SVELTE only — never use React-specific props like 'asChild'. For the full guide, use the tool-usage prompt.",
+      "Tool routing: shadcn-svelte-get FIRST for any shadcn-svelte query (components, blocks, charts, docs). shadcn-svelte-search for fuzzy discovery, shadcn-svelte-list to enumerate resources, shadcn-svelte-icons ONLY for Lucide icons. bits-ui-get ONLY after shadcn-svelte-get returns docs.bitsuiName or tooling.bitsUi.exactName, and only for lower-level primitive internals. SVELTE only — never use React-specific props like 'asChild'. For the full guide, use the tool-usage prompt.",
   },
 );
 

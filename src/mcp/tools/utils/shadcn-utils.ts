@@ -2,22 +2,11 @@
  * Utility functions for shadcn-svelte MCP tools
  */
 
-// Block/Chart detection patterns
-export const BLOCK_PATTERNS = [
-  /^chart-/i,
-  /^dashboard-/i,
-  /^sidebar-/i,
-  /^login-/i,
-  /^signup-/i,
-  /^otp-/i,
-  /^calendar-/i,
-];
-
-/**
- * Detects if a component name is a block/chart
- */
+/** Detects if a component name is a block/chart (registry-sourced item). */
 export function isBlock(name: string): boolean {
-  return BLOCK_PATTERNS.some((pattern) => pattern.test(name));
+  return /^(chart|dashboard|sidebar|demo|new-components|login|signup|otp|calendar)-/i.test(
+    name,
+  );
 }
 
 /**
@@ -32,96 +21,356 @@ export function getInstallPrefix(pm?: string): string {
   return "npx";
 }
 
-/**
- * Fetches block/chart code from the /api/block/ endpoint
- */
-export async function fetchBlockCode(
-  name: string,
-  packageManager?: "npm" | "yarn" | "pnpm" | "bun"
-): Promise<{ success: boolean; code?: string; error?: string }> {
+/* ------------------------------------------------------------------ */
+/* Shared kernel: naming, install lines, envelopes, registry fetching  */
+/* ------------------------------------------------------------------ */
+
+export const SHADCN_WWW = "https://www.shadcn-svelte.com";
+export const BITS_WWW = "https://bits-ui.com";
+const FETCH_UA =
+  "shadcn-svelte-mcp/1.0.0 (Block Fetcher; +https://github.com/Michael-Obele/shadcn-svelte-mcp)";
+
+/** Canonical kebab-case normalization shared by all tools. */
+export function normalizeName(input: string): string {
+  return input
+    .trim()
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-zA-Z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+}
+
+/** Extracts a Bits UI primitive name from a docs URL. */
+export function extractBitsUiName(input?: string): string | undefined {
+  if (!input) return undefined;
   try {
-    const url = `https://shadcn-svelte.com/api/block/${name}`;
-    console.log(`[Fetcher] Fetching block from: ${url}`);
-
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "shadcn-svelte-mcp/1.0.0 (Block Fetcher; +https://github.com/Michael-Obele/shadcn-svelte-mcp)",
-      },
-    });
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: `HTTP ${response.status}: ${response.statusText}`,
-      };
+    const parts = new URL(input.trim()).pathname.split("/").filter(Boolean);
+    if (parts.length >= 3 && parts[0] === "docs" && parts[1] === "components") {
+      return parts[2].toLowerCase();
     }
+  } catch {
+    // Not a URL — nothing to extract.
+  }
+  return undefined;
+}
 
-    const data = await response.json();
+/** Title Case: "chart-area-default" -> "Chart Area Default". */
+export function titleCase(name: string): string {
+  return name
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
-    if (data.type !== "registry:block") {
-      return {
-        success: false,
-        error: `Expected registry:block, got ${data.type}`,
-      };
+/** PascalCase for icon imports: "message-circle" -> "MessageCircle". */
+export function pascalCase(name: string): string {
+  return name
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join("");
+}
+
+/** JSON envelope — one call site instead of repeated stringify. */
+export function toJson(obj: unknown): string {
+  return JSON.stringify(obj, null, 2);
+}
+
+/** npm client binary for a package manager choice. */
+export function npmClient(pm?: string): string {
+  if (pm === "yarn") return "yarn";
+  if (pm === "pnpm") return "pnpm";
+  if (pm === "bun") return "bun";
+  return "npm";
+}
+
+/** `install` (npm) vs `add` (everyone else). */
+export function addVerb(pm?: string): string {
+  return pm === "npm" ? "install" : "add";
+}
+
+/** Single-line install command for markdown output. */
+export function buildInstallLine(
+  name: string,
+  pm?: "npm" | "yarn" | "pnpm" | "bun",
+): string {
+  return `${getInstallPrefix(pm)} shadcn-svelte@latest add ${name}`;
+}
+
+export function shadcnComponentUrl(name: string): string {
+  return `${SHADCN_WWW}/docs/components/${name}`;
+}
+
+export function registryBlockUrl(name: string): string {
+  return `https://shadcn-svelte.com/blocks/${name}`;
+}
+
+export function bitsUiComponentUrl(name: string): string {
+  return `${BITS_WWW}/docs/components/${name}`;
+}
+
+/** Shared guidance: discover via list/get before reaching for bits-ui-get. */
+export const DISCOVER_STEPS = [
+  "1. Use the shadcn-svelte-list tool to see all available components, blocks, and charts",
+  "2. Check the correct spelling - component names are case-sensitive",
+  "3. Visit https://shadcn-svelte.com to browse available components",
+  "4. Only use bits-ui-get after shadcn-svelte-get exposes docs.bitsuiName for an underlying primitive",
+];
+
+export const BITS_UI_STEPS = [
+  "1. Use shadcn-svelte-get with the shadcn-svelte component name you actually plan to use",
+  "2. If that response includes docs.bitsuiName, pass that exact value to bits-ui-get",
+  "3. Do not use bits-ui-get for standard shadcn-svelte installation or wrapper usage",
+  "4. Or visit https://bits-ui.com/docs/components to browse the canonical Bits UI primitive names",
+];
+
+export const SVELTE_RULES = [
+  "Do NOT use React-specific props like 'asChild'.",
+  "Use standard Svelte slot patterns or snippets where applicable.",
+  "Always follow the Svelte examples shown in the documentation.",
+];
+
+export const BLOCK_CHART_RULES = [
+  "This is a SVELTE block/chart. Do NOT use React-specific props or patterns.",
+  "Note: Project should already be initialized with shadcn-svelte before adding components.",
+];
+
+/**
+ * Groups registry item names by category prefix for display.
+ * Charts group by second segment (chart-area-*, chart-bar-*, ...).
+ * Blocks group by first segment, except known multi-word prefixes.
+ */
+export function groupByPrefix(
+  names: string[],
+  isChart: boolean,
+): Map<string, string[]> {
+  const groups = new Map<string, string[]>();
+  for (const name of names) {
+    let category: string;
+    if (isChart) {
+      const parts = name.split("-");
+      category = parts.length > 2 ? parts[1] : "other";
+    } else if (name.startsWith("demo-sidebar")) {
+      category = "demo-sidebar";
+    } else if (name.startsWith("new-components")) {
+      category = "new-components";
+    } else {
+      category = name.split("-")[0];
     }
+    const list = groups.get(category) ?? [];
+    list.push(name);
+    groups.set(category, list);
+  }
+  return new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)));
+}
 
-    // Extract code from all files
-    const files = data.files || [];
-    let codeOutput = `# ${data.name}\n\n`;
+/** Renders names in backtick columns for list output. */
+export function renderColumns(names: string[], columns = 3): string {
+  let out = "";
+  for (let i = 0; i < names.length; i += columns) {
+    out += `${names
+      .slice(i, i + columns)
+      .map((n) => `\`${n}\``)
+      .join(" · ")}\n`;
+  }
+  return `${out}\n`;
+}
 
-    if (data.description) {
-      codeOutput += `**Description:** ${data.description}\n\n`;
+
+/** Renders grouped registry items (`### Category` + bullets per group). */
+export function renderGroupedSection(
+  names: string[],
+  isChart: boolean,
+  headingSuffix = "",
+): string {
+  let out = "";
+  for (const [category, items] of groupByPrefix(names, isChart)) {
+    const title = category.charAt(0).toUpperCase() + category.slice(1);
+    out += `### ${title}${headingSuffix}\n`;
+    for (const item of items) out += `- \`${item}\`\n`;
+    out += "\n";
+  }
+  return out;
+}
+
+export const LIST_FOOTER = [
+  "## Additional Resources",
+  "",
+  "### Themes",
+  "Interactive theme generator available at `/themes`. Themes are not individual components but CSS configurations you can copy and paste.",
+  "",
+  "### Colors",
+  "Tailwind color palette reference available at `/colors`. Shows colors in HEX, RGB, HSL, OKLCH, and CSS variable formats.",
+  "",
+  "### Icons",
+  "Lucide Svelte icons documentation and search available via the `icons` tool. Browse 1600+ Lucide icons with search and usage examples.",
+  "",
+].join("\n");
+
+export const LIST_USAGE = [
+  "---",
+  "",
+  "**Usage:** Use the `get` tool with `name` and `type` to retrieve detailed information.",
+  "",
+  "**Examples:**",
+  "- Get button component: `{ name: 'button', type: 'component' }`",
+  "- Get chart: `{ name: 'chart-tooltip-default', type: 'component' }`",
+  "- Get block: `{ name: 'dashboard-01', type: 'component' }`",
+  "- Get installation docs: `{ name: 'sveltekit', type: 'doc' }`",
+  "",
+].join("\n");
+
+/* ------------------------- registry fetching ------------------------- */
+
+export interface RegistryFetchResult {
+  success: boolean;
+  code?: string;
+  error?: string;
+  registryType?: string;
+}
+
+interface RegistryFile {
+  target?: string;
+  path?: string;
+  type?: string;
+  content?: string;
+  highlightedContent?: string;
+}
+
+/** Detects code language from a registry file target path. */
+function detectLanguage(fileName: string): string {
+  if (fileName.endsWith(".svelte")) return "svelte";
+  if (fileName.endsWith(".ts")) return "typescript";
+  if (fileName.endsWith(".js")) return "javascript";
+  if (fileName.endsWith(".css")) return "css";
+  return "typescript";
+}
+
+/** Decodes Shiki-highlighted HTML back to raw source. */
+function decodeHighlighted(highlighted: string): string | undefined {
+  const match = highlighted.match(
+    /<pre[^>]*>.*?<code[^>]*>(.*?)<\/code>.*?<\/pre>/s,
+  );
+  if (!match) return undefined;
+  return match[1]
+    .replace(/<span[^>]*>/g, "")
+    .replace(/<\/span>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x3C;/g, "<")
+    .replace(/&#x3E;/g, ">")
+    .replace(/\\n/g, "\n");
+}
+
+/** Renders registry files to markdown, handling both API and raw JSON shapes. */
+function renderRegistryFiles(files: RegistryFile[], header: string): string {
+  let out = header;
+  for (const file of files) {
+    const fileName = file.target || file.path || "unknown";
+    out += `## File: ${fileName}\n\n**Type:** ${file.type}\n\n`;
+    if (
+      !file.highlightedContent &&
+      typeof file.content === "string" &&
+      file.content.length > 0
+    ) {
+      out += `\`\`\`${detectLanguage(fileName)}\n${file.content}\n\`\`\`\n\n`;
+      continue;
     }
-
-    codeOutput += `**Type:** ${data.type}\n\n`;
-    const installPrefix = getInstallPrefix(packageManager);
-    codeOutput += `**Installation:**\n\`\`\`bash\n${installPrefix} shadcn-svelte@latest add ${name}\n\`\`\`\n\n`;
-
-    // Process each file
-    for (const file of files) {
-      const fileName = file.target || file.path || "unknown";
-      codeOutput += `## File: ${fileName}\n\n`;
-      codeOutput += `**Type:** ${file.type}\n\n`;
-
-      // Parse highlightedContent (HTML-escaped pre tag with code)
-      if (file.highlightedContent) {
-        // Extract code from the pre tag
-        const codeMatch = file.highlightedContent.match(
-          /<pre[^>]*>.*?<code[^>]*>(.*?)<\/code>.*?<\/pre>/s
-        );
-        if (codeMatch) {
-          // Decode HTML entities and escape sequences
-          let code = codeMatch[1]
-            .replace(/<span[^>]*>/g, "")
-            .replace(/<\/span>/g, "")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .replace(/&amp;/g, "&")
-            .replace(/&quot;/g, '"')
-            .replace(/&#x3C;/g, "<")
-            .replace(/&#x3E;/g, ">")
-            .replace(/\\n/g, "\n");
-
-          // Detect language from filename
-          let language = "typescript";
-          if (fileName.endsWith(".svelte")) language = "svelte";
-          else if (fileName.endsWith(".ts")) language = "typescript";
-          else if (fileName.endsWith(".js")) language = "javascript";
-          else if (fileName.endsWith(".css")) language = "css";
-
-          codeOutput += `\`\`\`${language}\n${code}\n\`\`\`\n\n`;
-        }
+    if (file.highlightedContent) {
+      const code = decodeHighlighted(file.highlightedContent);
+      if (code !== undefined) {
+        out += `\`\`\`${detectLanguage(fileName)}\n${code}\n\`\`\`\n\n`;
       }
     }
+  }
+  return out;
+}
 
-    return { success: true, code: codeOutput };
+async function fetchRegistryData(url: string): Promise<{
+  data?: any;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(url, { headers: { "User-Agent": FETCH_UA } });
+    if (!response.ok)
+      return { error: `HTTP ${response.status}: ${response.statusText}` };
+    return { data: await response.json() };
   } catch (error) {
+    return { error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+function registryHeader(
+  data: {
+    name: string;
+    description?: string;
+    type: string;
+    registryDependencies?: string[];
+  },
+  name: string,
+  packageManager?: "npm" | "yarn" | "pnpm" | "bun",
+): string {
+  let out = `# ${data.name}\n\n`;
+  if (data.description) out += `**Description:** ${data.description}\n\n`;
+  out += `**Type:** ${data.type}\n\n`;
+  if (
+    Array.isArray(data.registryDependencies) &&
+    data.registryDependencies.length > 0
+  ) {
+    out += `**Registry dependencies:** ${data.registryDependencies.join(", ")}\n\n`;
+  }
+  out += `**Installation:**\n\`\`\`bash\n${buildInstallLine(name, packageManager)}\n\`\`\`\n\n`;
+  return out;
+}
+
+/**
+ * Fetches a registry item by name: tries /api/block first, falls back to
+ * raw /registry/{name}.json. Accepts registry:block and registry:ui.
+ */
+export async function fetchRegistryItem(
+  name: string,
+  packageManager?: "npm" | "yarn" | "pnpm" | "bun",
+): Promise<RegistryFetchResult> {
+  console.log(`[Fetcher] Fetching registry item: ${name}`);
+  const block = await fetchRegistryData(
+    `https://shadcn-svelte.com/api/block/${name}`,
+  );
+  if (
+    block.data &&
+    (block.data.type === "registry:block" || block.data.type === "registry:ui")
+  ) {
     return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      success: true,
+      code: renderRegistryFiles(
+        block.data.files || [],
+        registryHeader(block.data, name, packageManager),
+      ),
+      registryType: block.data.type,
     };
   }
+  // /api/block 404s for some items (demo-sidebar, new-components-01,
+  // registry-only UI like form) — fall back to raw registry JSON.
+  const raw = await fetchRegistryData(
+    `https://shadcn-svelte.com/registry/${name}.json`,
+  );
+  if (!raw.data) {
+    return {
+      success: false,
+      error: raw.error || block.error || `Registry item "${name}" not found`,
+    };
+  }
+  return {
+    success: true,
+    code: renderRegistryFiles(
+      raw.data.files || [],
+      registryHeader(raw.data, name, packageManager),
+    ),
+    registryType: raw.data.type,
+  };
 }
 
 /**
@@ -345,7 +594,7 @@ export function parseBitsUiApi(content: string): {
 export function getInstallCommand(
   name: string,
   pm?: string,
-  automated: boolean = true
+  automated: boolean = true,
 ): {
   packageManagers: {
     npm: string;
@@ -365,12 +614,14 @@ export function getInstallCommand(
       bun: `bun x ${baseCommand}`,
     },
     cliOptions: {
-      "command-structure": "Use: [package-manager-command] [options] [components...]",
+      "command-structure":
+        "Use: [package-manager-command] [options] [components...]",
       "-y, --yes": "Skip confirmation prompt (default: false)",
       "-o, --overwrite": "Overwrite existing files (default: false)",
       "-a, --all": "Install all components to your project (default: false)",
       "--no-deps": "Skip adding & installing package dependencies",
-      "--skip-preflight": "Ignore preflight checks and continue (default: false)",
+      "--skip-preflight":
+        "Ignore preflight checks and continue (default: false)",
       "-c, --cwd <path>": "The working directory (default: current directory)",
       "--proxy <proxy>": "Fetch components from registry using a proxy",
       "-h, --help": "Display help for command",
@@ -421,7 +672,7 @@ export function sanitizeContent(content: string): string {
       // Remove footer links
       .replace(
         /\[Docs\]\([^\)]+\)\s+\[API Reference\]\([^\)]+\)\s+Component Source/g,
-        ""
+        "",
       )
       // Remove common sidebar artifacts (long lists of links)
       .replace(/^(\* \[.+\]\(.+\)\n){3,}/gm, "")
@@ -429,8 +680,6 @@ export function sanitizeContent(content: string): string {
       .replace(/Copy Page/g, "")
       // Remove multiple newlines
       .replace(/\n{3,}/g, "\n\n")
-      // Remove Bits UI specific noise
-      .replace(/Copy Page/g, "")
       .trim()
   );
 }
@@ -441,8 +690,7 @@ export function sanitizeContent(content: string): string {
 export function getFirstCodeBlock(content: string): string | undefined {
   if (!content) return undefined;
   const match = content.match(
-    /```(?:svelte|typescript|javascript|bash|json)?\n([\s\S]*?)\n```/
+    /```(?:svelte|typescript|javascript|bash|json)?\n([\s\S]*?)\n```/,
   );
   return match ? match[1].trim() : undefined;
 }
-

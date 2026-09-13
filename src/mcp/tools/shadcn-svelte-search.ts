@@ -10,23 +10,14 @@ import { tool } from "tmcp/utils";
 import * as v from "valibot";
 import Fuse from "fuse.js";
 import { getAllContent } from "../../services/component-discovery.js";
-
-// Helper: Consistent mapping from package manager to install command prefix
-const getPrefix = (pm?: string) => {
-  if (!pm) return "npx";
-  switch (pm) {
-    case "npm":
-      return "npx";
-    case "yarn":
-      return "yarn dlx";
-    case "pnpm":
-      return "pnpm dlx";
-    case "bun":
-      return "bun x";
-    default:
-      return "npx";
-  }
-};
+import {
+  getInstallPrefix,
+  npmClient,
+  addVerb,
+  titleCase as formatTitle,
+  SHADCN_WWW,
+  BITS_WWW,
+} from "./utils/shadcn-utils.js";
 
 // Types
 interface SearchResult {
@@ -52,81 +43,39 @@ interface SearchableItem {
   category?: string;
 }
 
-// Known blocks and charts (synced with list tool)
-const BLOCKS = {
-  featured: ["dashboard-01"],
-  sidebar: ["sidebar-03", "sidebar-07"],
-  login: ["login-03", "login-04"],
-};
-
-const CHARTS = {
-  area: ["chart-area-default", "chart-area-interactive"],
-  bar: ["chart-bar-default", "chart-bar-interactive"],
-  line: ["chart-line-default", "chart-line-interactive"],
-  pie: ["chart-pie-default", "chart-pie-interactive"],
-  radar: ["chart-radar-default", "chart-radar-interactive"],
-  radial: ["chart-radial-default", "chart-radial-interactive"],
-  tooltip: ["chart-tooltip-default", "chart-tooltip-icons"],
-};
-
 /**
  * Get all searchable items (components, blocks, charts, docs)
+ * Blocks/charts come from the live registry index via getAllContent.
  */
 async function getSearchableItems(): Promise<SearchableItem[]> {
   console.log("[shadcn-svelte-search] Loading searchable items...");
 
   const content = await getAllContent();
-  const items: SearchableItem[] = [];
+  const items: SearchableItem[] = [
+    ...content.components.map((c) => ({
+      name: c.name,
+      type: "component" as const,
+      category: c.category,
+    })),
+    ...content.bitsUIComponents.map((c) => ({
+      name: c.name,
+      type: "component" as const,
+      category: c.category,
+    })),
+    ...content.blocks.map((b) => ({
+      name: b.name,
+      type: "block" as const,
+      category: "block",
+    })),
+    ...content.charts.map((c) => ({
+      name: c.name,
+      type: "chart" as const,
+      category: "chart",
+    })),
+  ];
 
-  // Add shadcn-svelte components
-  for (const component of content.components) {
-    items.push({
-      name: component.name,
-      type: "component",
-      category: component.category,
-    });
-  }
-
-  // Add Bits UI components
-  for (const component of content.bitsUIComponents) {
-    items.push({
-      name: component.name,
-      type: "component",
-      category: component.category,
-    });
-  }
-
-  // Add blocks
-  for (const category of Object.values(BLOCKS)) {
-    for (const block of category) {
-      items.push({
-        name: block,
-        type: "block",
-        category: "block",
-      });
-    }
-  }
-
-  // Add charts
-  for (const category of Object.values(CHARTS)) {
-    for (const chart of category) {
-      items.push({
-        name: chart,
-        type: "chart",
-        category: "chart",
-      });
-    }
-  }
-
-  // Add documentation sections
   for (const [category, docs] of Object.entries(content.docs)) {
-    for (const doc of docs) {
-      items.push({
-        name: doc,
-        type: "doc",
-        category,
-      });
-    }
+    for (const doc of docs) items.push({ name: doc, type: "doc", category });
   }
 
   console.log(`[shadcn-svelte-search] Loaded ${items.length} searchable items`);
@@ -196,33 +145,30 @@ function getSuggestionsForNoResults(
  * Build URL for an item
  */
 function buildUrl(item: SearchableItem): string {
-  const base = "https://www.shadcn-svelte.com";
-  const bitsBase = "https://bits-ui.com";
-
   if (item.category === "bits-ui-component") {
-    return `${bitsBase}/docs/components/${item.name}`;
+    return `${BITS_WWW}/docs/components/${item.name}`;
   }
 
   switch (item.type) {
     case "component":
-      return `${base}/docs/components/${item.name}`;
+      return `${SHADCN_WWW}/docs/components/${item.name}`;
     case "block":
-      return `${base}/blocks#${item.name}`;
+      return `${SHADCN_WWW}/blocks#${item.name}`;
     case "chart":
-      return `${base}/charts#${item.name}`;
+      return `${SHADCN_WWW}/charts#${item.name}`;
     case "doc":
       // Handle different doc categories
       if (item.category === "installation") {
-        return `${base}/docs/installation/${item.name}`;
+        return `${SHADCN_WWW}/docs/installation/${item.name}`;
       } else if (item.category === "darkMode") {
-        return `${base}/docs/dark-mode/${item.name}`;
+        return `${SHADCN_WWW}/docs/dark-mode/${item.name}`;
       } else if (item.category === "migration") {
-        return `${base}/docs/migration/${item.name}`;
+        return `${SHADCN_WWW}/docs/migration/${item.name}`;
       } else {
-        return `${base}/docs/${item.name}`;
+        return `${SHADCN_WWW}/docs/${item.name}`;
       }
     default:
-      return `${base}/docs/${item.name}`;
+      return `${SHADCN_WWW}/docs/${item.name}`;
   }
 }
 
@@ -235,9 +181,7 @@ function buildInstallCommand(
 ): string | null {
   // Bits UI components are part of the bits-ui package
   if (item.category === "bits-ui-component") {
-    const prefix = getPrefix(packageManager);
-    const installCmd = packageManager === "npm" ? "install" : "add";
-    return `${prefix.replace("npx", "npm")} ${installCmd} bits-ui`;
+    return `${npmClient(packageManager)} ${addVerb(packageManager)} bits-ui`;
   }
 
   // Only components, blocks, and charts have install commands
@@ -246,20 +190,9 @@ function buildInstallCommand(
     item.type === "block" ||
     item.type === "chart"
   ) {
-    const prefix = getPrefix(packageManager);
-    return `${prefix} shadcn-svelte@latest add ${item.name}`;
+    return `${getInstallPrefix(packageManager)} shadcn-svelte@latest add ${item.name}`;
   }
   return null;
-}
-
-/**
- * Format name as title
- */
-function formatTitle(name: string): string {
-  return name
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }
 
 function parseCommaSeparatedQueries(query: string): string[] {

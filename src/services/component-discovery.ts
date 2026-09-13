@@ -25,7 +25,7 @@ export async function discoverComponents(): Promise<ComponentInfo[]> {
   const cached = await getFromCache<ComponentInfo[]>(cacheKey);
   if (cached) {
     console.log(
-      `[Discovery] Using cached component list (${cached.length} components)`
+      `[Discovery] Using cached component list (${cached.length} components)`,
     );
     return cached;
   }
@@ -65,13 +65,13 @@ export async function discoverComponents(): Promise<ComponentInfo[]> {
   // Fallback to scraping the components index page if llms.txt failed or returned nothing
   if (components.length === 0) {
     console.log(
-      "[Discovery] Falling back to scraping components index page..."
+      "[Discovery] Falling back to scraping components index page...",
     );
     const result = await fetchUrl(
       "https://www.shadcn-svelte.com/docs/components",
       {
         useCache: true,
-      }
+      },
     );
 
     if (result.success && result.markdown) {
@@ -147,7 +147,7 @@ export async function discoverDocs(): Promise<{
 
   if (!result.success || !result.markdown) {
     console.error(
-      "[Discovery] Failed to fetch docs page, falling back to hardcoded list"
+      "[Discovery] Failed to fetch docs page, falling back to hardcoded list",
     );
     // Fallback to hardcoded list if scraping fails
     const fallbackDocs = {
@@ -218,11 +218,11 @@ export async function discoverDocs(): Promise<{
   // If we didn't find much content, try HTML parsing as fallback
   const totalSections = Object.values(docs).reduce(
     (sum, arr) => sum + arr.length,
-    0
+    0,
   );
   if (totalSections < 5 && result.html) {
     console.log(
-      "[Discovery] Limited sections found in markdown, trying HTML parsing..."
+      "[Discovery] Limited sections found in markdown, trying HTML parsing...",
     );
 
     // Try to extract from HTML links
@@ -295,10 +295,84 @@ export async function discoverDocs(): Promise<{
 }
 
 /**
+ * Registry index item from https://shadcn-svelte.com/registry/index.json
+ */
+interface RegistryIndexItem {
+  name: string;
+  type: string;
+  relativeUrl?: string;
+}
+
+/**
+ * Discovers blocks and charts from the live registry index.
+ * Single source of truth — replaces hardcoded BLOCKS/CHARTS lists.
+ */
+export async function discoverRegistry(): Promise<{
+  ui: ComponentInfo[];
+  blocks: ComponentInfo[];
+  charts: ComponentInfo[];
+}> {
+  const cacheKey = "registry-index-blocks";
+  const cached = await getFromCache<{
+    ui: ComponentInfo[];
+    blocks: ComponentInfo[];
+    charts: ComponentInfo[];
+  }>(cacheKey);
+  if (cached) {
+    console.log(
+      `[Discovery] Using cached registry index (${cached.blocks.length} blocks, ${cached.charts.length} charts, ${cached.ui.length} UI)`,
+    );
+    return cached;
+  }
+
+  console.log("[Discovery] Fetching registry index...");
+  const empty = {
+    ui: [] as ComponentInfo[],
+    blocks: [] as ComponentInfo[],
+    charts: [] as ComponentInfo[],
+  };
+  try {
+    const response = await fetch(
+      "https://shadcn-svelte.com/registry/index.json",
+    );
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const items = (await response.json()) as RegistryIndexItem[];
+    const ui: ComponentInfo[] = [];
+    const blocks: ComponentInfo[] = [];
+    const charts: ComponentInfo[] = [];
+    for (const item of items) {
+      if (item.type === "registry:ui") {
+        ui.push({ name: item.name, category: "component" });
+      } else if (item.type === "registry:block") {
+        if (item.name.startsWith("chart-")) {
+          charts.push({ name: item.name, category: "chart" });
+        } else {
+          blocks.push({ name: item.name, category: "block" });
+        }
+      }
+    }
+    ui.sort((a, b) => a.name.localeCompare(b.name));
+    blocks.sort((a, b) => a.name.localeCompare(b.name));
+    charts.sort((a, b) => a.name.localeCompare(b.name));
+    console.log(
+      `[Discovery] Registry: ${ui.length} UI, ${blocks.length} blocks, ${charts.length} charts`,
+    );
+    const result = { ui, blocks, charts };
+    await saveToCache(cacheKey, result);
+    return result;
+  } catch (error) {
+    console.error("[Discovery] Registry index fetch failed:", error);
+    return empty;
+  }
+}
+
+/**
  * Gets a comprehensive list of all available content
  */
 export async function getAllContent(): Promise<{
   components: ComponentInfo[];
+  blocks: ComponentInfo[];
+  charts: ComponentInfo[];
   bitsUIComponents: BitsUIComponentInfo[];
   docs: {
     installation: string[];
@@ -307,14 +381,34 @@ export async function getAllContent(): Promise<{
     general: string[];
   };
 }> {
-  const [components, bitsUIComponents, docs] = await Promise.all([
+  const [components, registry, bitsUIComponents, docs] = await Promise.all([
     discoverComponents(),
+    discoverRegistry(),
     discoverBitsUIComponents(),
     discoverDocs(),
   ]);
 
+  // Union llms.txt components with registry UI (covers registry-only items like `form`)
+  const seen = new Set(components.map((c) => c.name));
+  for (const item of registry.ui) {
+    if (!seen.has(item.name)) {
+      seen.add(item.name);
+      components.push(item);
+    }
+  }
+  components.sort((a, b) => a.name.localeCompare(b.name));
+
   console.log(`[getAllContent] shadcn-svelte components: ${components.length}`);
+  console.log(
+    `[getAllContent] blocks: ${registry.blocks.length}, charts: ${registry.charts.length}`,
+  );
   console.log(`[getAllContent] Bits UI components: ${bitsUIComponents.length}`);
 
-  return { components, bitsUIComponents, docs };
+  return {
+    components,
+    blocks: registry.blocks,
+    charts: registry.charts,
+    bitsUIComponents,
+    docs,
+  };
 }

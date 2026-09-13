@@ -4,12 +4,11 @@ import * as v from "valibot";
 import {
   fetchComponentDocs,
   fetchGeneralDocs,
-  fetchSvelteSonnerDocs,
   type FetchResult,
 } from "../../services/doc-fetcher.js";
 import {
   isBlock,
-  fetchBlockCode,
+  fetchRegistryItem,
   extractExamples,
   extractVariants,
   extractSummary,
@@ -17,31 +16,17 @@ import {
   getInstallCommand,
   getImportPath,
   getFirstCodeBlock,
+  extractBitsUiName,
+  toJson,
+  shadcnComponentUrl,
+  registryBlockUrl,
+  DISCOVER_STEPS,
+  SVELTE_RULES,
+  BLOCK_CHART_RULES,
 } from "./utils/shadcn-utils.js";
 
-/**
- * Extract Bits UI component name from URL
- * @param url - Bits UI component URL like "https://bits-ui.com/docs/components/dialog"
- * @returns Component name like "dialog" or undefined if not found
- */
-function extractBitsUiComponentName(url?: string): string | undefined {
-  if (!url) return undefined;
-  try {
-    const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split("/");
-    // Expected format: /docs/components/{componentName}
-    if (
-      pathParts.length >= 4 &&
-      pathParts[1] === "docs" &&
-      pathParts[2] === "components"
-    ) {
-      return pathParts[3];
-    }
-  } catch {
-    // Invalid URL, return undefined
-  }
-  return undefined;
-}
+/** Extract Bits UI component name from a docs URL. */
+const extractBitsUiComponentName = extractBitsUiName;
 
 /**
  * Response interface for structured JSON output
@@ -100,18 +85,16 @@ export const shadcnSvelteGetTool = defineTool(
   {
     name: "shadcn-svelte-get",
     description:
-      "PRIMARY tool for shadcn-svelte. Get docs for any component, block, chart, doc section, or Svelte Sonner. Use FIRST for shadcn-svelte questions. Svelte only, not React. If the response includes tooling.bitsUi.exactName, that is the only value to pass to bits-ui-get.",
+      "PRIMARY tool for shadcn-svelte. Get docs for any component, block, chart, or doc section. Use FIRST for shadcn-svelte questions. Svelte only, not React. If the response includes tooling.bitsUi.exactName, that is the only value to pass to bits-ui-get.",
     schema: v.object({
       name: v.pipe(
         v.string(),
-        v.description(
-          "Name of the component, documentation section, or 'sonner' for Svelte Sonner docs",
-        ),
+        v.description("Name of the component or documentation section"),
       ),
       type: v.pipe(
-        v.picklist(["component", "doc", "sonner"]),
+        v.picklist(["component", "doc"]),
         v.description(
-          "Type: 'component' for UI components/blocks/charts, 'doc' for documentation, 'sonner' for Svelte Sonner docs",
+          "Type: 'component' for UI components/blocks/charts (including sonner), 'doc' for documentation",
         ),
       ),
       packageManager: v.optional(
@@ -125,14 +108,38 @@ export const shadcnSvelteGetTool = defineTool(
     }),
   },
   async ({ name, type, packageManager }) => {
+    const respond = (response: ToolResponse) => tool.text(toJson(response));
+
+    /** Builds the success envelope for a registry-sourced item. */
+    const registryResponse = (
+      itemName: string,
+      registryType: string | undefined,
+      code: string | undefined,
+    ): ToolResponse => ({
+      success: true,
+      name: itemName,
+      type:
+        itemName.startsWith("chart-") ? "chart"
+        : registryType === "registry:ui" ? "component"
+        : "block",
+      description:
+        registryType === "registry:ui"
+          ? `UI component (registry source): ${itemName}`
+          : `Block/Chart component: ${itemName}`,
+      installCommand: getInstallCommand(itemName, packageManager),
+      docs: { main: registryBlockUrl(itemName) },
+      contextRules: BLOCK_CHART_RULES,
+      rawContent: code,
+    });
+
     try {
       if (type === "component") {
         // Check if this is a block/chart (uses different API)
         if (isBlock(name)) {
-          const blockResult = await fetchBlockCode(name, packageManager);
+          const blockResult = await fetchRegistryItem(name, packageManager);
 
           if (!blockResult.success) {
-            const response: ToolResponse = {
+            return respond({
               success: false,
               error: `Block/Chart "${name}" not found: ${blockResult.error}`,
               suggestion: `The block/chart name "${name}" may not exist. Use shadcn-svelte-list to discover available blocks and charts.`,
@@ -142,44 +149,37 @@ export const shadcnSvelteGetTool = defineTool(
                 `3. Visit https://shadcn-svelte.com/blocks to browse all available blocks`,
                 `4. Blocks often have numerical suffixes (e.g., sidebar-03, dashboard-01)`,
               ],
-            };
-            return tool.text(JSON.stringify(response, null, 2));
+            });
           }
 
-          const response: ToolResponse = {
-            success: true,
-            name,
-            type: name.startsWith("chart-") ? "chart" : "block",
-            description: `Block/Chart component: ${name}`,
-            installCommand: getInstallCommand(name, packageManager),
-            docs: {
-              main: `https://shadcn-svelte.com/blocks/${name}`,
-            },
-            contextRules: [
-              "This is a SVELTE block/chart. Do NOT use React-specific props or patterns.",
-              "Note: Project should already be initialized with shadcn-svelte before adding components.",
-            ],
-            rawContent: blockResult.code,
-          };
-          return tool.text(JSON.stringify(response, null, 2));
+          return respond(
+            registryResponse(name, blockResult.registryType, blockResult.code),
+          );
         }
 
         // Regular component - fetch from component docs
         const result = await fetchComponentDocs(name, { useCache: true });
 
         if (!result.success || !result.content) {
-          const response: ToolResponse = {
+          // Fallback: registry-only items (e.g. `form`) have no docs page
+          // but exist in the registry. Try the block/registry fetch.
+          const blockFallback = await fetchRegistryItem(name, packageManager);
+          if (blockFallback.success) {
+            return respond(
+              registryResponse(
+                name,
+                blockFallback.registryType,
+                blockFallback.code,
+              ),
+            );
+          }
+
+          return respond({
             success: false,
             error: result.error || `Component "${name}" not found`,
             suggestion: `The component name "${name}" may not exist in shadcn-svelte. Available components can be discovered.`,
-            nextSteps: [
-              `1. Use the shadcn-svelte-list tool to see all available components, blocks, and charts`,
-              `2. Check the correct spelling - component names are case-sensitive`,
-              `3. Visit https://shadcn-svelte.com to browse available components`,
-              `4. Only use bits-ui-get after shadcn-svelte-get exposes docs.bitsuiName for an underlying primitive`,
-            ],
-          };
-          return tool.text(JSON.stringify(response, null, 2));
+            nextSteps: DISCOVER_STEPS,
+          });
         }
 
         const rawContent = sanitizeContent(result.content);
@@ -218,7 +218,7 @@ export const shadcnSvelteGetTool = defineTool(
           importPath: getImportPath(name),
           dependencies: bitsUiName ? ["bits-ui"] : [],
           docs: {
-            main: `https://shadcn-svelte.com/docs/components/${name}`,
+            main: shadcnComponentUrl(name),
             primitive: result.metadata?.bitsUiUrl || result.bitsUiUrl,
             bitsuiName: bitsUiName,
           },
@@ -229,16 +229,14 @@ export const shadcnSvelteGetTool = defineTool(
           variants:
             variants.length > 0 ? variants.map((v) => v.name) : undefined,
           contextRules: [
-            "Do NOT use React-specific props like 'asChild'.",
-            "Use standard Svelte slot patterns or snippets where applicable.",
-            "Always follow the Svelte examples shown in the documentation.",
+            ...SVELTE_RULES,
             bitsUiName
               ? `Use this shadcn-svelte wrapper for standard app code. Only call bits-ui-get when you specifically need the lower-level \"${bitsUiName}\" primitive internals.`
               : "If no docs.bitsuiName is present, do not switch to bits-ui-get.",
           ],
           rawContent,
         };
-        return tool.text(JSON.stringify(response, null, 2));
+        return respond(response);
       } else if (type === "doc") {
         let result: FetchResult | null = null;
 
@@ -266,15 +264,14 @@ export const shadcnSvelteGetTool = defineTool(
         }
 
         if (!result || !result.success || !result.content) {
-          const response: ToolResponse = {
+          return respond({
             success: false,
             error: result?.error || `Documentation "${name}" not found`,
-          };
-          return tool.text(JSON.stringify(response, null, 2));
+          });
         }
 
         const content = sanitizeContent(result.content);
-        const response: ToolResponse = {
+        return respond({
           success: true,
           name: result.metadata?.title || name,
           type: "doc",
@@ -288,53 +285,15 @@ export const shadcnSvelteGetTool = defineTool(
           },
           rawContent: content,
           metadata: result.metadata,
-        };
-        return tool.text(JSON.stringify(response, null, 2));
-      } else if (type === "sonner") {
-        const result = await fetchSvelteSonnerDocs({ useCache: true });
-
-        if (!result.success || !result.content) {
-          const response: ToolResponse = {
-            success: false,
-            error:
-              result.error || "Failed to fetch Svelte Sonner documentation",
-          };
-          return tool.text(JSON.stringify(response, null, 2));
-        }
-
-        const content = sanitizeContent(result.content);
-        const response: ToolResponse = {
-          success: true,
-          name: "Svelte Sonner",
-          type: "doc",
-          description: "An opinionated toast component for Svelte.",
-          installCommand: getInstallCommand("sonner", packageManager),
-          importPath: 'import { toast } from "svelte-sonner";',
-          docs: {
-            main: "https://shadcn-svelte.com/docs/components/sonner",
-          },
-          usage: {
-            summary: "Primary usage code block extracted from documentation.",
-            code: getFirstCodeBlock(content),
-          },
-          rawContent: content,
-          metadata: result.metadata,
-        };
-        return tool.text(JSON.stringify(response, null, 2));
+        });
       }
 
       throw new Error(`Invalid type "${type}"`);
     } catch (error) {
-      return tool.text(
-        JSON.stringify(
-          {
-            success: false,
-            error: `Error retrieving ${type} "${name}": ${error instanceof Error ? error.message : error}`,
-          },
-          null,
-          2,
-        ),
-      );
+      return respond({
+        success: false,
+        error: `Error retrieving ${type} "${name}": ${error instanceof Error ? error.message : error}`,
+      });
     }
   },
 );

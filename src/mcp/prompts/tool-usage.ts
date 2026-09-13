@@ -34,8 +34,8 @@ export const toolUsagePrompt = definePrompt(
 ## Tool hierarchy
 
 1. **shadcn-svelte-get** — PRIMARY. Use FIRST for any shadcn-svelte question:
-   components (UI primitives), blocks (pre-built sections like dashboards/sidebars),
-   charts, documentation sections, or Svelte Sonner. Returns structured JSON with
+   components (UI primitives, including sonner), blocks (pre-built sections like dashboards/sidebars),
+   charts, or documentation sections. Returns structured JSON with
    content, metadata, code blocks, install commands, and warnings.
 2. **shadcn-svelte-search** — Fuzzy discovery by keyword or phrase. Use when you are
    not sure of the exact name, or to find components to install. Typo-tolerant,

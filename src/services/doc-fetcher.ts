@@ -364,30 +364,7 @@ export async function fetchComponentDocs(
 }
 
 /**
- * Fetches Svelte Sonner documentation from the official website
- */
-export async function fetchSvelteSonnerDocs(
-  options?: FetchOptions,
-): Promise<FetchResult> {
-  const url = "https://svelte-sonner.vercel.app/";
-  return fetchUrl(url, options);
-}
 
-/**
- * Fetches installation guide documentation
- */
-export async function fetchInstallationDocs(
-  framework?: string,
-  options?: FetchOptions,
-): Promise<FetchResult> {
-  const path = framework
-    ? `/docs/installation/${framework}`
-    : "/docs/installation";
-  const url = `${SHADCN_BASE_URL}${path}`;
-  return fetchUrl(url, options);
-}
-
-/**
  * Fetches general documentation page
  */
 export async function fetchGeneralDocs(
@@ -399,125 +376,7 @@ export async function fetchGeneralDocs(
   return fetchUrl(url, options);
 }
 
-/**
- * Discovers URLs from a website by scraping the sitemap or homepage links
- * Note: This is a basic implementation. For comprehensive crawling, consider using a dedicated crawler.
- */
-export async function discoverUrls(
-  baseUrl: string = SHADCN_BASE_URL,
-  options: {
-    search?: string;
-    limit?: number;
-  } = {},
-): Promise<{ urls: string[]; success: boolean; error?: string }> {
-  try {
-    console.log(`[Fetcher] Discovering URLs from ${baseUrl}`);
-
-    // Try fetching sitemap first
-    const sitemapUrl = `${baseUrl}/sitemap.xml`;
-    try {
-      const response = await fetchWithTimeout(sitemapUrl);
-      if (response.ok) {
-        const xml = await response.text();
-        const $ = cheerio.load(xml, { xmlMode: true });
-        const urls = $("loc")
-          .map((_, el) => $(el).text())
-          .get();
-
-        console.log(`[Fetcher] ✓ Discovered ${urls.length} URLs from sitemap`);
-        return { urls: urls.slice(0, options.limit || 100), success: true };
-      }
-    } catch (error) {
-      console.log("[Fetcher] No sitemap found, trying homepage links");
-    }
-
-    // Fallback: scrape homepage for links
-    const response = await fetchWithTimeout(baseUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    const urls: string[] = [];
-    $("a[href]").each((_, el) => {
-      const href = $(el).attr("href");
-      if (href) {
-        // Convert relative URLs to absolute
-        const absoluteUrl = new URL(href, baseUrl).href;
-        // Only include URLs from the same domain
-        if (absoluteUrl.startsWith(baseUrl)) {
-          urls.push(absoluteUrl);
-        }
-      }
-    });
-
-    // Apply search filter if provided
-    let filteredUrls = urls;
-    if (options.search) {
-      const searchLower = options.search.toLowerCase();
-      filteredUrls = urls.filter((url) =>
-        url.toLowerCase().includes(searchLower),
-      );
-    }
-
-    // Deduplicate and limit
-    const uniqueUrls = [...new Set(filteredUrls)].slice(
-      0,
-      options.limit || 100,
-    );
-
-    console.log(
-      `[Fetcher] ✓ Discovered ${uniqueUrls.length} URLs from homepage`,
-    );
-    return { urls: uniqueUrls, success: true };
-  } catch (error) {
-    console.error(`[Fetcher] Error discovering URLs from ${baseUrl}:`, error);
-    return {
-      urls: [],
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
-/**
- * Tests the fetcher by trying to fetch a known documentation page
- */
-export async function testConnection(): Promise<{
-  success: boolean;
-  message: string;
-}> {
-  try {
-    console.log("[Fetcher] Testing connection...");
-    const result = await fetchUrl(`${SHADCN_BASE_URL}/docs`, {
-      useCache: false,
-      timeout: 10000,
-    });
-
-    if (result.success && result.markdown) {
-      return {
-        success: true,
-        message: `Successfully fetched documentation (source: ${result.source})`,
-      };
-    } else {
-      return {
-        success: false,
-        message: result.error || "Failed to fetch test URL",
-      };
-    }
-  } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error ? error.message : "Connection test failed",
-    };
-  }
-}
-
 // Export configuration for other modules
 export const config = {
   SHADCN_BASE_URL,
-  FETCH_TIMEOUT,
 };
