@@ -1,3 +1,10 @@
+## [1.11.2](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.11.1...v1.11.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* **release:** enable patch releases for refactor type ([4017df3](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/4017df35416ecd2debf03f58284835d309b21057))
+
 ## [1.11.1](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.11.0...v1.11.1) (2026-09-12)
 
 
