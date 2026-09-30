@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.11.3...v1.12.0) (2026-09-30)
+
+
+### Features
+
+* **agents:** add per-editor Shadcn Svelte agent and design skill docs ([ecbd2df](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/ecbd2df4fc947c9c9b67d04c78b5f8a0aad9eff2))
+
 ## [1.11.3](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.11.2...v1.11.3) (2026-09-13)
 
 
