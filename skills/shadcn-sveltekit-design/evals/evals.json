@@ -18,6 +18,12 @@
       "prompt": "Redesign a cramped analytics dashboard in SvelteKit so it feels editorial and data-dense without becoming generic SaaS UI. Use verified shadcn-svelte building blocks, keep the layout responsive, and call out any component gaps instead of hallucinating them. If no motion library is requested, prefer Svelte built-in motion primitives such as transition, in, out, and animate rather than adding a new dependency.",
       "expected_output": "A dashboard redesign plan and implementation that uses verified blocks, charts, or primitives, preserves responsiveness, prefers built-in Svelte motion when no motion library is specified, and explicitly states any unavailable components.",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "The shadcn-svelte MCP is not connected in this session. The user asks how to install the shadcn-svelte slider component into their Bun project.",
+      "expected_output": "An explicit statement that the MCP is unavailable, concrete setup guidance (hosted https://shadcn.svelte-apps.me/mcp or npx -y shadcn-svelte-mcp), verification against official shadcn-svelte docs before giving any command, and a bun-appropriate command — no component names or CLI syntax invented from memory.",
+      "files": []
     }
   ]
 }

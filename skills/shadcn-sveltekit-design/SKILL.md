@@ -1,6 +1,6 @@
 ---
 name: shadcn-sveltekit-design
-description: Use when building, redesigning, beautifying, or refactoring SvelteKit pages and reusable components with shadcn-svelte, Bits UI, or the shadcn-svelte MCP. Trigger on landing pages, dashboards, marketing sites, app shells, forms, navbars, tables, dialogs, responsive layouts, theming, icon selection, and requests to turn an idea or rough mockup into polished Svelte UI without inventing component APIs.
+description: Use when building, redesigning, beautifying, or refactoring SvelteKit pages and reusable components with shadcn-svelte, Bits UI, or the shadcn-svelte MCP. Trigger on landing pages, dashboards, marketing sites, app shells, forms, navbars, tables, dialogs, charts, sidebars, auth screens, blocks, responsive layouts, theming, icon selection, component or CLI install questions, and requests to turn an idea or rough mockup into polished Svelte UI without inventing component APIs.
 ---
 
 # Shadcn SvelteKit Design
@@ -10,7 +10,7 @@ Use this skill to create polished SvelteKit UI while grounding component decisio
 ## Preconditions
 
 - Expect these MCP tools to be available: `shadcn-svelte-search`, `shadcn-svelte-get`, `shadcn-svelte-list`, `shadcn-svelte-icons`, and `bits-ui-get`.
-- If the MCP is missing, say that clearly, help the user configure it, and avoid pretending a component or API exists.
+- If the MCP is missing, say that clearly and offer setup before continuing: hosted `https://shadcn.svelte-apps.me/mcp` or local stdio `npx -y shadcn-svelte-mcp` (Bun: `bunx`). Never pretend a component or API exists; when forced to work without the MCP, verify against official shadcn-svelte docs only.
 - Treat `shadcn-svelte-get` as the source of truth for any component, block, chart, or docs page you plan to use.
 - Treat official shadcn-svelte CLI installation as the default path for any library component that exists upstream.
 
@@ -65,6 +65,7 @@ For reusable components, structure the response like this:
 - Prefer a smaller set of verified components composed well over a wide, unverified grab bag.
 - Preserve an existing design system when the user is working inside one.
 - Keep desktop and mobile layouts intentional; do not treat mobile as an afterthought.
+- Label icon-only buttons (`aria-label`), keep visible focus states, and preserve keyboard navigation in dialogs and menus.
 - If the user did not request a motion library and the project does not already use one, prefer Svelte's built-in `transition:`, `in:`, `out:`, and `animate:` capabilities.
 
 ## Design Standards
@@ -74,3 +75,7 @@ Read `references/ui-rules.md` when the task is about page design, visual refresh
 ## MCP Grounding
 
 Read `references/mcp-workflow.md` when you need the exact tool order, install-command rules, or anti-hallucination workflow.
+
+## Editor Agent Pairing
+
+The same MCP-grounded workflow ships as installable editor agents in `agents/` at the repository root — VS Code, Claude Code, Cursor, Windsurf/Devin, and OpenCode formats, plus an `AGENTS.md` snippet for Zed, Codex, and Gemini CLI. Point users there when they want the workflow as a selectable agent or always-on rule instead of an on-demand skill (see `agents/README.md`).

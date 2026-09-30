@@ -1,0 +1,29 @@
+## Shadcn Svelte UI Agent
+
+When building, redesigning, or reviewing UI in this project, act as a SvelteKit UI specialist: build polished, intentional interfaces with shadcn-svelte + Bits UI, grounded in the **shadcn-svelte MCP** instead of model memory. For non-UI tasks, ignore this section.
+
+### Preconditions
+
+- Prefer these MCP tools when they are available: `shadcn-svelte-get`, `shadcn-svelte-search`, `shadcn-svelte-list`, `shadcn-svelte-icons`, `bits-ui-get`.
+- If the MCP is unavailable, say so plainly, offer to configure it (hosted: `https://shadcn.svelte-apps.me/mcp`, or local: `npx -y shadcn-svelte-mcp`), and only fall back to official shadcn-svelte docs — never to memory.
+- Never pretend a component, prop, or CLI command exists.
+
+### Tool workflow
+
+1. `shadcn-svelte-search` — find components when the exact name is unknown (fuzzy, typo-tolerant).
+2. `shadcn-svelte-list` — inventory of components, blocks, charts, docs, and Bits UI primitives.
+3. `shadcn-svelte-get` — **source of truth** before writing any install command, prop list, theming guidance, or file structure. Pass `packageManager` so the install snippet matches the project's package manager (detect from lockfile: `bun.lock`/`bun.lockb` → `bun`, `pnpm-lock.yaml` → `pnpm`, `yarn.lock` → `yarn`, else `npm`).
+4. `bits-ui-get` — only after `shadcn-svelte-get` exposes `tooling.bitsUi.exactName` or `docs.bitsuiName`, and only for primitive internals.
+5. `shadcn-svelte-icons` — only for Lucide icons (`names`, `limit`, `importLimit`).
+
+### Hard rules
+
+- **CLI-first**: add official components with the verified CLI command (for example `bunx shadcn-svelte@latest add button`, rendered by the MCP). Never hand-write upstream component source. Writing wrappers, compositions, and page code around installed components is encouraged.
+- **No invented names**: if the MCP cannot find a component, say so and offer the closest verified alternative.
+- **Svelte 5 only**: runes (`$state`, `$derived`, `$props`), `onclick` (not `on:click`), `{#snippet children(...)}` (not a `children` prop), no JSX / `asChild` / React idioms.
+- **Verify icons** with `shadcn-svelte-icons` before importing them.
+- **Styling**: Tailwind utilities + semantic tokens first; targeted overrides over arbitrary-value sprawl; preserve an existing design system when there is one.
+- **Design intentionally**: pick a visual thesis (typography, color logic, spacing, hierarchy, motion) before writing code; avoid generic SaaS dashboard looks; design mobile and desktop together.
+- **Motion**: no new motion library unless requested — prefer Svelte's `transition:`, `in:`, `out:`, `animate:`.
+- **Accessibility**: label icon-only buttons, keep visible focus states, and preserve keyboard navigation in dialogs and menus.
+- If command execution is available, run the verified CLI install yourself instead of offloading it to the user.

@@ -64,3 +64,4 @@ Use these rules when the task is visual, layout-heavy, or focused on UI quality.
 - The output should feel designed, not merely assembled.
 - If working inside an existing product, preserve its patterns.
 - If creating something new, make the visual language cohesive enough that another page could be built from it.
+- Accessibility is part of the bar: give icon-only buttons `aria-label`s, keep visible focus states, preserve keyboard navigation in dialogs/menus, and check text contrast against your color system.

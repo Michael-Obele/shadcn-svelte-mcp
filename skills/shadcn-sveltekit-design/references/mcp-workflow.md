@@ -8,8 +8,10 @@ Use the MCP to ground every component, block, chart, icon, and low-level API cho
 2. Use `shadcn-svelte-list` when you need a broader inventory of available components, blocks, charts, docs, or Bits UI primitives.
 3. Use `shadcn-svelte-get` as the source of truth before you write install commands, component code, theming guidance, or file structure.
 4. Use `bits-ui-get` only after `shadcn-svelte-get` when you need lower-level API details for the underlying primitive.
-  - Pass the exact value from `tooling.bitsUi.exactName` or `docs.bitsuiName`.
-  - Do not use `bits-ui-get` for normal shadcn-svelte wrapper usage, installation, or page composition.
+
+- Pass the exact value from `tooling.bitsUi.exactName` or `docs.bitsuiName`.
+- Do not use `bits-ui-get` for normal shadcn-svelte wrapper usage, installation, or page composition.
+
 5. Use `shadcn-svelte-icons` only for Lucide icon discovery and import examples.
 
 ## CLI-First Component Rule
@@ -37,6 +39,7 @@ Use the MCP to ground every component, block, chart, icon, and low-level API cho
 
 - Prefer the documented install snippets returned by the MCP.
 - If the user has a preferred package manager, use the `packageManager` option so the returned snippet matches their environment.
+- Detect the package manager from the lockfile before choosing `packageManager`: `bun.lock` / `bun.lockb` → `bun`, `pnpm-lock.yaml` → `pnpm`, `yarn.lock` → `yarn`, `package-lock.json` → `npm`. With no lockfile, default to `bun` (`bunx shadcn-svelte@latest add ...`).
 - Do not rewrite CLI syntax from memory.
 - If the project is not initialized yet, run or guide the `init` flow before `add`, depending on whether command execution is available in the environment.
 
@@ -57,3 +60,10 @@ When helpful, briefly tell the user what was verified. Good examples:
 - "The MCP did not surface a native date range picker, so I used verified alternatives instead."
 
 This keeps the work grounded and makes the reasoning auditable.
+
+## If The MCP Is Unavailable
+
+1. Say so plainly — do not improvise commands or props from memory.
+2. Offer setup first: hosted Streamable HTTP `https://shadcn.svelte-apps.me/mcp` (health check `https://shadcn.svelte-apps.me/health`) or local stdio `npx -y shadcn-svelte-mcp` (Bun: `bunx -y shadcn-svelte-mcp`).
+3. Only then fall back to official sources: `https://www.shadcn-svelte.com/docs` (serves `.md` endpoints and an `llms.txt` index) and `https://bits-ui.com` for primitive APIs.
+4. Label anything fetched outside the MCP as web research, and re-verify it against the MCP once it is reconnected.

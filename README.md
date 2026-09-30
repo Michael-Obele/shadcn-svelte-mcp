@@ -109,6 +109,53 @@ Polished SvelteKit UI skill at `skills/shadcn-sveltekit-design/SKILL.md`:
 npx skills add Michael-Obele/shadcn-svelte-mcp --skill shadcn-sveltekit-design
 ```
 
+## Agent
+
+A ready-made **Shadcn Svelte agent** ships in [`agents/`](agents/) — the same MCP-grounded workflow as the skill, packaged per editor with the correct frontmatter for each format. Full matrix: [`agents/README.md`](agents/README.md).
+
+```bash
+BASE=https://raw.githubusercontent.com/Michael-Obele/shadcn-svelte-mcp/main/agents
+
+# VS Code (Copilot custom agent — appears in the chat agent picker)
+mkdir -p .github/agents
+curl -fsSL "$BASE/vscode-shadcn-svelte.agent.md" -o .github/agents/shadcn-svelte.agent.md
+
+# Claude Code (VS Code also reads .claude/agents/)
+mkdir -p .claude/agents
+curl -fsSL "$BASE/claude-shadcn-svelte.md" -o .claude/agents/shadcn-svelte.md
+
+# Cursor
+mkdir -p .cursor/rules
+curl -fsSL "$BASE/cursor-shadcn-svelte.mdc" -o .cursor/rules/shadcn-svelte.mdc
+
+# Windsurf / Devin
+mkdir -p .windsurf/rules
+curl -fsSL "$BASE/windsurf-shadcn-svelte.md" -o .windsurf/rules/shadcn-svelte.md
+
+# OpenCode
+mkdir -p .opencode/agents
+curl -fsSL "$BASE/opencode-shadcn-svelte.md" -o .opencode/agents/shadcn-svelte.md
+
+# Zed / Codex / Gemini CLI — append the snippet instead
+curl -fsSL "$BASE/agents-md-snippet.md" >> AGENTS.md   # Zed + AGENTS.md readers
+curl -fsSL "$BASE/agents-md-snippet.md" >> GEMINI.md   # Gemini CLI
+```
+
+| Editor                                          | Install to                                           | Source file                     |
+| ----------------------------------------------- | ---------------------------------------------------- | ------------------------------- |
+| VS Code (Copilot)                               | `.github/agents/` or your profile's `agents/` folder | `vscode-shadcn-svelte.agent.md` |
+| Claude Code                                     | `.claude/agents/` or `~/.claude/agents/`             | `claude-shadcn-svelte.md`       |
+| Cursor                                          | `.cursor/rules/`                                     | `cursor-shadcn-svelte.mdc`      |
+| Windsurf / Devin                                | `.windsurf/rules/` or `.devin/rules/`                | `windsurf-shadcn-svelte.md`     |
+| OpenCode                                        | `.opencode/agents/` or `~/.config/opencode/agents/`  | `opencode-shadcn-svelte.md`     |
+| Zed                                             | project `AGENTS.md` or `~/.config/zed/AGENTS.md`     | `agents-md-snippet.md`          |
+| Codex, Amp, Gemini CLI, other AGENTS.md readers | `AGENTS.md` / `GEMINI.md`                            | `agents-md-snippet.md`          |
+
+Notes:
+
+- Keep the MCP server named `shadcn-svelte` (as in [Connect](#connect-30-seconds)) so the agent's `shadcn-svelte/*` tool bindings resolve.
+- Without the MCP, the agent says so and falls back to official shadcn-svelte docs instead of guessing.
+
 ## Verify
 
 ```bash
