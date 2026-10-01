@@ -9,4 +9,3 @@ dist
 *.db-*
 ai-generated-docs/*
 .cache/*
-test/*

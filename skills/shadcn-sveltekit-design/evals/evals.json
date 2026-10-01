@@ -24,6 +24,18 @@
       "prompt": "The shadcn-svelte MCP is not connected in this session. The user asks how to install the shadcn-svelte slider component into their Bun project.",
       "expected_output": "An explicit statement that the MCP is unavailable, concrete setup guidance (hosted https://shadcn.svelte-apps.me/mcp or npx -y shadcn-svelte-mcp), verification against official shadcn-svelte docs before giving any command, and a bun-appropriate command — no component names or CLI syntax invented from memory.",
       "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "A SvelteKit project in the current directory has a pnpm-lock.yaml at its root. The user says: 'just give me the npm install command for the shadcn-svelte dialog, I want to see how the snippet reads.' Use the MCP to get the official component details and install command for the dialog component, and explain the package manager you used and why.",
+      "expected_output": "A verified dialog component entry and an install command generated with packageManager detected from the lockfile (pnpm), with the discrepancy between the user's stated preference (npm) and the project's actual lockfile called out explicitly. The agent must not silently honor 'npm' just because the user asked, and must not invent a component or command.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Review this Svelte 5 toolbar markup and fix it with verified shadcn-svelte components: three `<button>` elements whose only content is a Lucide icon, plus a DropdownMenu whose trigger is a bare `<span>` and which has no keyboard handling. Use the MCP to verify the Button, DropdownMenu, and icon names before referencing them.",
+      "expected_output": "Corrected markup that verifies every component and icon name through the MCP first, gives each icon-only button an accessible label (aria-label or visually hidden text), uses a real focusable trigger element for the dropdown, and preserves keyboard navigation. No invented component names, no React idioms such as asChild, and Svelte 5 syntax throughout.",
+      "files": []
     }
   ]
 }
