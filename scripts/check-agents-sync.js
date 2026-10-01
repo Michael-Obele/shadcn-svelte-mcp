@@ -72,11 +72,16 @@ function normalize(body) {
 
 /** Longest-common-subsequence table, used to render a minimal diff. */
 function lcsTable(a, b) {
-  const table = Array.from({ length: a.length + 1 }, () => new Uint32Array(b.length + 1));
+  const table = Array.from(
+    { length: a.length + 1 },
+    () => new Uint32Array(b.length + 1),
+  );
   for (let i = a.length - 1; i >= 0; i--) {
     for (let j = b.length - 1; j >= 0; j--) {
       table[i][j] =
-        a[i] === b[j] ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1]);
+        a[i] === b[j]
+          ? table[i + 1][j + 1] + 1
+          : Math.max(table[i + 1][j], table[i][j + 1]);
     }
   }
   return table;
@@ -115,12 +120,13 @@ if (!files.includes(CANONICAL)) {
   process.exit(1);
 }
 
-const { frontmatter: canonicalFrontmatter, body: canonicalBody } = splitFrontmatter(
-  fs.readFileSync(path.join(agentsDir, CANONICAL), "utf8")
-);
+const { frontmatter: canonicalFrontmatter, body: canonicalBody } =
+  splitFrontmatter(fs.readFileSync(path.join(agentsDir, CANONICAL), "utf8"));
 
 if (canonicalFrontmatter === null) {
-  console.error(`Canonical agent agents/${CANONICAL} has no frontmatter block.`);
+  console.error(
+    `Canonical agent agents/${CANONICAL} has no frontmatter block.`,
+  );
   process.exit(1);
 }
 
@@ -133,7 +139,7 @@ for (const file of files) {
   if (NOT_AGENTS.has(file)) continue;
 
   const { frontmatter, body } = splitFrontmatter(
-    fs.readFileSync(path.join(agentsDir, file), "utf8")
+    fs.readFileSync(path.join(agentsDir, file), "utf8"),
   );
 
   if (frontmatter === null) {
@@ -145,7 +151,7 @@ for (const file of files) {
     console.error(
       `Agent drift: agents/${file} has no frontmatter block and is not a declared variant.\n` +
         `  Either give it a frontmatter block (it will then be diffed against ${CANONICAL}),\n` +
-        `  or record it in EXEMPT_VARIANTS in scripts/check-agents-sync.js with a reason.`
+        `  or record it in EXEMPT_VARIANTS in scripts/check-agents-sync.js with a reason.`,
     );
     process.exit(1);
   }
@@ -167,7 +173,7 @@ for (const file of files) {
 if (drifted.length > 0) {
   console.error(
     `Agent body drift: ${drifted.length} file(s) no longer match agents/${CANONICAL}.\n` +
-      `Edit the canonical body, then copy it into every packaged agent (frontmatter may differ).\n`
+      `Edit the canonical body, then copy it into every packaged agent (frontmatter may differ).\n`,
   );
   for (const { file, lines } of drifted) {
     console.error(`\n${diffBody(expected, file, lines)}\n`);

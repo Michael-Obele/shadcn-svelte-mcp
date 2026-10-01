@@ -19,7 +19,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const pkg = JSON.parse(
-  readFileSync(path.join(import.meta.dir, "..", "package.json"), "utf8")
+  readFileSync(path.join(import.meta.dir, "..", "package.json"), "utf8"),
 ) as { version: string };
 
 /** The tools the server is contracted to expose. */
@@ -37,9 +37,13 @@ type JsonRpcResponse = {
   error?: { code: number; message: string };
 };
 
-const child = spawn("bun", ["run", path.join(import.meta.dir, "..", "src", "stdio.ts")], {
-  stdio: ["pipe", "pipe", "pipe"],
-});
+const child = spawn(
+  "bun",
+  ["run", path.join(import.meta.dir, "..", "src", "stdio.ts")],
+  {
+    stdio: ["pipe", "pipe", "pipe"],
+  },
+);
 
 let buffer = "";
 const pending = new Map<number, (response: JsonRpcResponse) => void>();
@@ -61,7 +65,11 @@ child.stdout.on("data", (chunk: string) => {
 });
 
 /** Send a request and await its response, rejecting on transport errors. */
-function request(method: string, id: number, params: Record<string, unknown> = {}) {
+function request(
+  method: string,
+  id: number,
+  params: Record<string, unknown> = {},
+) {
   return new Promise<JsonRpcResponse>((resolve, reject) => {
     const timer = setTimeout(() => {
       pending.delete(id);
@@ -73,7 +81,9 @@ function request(method: string, id: number, params: Record<string, unknown> = {
       resolve(response);
     });
 
-    child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`);
+    child.stdin.write(
+      `${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`,
+    );
   });
 }
 
