@@ -1,0 +1,103 @@
+name: CI
+
+# Validation for every push and pull request.
+#
+# Why this exists: publishing is driven by semantic-release on push to main, and
+# until now nothing type-checked or tested anything before that happened. This
+# workflow is deliberately read-only — it never runs `sync-versions`, never
+# commits, and never publishes, so it cannot fight the release workflows.
+#
+# There is intentionally NO `concurrency:` group. Cancelling in-flight runs can
+# cancel a release commit push or a dispatch-only release workflow. Slower CI is
+# cheaper than a cancelled release. Release commits carry `[skip ci]`, so the
+# bot's own commits do not re-trigger this workflow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Type check, agent sync, version sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Only bun.lock exists — `npm ci` cannot work in this repo.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run check
+
+      # The five per-editor agent files must share one body. Fails on drift and
+      # prints a diff. `agents-md-snippet.md` is a declared variant.
+      - name: Agent body sync
+        run: bun run check:agents
+
+      # package.json and src/mcp/server.ts must advertise the same version.
+      - name: Version sync
+        run: bun run check-versions
+
+  test:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Handshake-only and network-free: spawns the real stdio entry point and
+      # asserts `initialize` + `tools/list`. Deliberately not run by AI agents
+      # locally — it is an instrumented-CI check.
+      - name: Run tests
+        run: bun test
+
+  links:
+    name: Link check (report only)
+    runs-on: ubuntu-latest
+    # Report-only: external sites flake, and a dead link in a README is not a
+    # reason to block a merge. `continue-on-error` also covers the case where
+    # the action itself cannot download the lychee binary.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check links in docs
+        uses: lycheeverse/lychee-action@v2
+        with:
+          fail: false
+          jobSummary: true
+          output: lychee/out.md
+          args: >-
+            --no-progress
+            --exclude 'localhost'
+            --exclude 'shadcn\.svelte-apps\.me'
+            --exclude 'cursor\.com/en-US/install-mcp'
+            --exclude-path 'CHANGELOG\.md'
+            './README.md'
+            './agents/**/*.md'
+            './agents/**/*.mdc'
+            './skills/**/*.md'
+
+      - name: Upload link report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lychee-report
+          path: lychee/out.md
+          if-no-files-found: ignore

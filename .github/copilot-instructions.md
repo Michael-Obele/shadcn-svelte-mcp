@@ -17,6 +17,9 @@ This file gives concise, actionable instructions for an AI coding agent to be pr
 - Local MCP: `bun run mcp` (stdio transport).
 - Build: `bun run build` (bundles `src/index.ts` + `src/stdio.ts` → `dist/` for Fly.io/Render).
 - Deploy Worker: `bun run deploy:worker` (wrangler; requires `TMCP_KV` binding — see `wrangler.jsonc`).
+- Agent sync guard: `bun run check:agents` (fails if the per-editor agent bodies in `agents/` drift apart; `agents-md-snippet.md` is a declared variant).
+- Version guard: `bun run check-versions` (`package.json` must match `src/mcp/server.ts`).
+- CI: `.github/workflows/ci.yml` runs `check`, `check:agents`, `check-versions`, `bun test`, and a report-only link check on every push and pull request. Only `bun.lock` exists, so CI uses `bun install --frozen-lockfile` — `npm ci` cannot work in this repo.
 
 Important: AI-generated/progress documentation and ephemeral notes
 
@@ -29,7 +32,7 @@ Shell command preference
 
 3. Big-picture architecture (quick map)
 
-- MCP Server (`src/mcp/server.ts`): exports `server` (tmcp `McpServer`) and `serverVersion`. Registers 5 tools + 4 prompts, uses the Valibot adapter (`@tmcp/adapter-valibot`) — all schemas are valibot.
+- MCP Server (`src/mcp/server.ts`): exports `server` (tmcp `McpServer`) and `serverVersion`. Registers 5 tools + 5 prompts, uses the Valibot adapter (`@tmcp/adapter-valibot`) — all schemas are valibot.
 - Entry points:
   - `src/index.ts` — srvx HTTP server (Node/Bun): Streamable HTTP at `/mcp`, `/health` endpoint.
   - `src/stdio.ts` — `StdioTransport` for local MCP clients.

@@ -51,6 +51,11 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to help us main
 - `bun run build` - Bundle HTTP + stdio entries to `dist/` for deployment
 - `bun run mcp` - STDIO transport for local MCP clients
 - `bun run check` - TypeScript check (`tsc --noEmit`)
+- `bun run check:agents` - Fails if the per-editor agent bodies in `agents/` drift apart
+- `bun run check-versions` - Fails if `package.json` and `src/mcp/server.ts` disagree on the version
+- `bun test` - Handshake smoke test (spawns the stdio entry point; no network)
+
+All of these except `bun test` also run in CI (`.github/workflows/ci.yml`) on every push and pull request.
 
 ### Smoke Testing
 

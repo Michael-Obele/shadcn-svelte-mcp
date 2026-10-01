@@ -33,13 +33,19 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Configure Git
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Install dependencies
-        run: npm ci
+        # bun.lock is the only lockfile in this repo, so `npm ci` cannot work.
+        run: bun install --frozen-lockfile
 
       - name: Sync version consistency
         run: node scripts/sync-versions-auto.js
