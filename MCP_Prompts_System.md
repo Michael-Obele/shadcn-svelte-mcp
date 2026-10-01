@@ -22,7 +22,7 @@ The system is built on several core components that work together to provide int
 
 ## 3. MCP Prompts (Guided Workflows)
 
-The MCP server exposes four specialized prompts that users can trigger for step-by-step assistance with common tasks.
+The MCP server exposes five specialized prompts that users can trigger for step-by-step assistance with common tasks.
 
 ### 3.1. `install-component`
 
@@ -52,6 +52,13 @@ The MCP server exposes four specialized prompts that users can trigger for step-
 - **Arguments**:
   - `projectType` (optional): The type of project (e.g., `sveltekit`, `vite`).
 - **Example**: A user wants to start a `sveltekit` project. The AI provides a complete walkthrough for setting up the project and integrating `shadcn-svelte`.
+
+### 3.5. `tool-usage`
+
+- **Purpose**: Explains which MCP tool to reach for and in what order, including the `shadcn-svelte-get` → `bits-ui-get` chaining flow.
+- **Arguments**: none.
+- **Why it exists**: tool descriptions are always in context, so they stay short. The full routing rationale is offloaded here and only fetched on demand via `prompts/get`. The server's `instructions` string points at this prompt.
+- **Example**: A user asks "why did you call `search` when I asked for a button?". The AI returns the tool hierarchy — `shadcn-svelte-get` first, `search` only for fuzzy discovery, `bits-ui-get` only after `get` exposes a primitive name.
 
 ### Technical Implementation
 
@@ -202,6 +209,6 @@ When modifying the prompt system:
 ## 10. Related Files
 
 - `src/mcp/server.ts` - Prompt and tool registration
-- `src/mcp/prompts/` - Prompt definitions (`cli-usage.ts`, `install-component.ts`, `project-init.ts`, `setup-theming.ts`)
+- `src/mcp/prompts/` - Prompt definitions (`cli-usage.ts`, `install-component.ts`, `project-init.ts`, `setup-theming.ts`, `tool-usage.ts`)
 - `src/mcp/tools/` - Tool implementations
 - `MCP_ARCHITECTURE.md`

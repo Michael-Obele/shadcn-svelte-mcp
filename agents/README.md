@@ -1,6 +1,8 @@
 # Shadcn Svelte agent — per-editor installs
 
-One agent, packaged for every major AI editor. The body is identical in all files (MCP-grounded shadcn-svelte workflow); only the frontmatter changes to match each editor's format. Keep the bodies in sync when editing.
+One agent, packaged for every major AI editor. The body is byte-identical across the **five frontmatter agents** listed in the table below (the MCP-grounded shadcn-svelte workflow); only the frontmatter changes to match each editor's format. Keep those bodies in sync when editing — `bun run check:agents` fails CI on drift.
+
+`agents-md-snippet.md` is the one deliberate exception: it is a task-scoped `###` section meant to be appended to `AGENTS.md` / `GEMINI.md`, so it is intentionally a different shape and is **exempt** from that check.
 
 **Prerequisite:** configure the shadcn-svelte MCP and keep the server named `shadcn-svelte` so tool bindings like `shadcn-svelte/*` resolve. See the repo [README → Connect](../README.md#connect-30-seconds).
 
@@ -19,37 +21,13 @@ One agent, packaged for every major AI editor. The body is identical in all file
 
 ## Install
 
-```bash
-BASE=https://raw.githubusercontent.com/Michael-Obele/shadcn-svelte-mcp/main/agents
-
-# VS Code (appears in the chat agent picker as "shadcn-svelte")
-mkdir -p .github/agents
-curl -fsSL "$BASE/vscode-shadcn-svelte.agent.md" -o .github/agents/shadcn-svelte.agent.md
-
-# Claude Code
-mkdir -p .claude/agents
-curl -fsSL "$BASE/claude-shadcn-svelte.md" -o .claude/agents/shadcn-svelte.md
-
-# Cursor
-mkdir -p .cursor/rules
-curl -fsSL "$BASE/cursor-shadcn-svelte.mdc" -o .cursor/rules/shadcn-svelte.mdc
-
-# Windsurf / Devin
-mkdir -p .windsurf/rules
-curl -fsSL "$BASE/windsurf-shadcn-svelte.md" -o .windsurf/rules/shadcn-svelte.md
-
-# OpenCode
-mkdir -p .opencode/agents
-curl -fsSL "$BASE/opencode-shadcn-svelte.md" -o .opencode/agents/shadcn-svelte.md
-
-# Zed / Codex / Gemini — append the snippet
-curl -fsSL "$BASE/agents-md-snippet.md" >> AGENTS.md   # Zed + AGENTS.md readers
-curl -fsSL "$BASE/agents-md-snippet.md" >> GEMINI.md   # Gemini CLI
-```
-
-From a local clone you can `cp` instead:
+The copy-pasteable install block lives in exactly one place — the repo root [README → Agent](../README.md#agent). It is the canonical copy; this file deliberately does not repeat it, so the two can't drift.
 
 ```bash
+# Full install block (all six editors):
+open https://github.com/Michael-Obele/shadcn-svelte-mcp#agent
+
+# Or, from a local clone, copy the file for your editor straight across:
 cp agents/vscode-shadcn-svelte.agent.md <your-project>/.github/agents/shadcn-svelte.agent.md
 ```
 
@@ -65,10 +43,4 @@ cp agents/vscode-shadcn-svelte.agent.md <your-project>/.github/agents/shadcn-sve
 
 ## Pairing with the skill
 
-The deeper design guidance (visual direction, UI rules, MCP workflow) lives in the skill — install both for full coverage:
-
-```bash
-npx skills add Michael-Obele/shadcn-svelte-mcp --skill shadcn-sveltekit-design
-```
-
-The skill installs into `.agents/skills/` (also read by Zed and other skills-capable tools).
+The deeper design guidance (visual direction, UI rules, MCP workflow) lives in the skill — install both for full coverage. See the repo [README → Skill](../README.md#skill) for the install command and the note on installing it in Zed.

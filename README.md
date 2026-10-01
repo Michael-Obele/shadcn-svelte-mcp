@@ -28,9 +28,11 @@ Real-time shadcn-svelte docs for AI editors, via [tmcp](https://tmcp.io). Scrape
 
 - Live shadcn-svelte + [Bits UI](https://bits-ui.com) docs (no stale bundles)
 - 5 tools: list, get, search, icons, Bits UI API
+- 5 guided prompts: install a component, set up theming, CLI usage, project init, and which tool to use when
 - Fuzzy search with typo tolerance + install snippets per package manager
 - ~1,600 Lucide icons with import snippets
 - 3-day cache (memory / disk / KV) for fast repeats
+- Optional: a [design skill](#skill) and a [per-editor agent](#agent) on top of the server
 
 ## Connect (30 seconds)
 
@@ -108,6 +110,11 @@ Polished SvelteKit UI skill at `skills/shadcn-sveltekit-design/SKILL.md`:
 ```bash
 npx skills add Michael-Obele/shadcn-svelte-mcp --skill shadcn-sveltekit-design
 ```
+
+The skill lands in `.agents/skills/`, which Zed, Claude Code, OpenCode, and other skills-capable tools all read.
+
+> [!WARNING]
+> **Zed users:** use the `npx skills add` command above, not Zed's built-in `agent: create skill from url`. That command imports a single `SKILL.md` from a GitHub URL — it does not fetch the skill's `references/` folder, so the two reference files this skill links to (`references/mcp-workflow.md` and `references/ui-rules.md`) will be missing and the skill will run degraded. To use Zed's URL import anyway, follow it with the [agent snippet](#agent) in your `AGENTS.md`.
 
 ## Agent
 
