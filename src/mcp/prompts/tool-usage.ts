@@ -37,10 +37,14 @@ export const toolUsagePrompt = definePrompt(
    components (UI primitives, including sonner), blocks (pre-built sections like dashboards/sidebars),
    charts, or documentation sections. Returns structured JSON with
    content, metadata, code blocks, install commands, and warnings.
-2. **shadcn-svelte-search** — Fuzzy discovery by keyword or phrase. Use when you are
-   not sure of the exact name, or to find components to install. Typo-tolerant,
-   returns links, install commands, and similarity scores, plus suggestions when
-   nothing matches.
+2. **shadcn-svelte-search** — Discovery by intent or keyword. Use when you are
+   not sure of the exact name, or to find components to install. It understands
+   concepts (e.g. "dark mode theme toggle button"), not just names, and it is
+   typo-tolerant. Pass several \`queries\` to search for multiple things in one
+   call, and use \`category\` to narrow results (e.g. "Form & Input"). Returns
+   links, categories, install commands, the exact get call for each match, plus
+   suggestions when nothing matches. Run \`shadcn-svelte-list\` to discover the
+   available categories.
 3. **shadcn-svelte-list** — Enumerate available resources: components, blocks,
    charts, docs, or Bits UI primitives discovered from the live websites.
 4. **shadcn-svelte-icons** — ONLY for Lucide icons used with lucide-svelte.

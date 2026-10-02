@@ -108,10 +108,10 @@ export const myTool = defineTool(
 
 ### 3. shadcnSvelteSearchTool
 
-- **Purpose**: Fuzzy search across components with typo tolerance
-- **Input**: Search query
-- **Output**: Ranked list of matching components
-- **Technology**: Fuse.js for fuzzy matching
+- **Purpose**: Concept-aware search across components, blocks, charts, docs, and Bits UI primitives, with typo tolerance
+- **Input**: `query?` or `queries?` (multi-query), `type?`, `category?`, `limit?`, `packageManager?`
+- **Output**: Ranked matches grouped by type, with category, description, install command, and the exact get call per match
+- **Technology**: Fuse.js over a multi-field index (name/keywords/title/category/description), ranked by per-term coverage
 
 ### 4. shadcnSvelteIconsTool
 

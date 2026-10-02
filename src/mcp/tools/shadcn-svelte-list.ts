@@ -1,7 +1,10 @@
 import { defineTool } from "tmcp/tool";
 import { tool } from "tmcp/utils";
 import * as v from "valibot";
-import { getAllContent } from "../../services/component-discovery.js";
+import {
+  getCatalog,
+  type CatalogItem,
+} from "../../services/catalog.js";
 import {
   bulletList,
   renderColumns,
@@ -10,96 +13,126 @@ import {
   LIST_USAGE,
 } from "./utils/shadcn-utils.js";
 
+/** Preserves catalog (site) order while grouping items by category. */
+function groupByCategory(
+  items: CatalogItem[],
+): Array<[string, CatalogItem[]]> {
+  const groups = new Map<string, CatalogItem[]>();
+  for (const item of items) {
+    const bucket = groups.get(item.category) ?? [];
+    bucket.push(item);
+    groups.set(item.category, bucket);
+  }
+  return [...groups.entries()];
+}
+
 // Tool for listing all available components and documentation
 export const shadcnSvelteListTool = defineTool(
   {
     name: "shadcn-svelte-list",
     description:
-      "List all available shadcn-svelte components, blocks, charts, documentation sections, and Bits UI primitives by discovering them from the live websites",
+      "List shadcn-svelte components (grouped by category), blocks, charts, docs, utilities, and Bits UI primitives, discovered live from shadcn-svelte.com. Optionally filter by category.",
     schema: v.object({
       type: v.optional(
         v.pipe(
           v.picklist([
             "components",
+            "bits-ui",
             "blocks",
             "charts",
             "docs",
-            "bits-ui",
+            "utilities",
             "all",
           ]),
           v.description(
-            "What to list: components, blocks, charts, docs, bits-ui, or all",
+            "What to list: components, bits-ui, blocks, charts, docs, utilities, or all",
           ),
         ),
         "all",
       ),
+      category: v.optional(
+        v.pipe(
+          v.string(),
+          v.description(
+            "Optional category filter as published on the site (e.g. 'Form & Input', 'Layout & Navigation', 'Installation'). Substring match.",
+          ),
+        ),
+      ),
     }),
   },
-  async ({ type }) => {
+  async ({ type = "all", category }) => {
     try {
-      // Get all content from discovery service
-      const content = await getAllContent();
+      const catalog = await getCatalog();
+      const needle = category?.toLowerCase();
+      const keep = (item: CatalogItem) =>
+        !needle || item.category.toLowerCase().includes(needle);
+      const of = (t: CatalogItem["type"]) =>
+        catalog.items.filter((item) => item.type === t && keep(item));
 
       let result = "# shadcn-svelte Resources\n\n";
+      const scope = category ? ` in **${category}**` : "";
 
-      // List components if requested
       if (type === "components" || type === "all") {
-        result += "## Components\n\n";
-        result += `Found ${content.components.length} shadcn-svelte components:\n\n`;
-        result += renderColumns(content.components.map((c) => c.name));
+        const components = of("component");
+        result += `## Components${scope}\n\n`;
+        result += `Found ${components.length} shadcn-svelte components:\n\n`;
+        for (const [name, items] of groupByCategory(components)) {
+          result += `### ${name}\n`;
+          result += renderColumns(items.map((i) => i.name));
+        }
       }
 
-      // List Bits UI components if requested
       if (type === "bits-ui" || type === "all") {
-        result += "## Bits UI Components\n\n";
-        result += `Found ${content.bitsUIComponents.length} headless UI primitives (used by shadcn-svelte):\n\n`;
-        result += renderColumns(content.bitsUIComponents.map((c) => c.name));
+        const bits = of("bits-ui");
+        result += `## Bits UI Components${scope}\n\n`;
+        result += `Found ${bits.length} headless UI primitives (used by shadcn-svelte):\n\n`;
+        result += renderColumns(bits.map((b) => b.name));
         result +=
           "*These are the underlying headless components that shadcn-svelte builds upon.*\n\n";
       }
 
-      // List blocks if requested (live registry data)
       if (type === "blocks" || type === "all") {
-        result += "## Blocks\n\n";
-        result += `Found ${content.blocks.length} pre-built sections (dashboards, sidebars, login pages, etc.):\n\n`;
-        result += renderGroupedSection(
-          content.blocks.map((b) => b.name),
-          false,
-        );
+        const blocks = of("block");
+        result += `## Blocks${scope}\n\n`;
+        result += `Found ${blocks.length} pre-built sections (dashboards, sidebars, login pages, etc.):\n\n`;
+        result += category
+          ? bulletList(blocks.map((b) => b.name))
+          : renderGroupedSection(blocks.map((b) => b.name), false);
       }
 
-      // List charts if requested (live registry data)
       if (type === "charts" || type === "all") {
-        result += "## Charts\n\n";
-        result += `Found ${content.charts.length} pre-built chart components:\n\n`;
-        result += renderGroupedSection(
-          content.charts.map((c) => c.name),
-          true,
-          " Charts",
-        );
+        const charts = of("chart");
+        result += `## Charts${scope}\n\n`;
+        result += `Found ${charts.length} pre-built chart components:\n\n`;
+        result += category
+          ? bulletList(charts.map((c) => c.name))
+          : renderGroupedSection(charts.map((c) => c.name), true, " Charts");
       }
 
-      // List documentation if requested
       if (type === "docs" || type === "all") {
-        result += "## Documentation\n\n";
-        const sections = [
-          ["Installation", content.docs.installation],
-          ["Dark Mode", content.docs.darkMode],
-          ["Migration", content.docs.migration],
-          ["General", content.docs.general],
-        ] as const;
-        for (const [heading, names] of sections) {
-          result += `### ${heading}\n`;
-          result += bulletList(names);
+        const docs = of("doc");
+        result += `## Documentation${scope}\n\n`;
+        for (const [name, items] of groupByCategory(docs)) {
+          result += `### ${name}\n`;
+          result += bulletList(items.map((d) => d.name));
           result += "\n";
         }
       }
 
-      // Add notes about themes and colors
-      if (type === "all") {
+      if (type === "utilities" || type === "all") {
+        const utilities = of("utility");
+        if (utilities.length > 0) {
+          result += `## Utilities${scope}\n\n`;
+          result += bulletList(utilities.map((u) => u.name));
+          result += "\n";
+        }
+      }
+
+      if (type === "all" && !category) {
         result += `${LIST_FOOTER}\n`;
       }
 
+      result += `**Categories** (pass as \`category\` to this tool or \`shadcn-svelte-search\`): ${catalog.categories.join(" · ")}\n\n`;
       result += LIST_USAGE;
 
       return tool.text(result);

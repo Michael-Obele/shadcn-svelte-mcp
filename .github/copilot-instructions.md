@@ -39,7 +39,7 @@ Shell command preference
   - `src/worker.ts` — Cloudflare Worker: `HttpTransport` at `/mcp`, optional KV-backed cache (`TMCP_KV`).
 - Tools (`src/mcp/tools/*`): each is created with `defineTool(...)` from `tmcp/tool` and follows the pattern: valibot `schema`, `async (input) => tool.text(...) | tool.error(...)`. Examples: `shadcn-svelte-get`, `shadcn-svelte-list`, `shadcn-svelte-icons`, `shadcn-svelte-search`, `bits-ui-get`.
 - Prompts (`src/mcp/prompts/*`): created with `definePrompt(...)` from `tmcp/prompt`, valibot `schema`, return `{ messages: [...] }`.
-- Web scraping services: `src/services/doc-fetcher.ts` (real-time doc fetching), `src/services/component-discovery.ts` + `bits-ui-discovery.ts` (dynamic discovery), `src/services/cache-manager.ts` (memory + optional KV + optional disk tiers, 3-day TTL).
+- Web scraping services: `src/services/doc-fetcher.ts` (real-time doc fetching), `src/services/catalog.ts` (unified live catalog: `llms.txt` categories + descriptions merged with the `component-discovery.ts` registry index and `bits-ui-discovery.ts`), `src/services/catalog-search.ts` (pure multi-term search core used by the search tool), `src/services/cache-manager.ts` (memory + optional KV + optional disk tiers, 3-day TTL).
 
 4. Project-specific conventions and gotchas (do not invent alternatives)
 
@@ -83,7 +83,7 @@ export const myTool = defineTool(
 
 Then register it in `src/mcp/server.ts` via `server.tools([...])`. Prompts follow the same shape with `definePrompt` + `server.prompts([...])`.
 
-- To examine how components are discovered, inspect `src/mcp/tools/shadcn-svelte-get.ts` and `src/services/component-discovery.ts`.
+- To examine how components are discovered and searched, inspect `src/services/catalog.ts` (search/list catalog) and `src/services/catalog-search.ts` (ranking); for doc fetching, inspect `src/mcp/tools/shadcn-svelte-get.ts`.
 - To test changes quickly: use the `#test-mcp` MCP channel to run tests and validations. Do not invoke repo test scripts or start `bun run dev` from AI-driven runs.
 
 6. Integration & external deps

@@ -5,38 +5,50 @@
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vc2hhZGNuLnN2ZWx0ZS1hcHBzLm1lL21jcCJ9)
 
-> [!NOTE]
-> **Love the hosted server? Please help keep it online:** the hosted endpoint at
-> `https://shadcn.svelte-apps.me/mcp` is free to use but costs money to run. I'm covering
-> costs out of pocket right now — if it's been useful, please consider chipping in to help
-> keep it available for everyone over the next ~30 days and beyond.
-> Prefer to run it yourself? You always can — `npx -y shadcn-svelte-mcp`, or deploy
-> it yourself to Fly.io / Render / Cloudflare Workers.
-> [❤️ Sponsor @Michael-Obele](https://github.com/sponsors/Michael-Obele) — thank you!
-
 > [!IMPORTANT]
-> **URL Update Notification:** This MCP server is now hosted at
-> `https://shadcn.svelte-apps.me/mcp`. Earlier configs pointing at the
-> `*.workers.dev` / `*.server.mastra.cloud` `/api/mcp/shadcn/...` endpoints should
-> be updated to the new URL below (health check: `https://shadcn.svelte-apps.me/health`).
+> **The hosted server goes down in a few days.** I pay for
+> `https://shadcn.svelte-apps.me/mcp` out of pocket and I'm turning it off soon.
+> **Switch to the npm package:** `npx -y shadcn-svelte-mcp`. It runs the same
+> server on your machine, so the shutdown doesn't affect you.
+> Want an HTTP endpoint instead? Deploy it yourself to Fly.io / Render / Cloudflare Workers.
+> [❤️ Sponsor @Michael-Obele](https://github.com/sponsors/Michael-Obele) if you want to chip in. Thank you!
 
 Real-time shadcn-svelte docs for AI editors, via [tmcp](https://tmcp.io). Scrapes shadcn-svelte.com and bits-ui.com live — no stale docs.
 
-**Hosted:** `https://shadcn.svelte-apps.me/mcp` (Streamable HTTP) · Health: `https://shadcn.svelte-apps.me/health` · Local: `bun run src/stdio.ts`
+**npm (recommended):** `npx -y shadcn-svelte-mcp` · Hosted (shutting down soon): `https://shadcn.svelte-apps.me/mcp` · Local dev: `bun run src/stdio.ts`
 
 ## What you get
 
 - Live shadcn-svelte + [Bits UI](https://bits-ui.com) docs (no stale bundles)
 - 5 tools: list, get, search, icons, Bits UI API
 - 5 guided prompts: install a component, set up theming, CLI usage, project init, and which tool to use when
-- Fuzzy search with typo tolerance + install snippets per package manager
+- Intent-aware search (concept queries, categories, multi-query) with typo tolerance + install snippets per package manager
 - ~1,600 Lucide icons with import snippets
 - 3-day cache (memory / disk / KV) for fast repeats
 - Optional: a [design skill](#skill) and a [per-editor agent](#agent) on top of the server
 
 ## Connect (30 seconds)
 
-**Hosted (recommended):** `https://shadcn.svelte-apps.me/mcp`
+**npm (recommended):** runs on your machine; this is the setup to use once the hosted server is off.
+
+```json
+{
+  "mcpServers": {
+    "shadcn-svelte": { "command": "npx", "args": ["-y", "shadcn-svelte-mcp"] }
+  }
+}
+```
+
+CLI (stdio):
+
+```bash
+claude mcp add shadcn-svelte -- npx -y shadcn-svelte-mcp
+codex mcp add shadcn-svelte -- npx -y shadcn-svelte-mcp
+```
+
+Needs Node >= 20.9. Bun users: swap `npx` for `bunx`.
+
+**Hosted (shutting down in a few days):** `https://shadcn.svelte-apps.me/mcp` still works for now, but I'm turning it off soon. If your config points here, switch to npm above.
 
 VS Code: `MCP: Add Server` → paste the URL. Cursor / Windsurf: add an `http` server with the same URL. Zed: use `npx -y mcp-remote https://shadcn.svelte-apps.me/mcp`. Verify: `MCP: List Servers`.
 
@@ -58,34 +70,13 @@ claude mcp add --transport http shadcn-svelte https://shadcn.svelte-apps.me/mcp
 codex mcp add shadcn-svelte --url https://shadcn.svelte-apps.me/mcp
 ```
 
-### NPM fallback (if hosted is down)
-
-Run locally via npm — same tools, no server:
-
-```json
-{
-  "mcpServers": {
-    "shadcn-svelte": { "command": "npx", "args": ["-y", "shadcn-svelte-mcp"] }
-  }
-}
-```
-
-CLI (stdio):
-
-```bash
-claude mcp add shadcn-svelte -- npx -y shadcn-svelte-mcp
-codex mcp add shadcn-svelte -- npx -y shadcn-svelte-mcp
-```
-
-Needs Node >= 20.9. Bun users: swap `npx` for `bunx`.
-
 <details>
 <summary>Editor-specific notes</summary>
 
-- Cursor: Settings → MCP → add `http` server with the hosted URL.
+- Cursor: Settings → MCP → add a stdio server running `npx -y shadcn-svelte-mcp`.
 - Windsurf: `~/.codeium/windsurf/mcp_config.json` → `mcpServers`, restart.
-- Zed: Settings → Agent, or `npx -y mcp-remote https://shadcn.svelte-apps.me/mcp`.
-- Gemini CLI: `~/.gemini/settings.json` → `httpUrl`, or use `mcp-remote` variant.
+- Zed: Settings → Agent → add command `npx -y shadcn-svelte-mcp`.
+- Gemini CLI: `~/.gemini/settings.json` → `command` / `args` with `npx -y shadcn-svelte-mcp`.
 
 </details>
 
@@ -94,14 +85,14 @@ Needs Node >= 20.9. Bun users: swap `npx` for `bunx`.
 | Tool                   | Use for                                                                                    |
 | ---------------------- | ------------------------------------------------------------------------------------------ |
 | `shadcn-svelte-get`    | Details + install snippet for a known component / block / doc (`packageManager` supported) |
-| `shadcn-svelte-search` | Fuzzy find when you don't know the exact name                                              |
+| `shadcn-svelte-search` | Intent/keyword or multi-query search (`queries`, `category`) when you don't know the exact name |
 | `shadcn-svelte-list`   | Full inventory of components, blocks, charts, docs                                         |
 | `shadcn-svelte-icons`  | Lucide icons (`names`, `limit`, `importLimit`)                                             |
 | `bits-ui-get`          | Low-level Bits UI API (props, events, data attributes)                                     |
 
 Start with `get`, fall back to `search`, use `bits-ui-get` only for primitive internals.
 
-Try: "Install button", "List all components", "Find date-picker-like components", "Icons for settings", "Bits UI Dialog API".
+Try: "Install button", "List all components", "Find date-picker-like components", "Find a dark mode theme toggle button", "Icons for settings", "Bits UI Dialog API".
 
 ## Skill
 
