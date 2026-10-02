@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.12.0...v1.13.0) (2026-10-02)
+
+
+### Features
+
+* **mcp:** add unified catalog service for search and discovery ([5859723](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/58597231ffd195d3fa8362ec8e6a5383ec6bd9da))
+
 # [1.12.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.11.3...v1.12.0) (2026-09-30)
 
 
