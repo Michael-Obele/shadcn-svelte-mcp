@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.13.0...v1.14.0) (2026-10-03)
+
+
+### Features
+
+* **mcp:** source metadata from the registry ([a6a3b97](https://github.com/Michael-Obele/shadcn-svelte-mcp/commit/a6a3b97aff7c733a1a04c9f42e513e9862d2460f)), closes [#anchor](https://github.com/Michael-Obele/shadcn-svelte-mcp/issues/anchor)
+
 # [1.13.0](https://github.com/Michael-Obele/shadcn-svelte-mcp/compare/v1.12.0...v1.13.0) (2026-10-02)
 
 

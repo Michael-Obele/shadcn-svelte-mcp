@@ -1,6 +1,6 @@
 {
   "name": "shadcn-svelte-mcp",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "shadcn-svelte documentation MCP server built with tmcp — runs on Node or Bun, deployable to Fly.io or Render",
   "type": "module",
   "main": "src/index.ts",
