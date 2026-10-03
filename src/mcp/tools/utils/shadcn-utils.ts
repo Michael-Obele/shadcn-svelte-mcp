@@ -427,7 +427,9 @@ function packageOfSpecifier(specifier: string): string | undefined {
   if (!spec || spec.startsWith(".") || spec.startsWith("/")) return undefined;
   if (spec.startsWith("$")) return undefined;
   const segments = spec.split("/");
-  const name = spec.startsWith("@") ? segments.slice(0, 2).join("/") : segments[0];
+  const name = spec.startsWith("@")
+    ? segments.slice(0, 2).join("/")
+    : segments[0];
   return name && name !== "@" ? name : undefined;
 }
 
