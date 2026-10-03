@@ -1,6 +1,7 @@
 # shadcn-svelte-mcp
 
 [![latest release](https://img.shields.io/github/v/tag/Michael-Obele/shadcn-svelte-mcp?sort=semver)](https://github.com/Michael-Obele/shadcn-svelte-mcp/releases)
+[![npm version](https://img.shields.io/npm/v/shadcn-svelte-mcp)](https://www.npmjs.com/package/shadcn-svelte-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=shadcn-svelte&config=eyJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vc2hhZGNuLnN2ZWx0ZS1hcHBzLm1lL21jcCJ9)
@@ -10,7 +11,7 @@
 > `https://shadcn.svelte-apps.me/mcp` out of pocket and I'm turning it off soon.
 > **Switch to the npm package:** `npx -y shadcn-svelte-mcp`. It runs the same
 > server on your machine, so the shutdown doesn't affect you.
-> Want an HTTP endpoint instead? Deploy it yourself to Fly.io / Render / Cloudflare Workers.
+> Want an HTTP endpoint instead? Deploy it yourself to Fly.io or Render.
 > [❤️ Sponsor @Michael-Obele](https://github.com/sponsors/Michael-Obele) if you want to chip in. Thank you!
 
 Real-time shadcn-svelte docs for AI editors, via [tmcp](https://tmcp.io). Scrapes shadcn-svelte.com and bits-ui.com live — no stale docs.
@@ -23,8 +24,8 @@ Real-time shadcn-svelte docs for AI editors, via [tmcp](https://tmcp.io). Scrape
 - 5 tools: list, get, search, icons, Bits UI API
 - 5 guided prompts: install a component, set up theming, CLI usage, project init, and which tool to use when
 - Intent-aware search (concept queries, categories, multi-query) with typo tolerance + install snippets per package manager
-- ~1,600 Lucide icons with import snippets
-- 3-day cache (memory / disk / KV) for fast repeats
+- 1,800+ Lucide icons with import snippets
+- 3-day cache (memory + disk) for fast repeats
 - Optional: a [design skill](#skill) and a [per-editor agent](#agent) on top of the server
 
 ## Connect (30 seconds)

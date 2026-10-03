@@ -53,9 +53,9 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to help us main
 - `bun run check` - TypeScript check (`tsc --noEmit`)
 - `bun run check:agents` - Fails if the per-editor agent bodies in `agents/` drift apart
 - `bun run check-versions` - Fails if `package.json` and `src/mcp/server.ts` disagree on the version
-- `bun test` - Handshake smoke test (spawns the stdio entry point; no network)
+- `bun test` - Unit and handshake tests. Network-free and fast: spawns the real stdio entry point to assert the MCP handshake, and asserts the pure ranking/metadata cores against fixtures.
 
-All of these except `bun test` also run in CI (`.github/workflows/ci.yml`) on every push and pull request.
+All of these run in CI (`.github/workflows/ci.yml`) on every push and pull request.
 
 ### Smoke Testing
 
@@ -72,7 +72,7 @@ This is our standard smoke-test procedure.
 
 ### Project Structure
 
-- `src/` - Entry points: `index.ts` (HTTP), `stdio.ts` (local MCP), `worker.ts` (Cloudflare Worker)
+- `src/` - Entry points: `index.ts` (HTTP), `stdio.ts` (local MCP)
 - `src/mcp/` - MCP server assembly (`server.ts`), tools, and prompts
 - `src/services/` - Web scraping services for real-time documentation fetching
 - `src/services/doc-fetcher.ts` - Multi-strategy documentation fetcher (direct `.md`, `llms.txt`, Cheerio+Turndown HTML)

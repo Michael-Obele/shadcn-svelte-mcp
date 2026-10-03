@@ -21,7 +21,7 @@ The server supports two transport protocols:
 
 #### Streamable HTTP Transport (recommended)
 
-- **Endpoint**: `/mcp` (both `src/index.ts` for Node/Bun and `src/worker.ts` for Cloudflare Workers)
+- **Endpoint**: `/mcp` (`src/index.ts`, Node/Bun)
 - **Method**: HTTP POST (Streamable HTTP per the MCP spec)
 - **Use case**: One-off requests, CLI tools, remote clients, serverless deployments
 - **Example**: `curl -X POST http://localhost:3000/mcp`
@@ -64,7 +64,7 @@ MCP SDK — with the Valibot adapter (`@tmcp/adapter-valibot`):
 - **Prompt registration**: `definePrompt` from `tmcp/prompt` + `server.prompts([...])`
 - **HTTP transport**: `HttpTransport` from `@tmcp/transport-http` (`respond(request) → Response | null`)
 - **STDIO transport**: `StdioTransport` from `@tmcp/transport-stdio` (`.listen()`)
-- **Runtime-agnostic**: Web `Request`/`Response` based — runs on Node, Bun, Deno, and Cloudflare Workers
+- **Runtime-agnostic**: Web `Request`/`Response` based — runs on Node and Bun
 
 ### Tool Implementation
 
@@ -111,7 +111,7 @@ export const myTool = defineTool(
 - **Purpose**: Concept-aware search across components, blocks, charts, docs, and Bits UI primitives, with typo tolerance
 - **Input**: `query?` or `queries?` (multi-query), `type?`, `category?`, `limit?`, `packageManager?`
 - **Output**: Ranked matches grouped by type, with category, description, install command, and the exact get call per match
-- **Technology**: Fuse.js over a multi-field index (name/keywords/title/category/description), ranked by per-term coverage
+- **Technology**: BM25 (@orama/orama, k1 1.2 / b 0.75) over a multi-field index (name/keywords/title/category/description), with per-field boost, a function-word filter on the query, and a sort key that keeps Bits UI primitives behind components
 
 ### 4. shadcnSvelteIconsTool
 
@@ -143,7 +143,6 @@ The server uses multi-strategy web scraping to fetch documentation:
 ### Caching Strategy
 
 - **Memory Cache**: Fast in-memory LRU (50 entries) for hot docs
-- **KV Cache**: Cloudflare KV tier (Workers) with the same 3-day TTL
 - **Disk Cache**: Persistent `.cache/` storage on Node/Bun (3-day TTL)
 - **Cache Keys**: URL hash → `cache_<hash>.json`
 - **Fallback**: Real-time fetching when cache misses
@@ -160,14 +159,6 @@ The server uses multi-strategy web scraping to fetch documentation:
 - **Characteristics**: Always-on hosted instance of the same `src/index.ts`
   (Node/Bun) entry; no SSE path — clients connect via the `http` transport
 
-#### Cloudflare Workers (self-host alternative)
-
-- **URL**: `https://shadcn-svelte-mcp.<account>.workers.dev/mcp`
-- **Characteristics**: Zero cold start, global edge network
-- **Sessions**: Persisted in KV (`TMCP_KV`) via `KVInfoSessionManager` so any
-  isolate can serve any session; cache uses the same namespace
-- **Config**: `wrangler.jsonc` — deploy with `bun run deploy:worker`
-
 #### Fly.io
 
 - **URL**: `https://shadcn-svelte-mcp.fly.dev/mcp`
@@ -181,7 +172,6 @@ The server uses multi-strategy web scraping to fetch documentation:
 
 ### Cold Start Behavior
 
-- **Cloudflare Workers**: No cold start - always warm
 - **Fly.io / Render**: ~1-2 second cold start on first request
 - **Mitigation**: Automatic retry logic in client implementations
 
@@ -241,8 +231,7 @@ claude mcp add shadcn-svelte --url https://shadcnmcp.svelte-apps.me/mcp
 
 ### Scaling
 
-- **Concurrent requests**: tmcp `HttpTransport` is stateless; Workers scale
-  horizontally with KV-backed sessions
+- **Concurrent requests**: tmcp `HttpTransport` is stateless
 - **Cache efficiency**: 3-day TTL reduces external API calls
 - **Resource limits**: Configurable timeouts and rate limits
 
@@ -290,14 +279,13 @@ npm run test:integration  # Integration tests
 
 #### Tools not appearing in editor
 
-- **Workers**: Refresh the MCP connection; verify the KV binding exists
-- **Fly/Render**: Wait for cold start, retry if needed
+- **Fly/Render**: Refresh the MCP connection; wait for cold start, retry if needed
 - **Check**: Verify endpoint URLs are correct (`/mcp`)
 
 #### Slow responses
 
 - **Check**: Cache status and TTL
-- **Mitigation**: Clear `.cache/` (local) or KV keys (Workers)
+- **Mitigation**: Clear `.cache/` (local)
 
 #### Connection failures
 
@@ -325,7 +313,7 @@ npx @modelcontextprotocol/inspector
 When contributing MCP-related changes:
 
 1. **Test both transports**: HTTP and STDIO
-2. **Test all hosts**: Workers (wrangler dry-run), Fly.io, Render
+2. **Test all hosts**: Fly.io, Render
 3. **Update documentation**: Keep this file current
 4. **Follow patterns**: Use existing tool implementation patterns
 5. **Add tests**: Cover new functionality
