@@ -61,9 +61,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Handshake-only and network-free: spawns the real stdio entry point and
-      # asserts `initialize` + `tools/list`. Deliberately not run by AI agents
-      # locally — it is an instrumented-CI check.
+      # Handshake + unit: spawns the real stdio entry point and asserts
+      # `initialize` + `tools/list`, plus the ranking/metadata cores against
+      # fixtures. Network-free, so it is safe to run locally as well as here —
+      # agents are instructed to run it before reporting a change as done.
       - name: Run tests
         run: bun test
 

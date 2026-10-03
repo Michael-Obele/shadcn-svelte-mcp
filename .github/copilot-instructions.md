@@ -6,7 +6,7 @@ This file gives concise, actionable instructions for an AI coding agent to be pr
 
 1. What this repo is
 
-- A [tmcp](https://tmcp.io)-based MCP server (lightweight, schema-agnostic MCP SDK). See `src/mcp/server.ts` for the `McpServer` assembly, `src/index.ts` for the Node/Bun HTTP entry, `src/worker.ts` for the Cloudflare Worker entry, and `src/stdio.ts` for local MCP clients.
+- A [tmcp](https://tmcp.io)-based MCP server (lightweight, schema-agnostic MCP SDK). See `src/mcp/server.ts` for the `McpServer` assembly, `src/index.ts` for the Node/Bun HTTP entry, and `src/stdio.ts` for local MCP clients.
 - Documentation is fetched in real-time from shadcn-svelte.com using Cheerio + Turndown (HTML → Markdown) and direct `.md` / `llms.txt` endpoint fetching under `src/services/`.
 
 2. How to run / common developer commands
@@ -16,7 +16,6 @@ This file gives concise, actionable instructions for an AI coding agent to be pr
 - Type checking: `bun run check` (runs `tsc --noEmit` across the project).
 - Local MCP: `bun run mcp` (stdio transport).
 - Build: `bun run build` (bundles `src/index.ts` + `src/stdio.ts` → `dist/` for Fly.io/Render).
-- Deploy Worker: `bun run deploy:worker` (wrangler; requires `TMCP_KV` binding — see `wrangler.jsonc`).
 - Agent sync guard: `bun run check:agents` (fails if the per-editor agent bodies in `agents/` drift apart; `agents-md-snippet.md` is a declared variant).
 - Version guard: `bun run check-versions` (`package.json` must match `src/mcp/server.ts`).
 - CI: `.github/workflows/ci.yml` runs `check`, `check:agents`, `check-versions`, `bun test`, and a report-only link check on every push and pull request. Only `bun.lock` exists, so CI uses `bun install --frozen-lockfile` — `npm ci` cannot work in this repo.
@@ -36,7 +35,6 @@ Shell command preference
 - Entry points:
   - `src/index.ts` — srvx HTTP server (Node/Bun): Streamable HTTP at `/mcp`, `/health` endpoint.
   - `src/stdio.ts` — `StdioTransport` for local MCP clients.
-  - `src/worker.ts` — Cloudflare Worker: `HttpTransport` at `/mcp`, optional KV-backed cache (`TMCP_KV`).
 - Tools (`src/mcp/tools/*`): each is created with `defineTool(...)` from `tmcp/tool` and follows the pattern: valibot `schema`, `async (input) => tool.text(...) | tool.error(...)`. Examples: `shadcn-svelte-get`, `shadcn-svelte-list`, `shadcn-svelte-icons`, `shadcn-svelte-search`, `bits-ui-get`.
 - Prompts (`src/mcp/prompts/*`): created with `definePrompt(...)` from `tmcp/prompt`, valibot `schema`, return `{ messages: [...] }`.
 - Web scraping services: `src/services/doc-fetcher.ts` (real-time doc fetching), `src/services/catalog.ts` (unified live catalog: `llms.txt` categories + descriptions merged with the `component-discovery.ts` registry index and `bits-ui-discovery.ts`), `src/services/catalog-search.ts` (pure multi-term search core used by the search tool), `src/services/cache-manager.ts` (memory + optional KV + optional disk tiers, 3-day TTL).
@@ -47,18 +45,12 @@ Shell command preference
 - Prompts use `definePrompt` from `tmcp/prompt` with the same valibot schema conventions and return `{ messages: [...] }` (`role: "user" | "assistant"`, `content: { type: "text", text }`).
 - The version anchor: `version: "x.y.z"` in `src/mcp/server.ts` MUST stay in sync with `package.json` (see `scripts/check-versions.js` / `sync-versions*.js`; regex is `version:\s*"[^"]+",`).
 - Web scraping approach: tools fetch documentation in real-time from shadcn-svelte.com (`.md` endpoints, `llms.txt`, Cheerio+Turndown HTML fallback). Components are discovered dynamically from the live website.
-- The cache manager is runtime-agnostic: disk tier uses dynamic `node:fs` import and auto-degrades to memory/KV only on Workers. Do not add static `node:*` imports to shared services used by `src/worker.ts`.
+- The cache manager loads `node:fs` dynamically so it stays loadable on runtimes without it, degrading to memory-only. Do not add static `node:*` imports to shared services.
 - **Test file organization**: ALWAYS place test files in the `test/` directory at the repository root, never in `src/`. Use `git mv` when moving files to preserve version history.
 
-Important runtime smoke-test: when running AI-driven tests or validations, always use the MCP testing channel `#test-mcp` rather than executing repository test scripts directly. Do NOT start or run `bun run dev` from within AI tests — the development server is expected to already be running. If a local manual smoke-test is required by a developer, run `bun run dev` locally for 10–15s, but AI agents must not start it.
+Testing rule: run `bun test` before reporting any change as done. It is fast (well under a second), network-free, and the only objective evidence that a change works. An AI agent that reports "done", "fixed", or "tests pass" without having run it in this session is wrong — and if a test fails, fix the cause rather than the expectation. Where behaviour cannot be pinned by a unit test (live scraping, MCP tool calls), validate through the MCP testing channel `#test-mcp` instead, which exercises the tools through the real protocol. Do NOT start or run `bun run dev` from within AI tests — the development server is expected to already be running. If a local manual smoke-test is required by a developer, run `bun run dev` locally for 10–15s, but AI agents must not start it.
 
-IMPORTANT (strict): DO NOT run local test scripts (files under `test/`) from within AI-driven workflows. This rule prevents accidental process execution, environment changes, or side effects caused by automated agents.
-
-If you need to validate tools programmatically, use the `#test-mcp` MCP channel (or instrumented CI jobs that call tools via the MCP protocol). Reserve direct execution of `test/*.ts` scripts for manual local debugging only.
-
-**MCP Tool Testing Rule**: When testing or validating MCP tools, ALWAYS use the dedicated MCP test tools (e.g., `#mcp_test-mcp_shadcnSvelteGetTool`) instead of running JavaScript test files directly. The MCP test tools provide proper integration testing through the MCP protocol and ensure tools work correctly in the actual MCP environment.
-
-Caching: tools use the shared cache-manager (3-day TTL; memory + `.cache/` disk on Node/Bun, KV on Workers). Expect stale cached results when iterating; clear `.cache/` or restart the process during development if necessary.
+Caching: tools use the shared cache-manager (3-day TTL; memory + `.cache/` disk on Node/Bun). Expect stale cached results when iterating; clear `.cache/` or restart the process during development if necessary.
 
 5. Common edit patterns and examples (concrete references)
 
@@ -84,12 +76,12 @@ export const myTool = defineTool(
 Then register it in `src/mcp/server.ts` via `server.tools([...])`. Prompts follow the same shape with `definePrompt` + `server.prompts([...])`.
 
 - To examine how components are discovered and searched, inspect `src/services/catalog.ts` (search/list catalog) and `src/services/catalog-search.ts` (ranking); for doc fetching, inspect `src/mcp/tools/shadcn-svelte-get.ts`.
-- To test changes quickly: use the `#test-mcp` MCP channel to run tests and validations. Do not invoke repo test scripts or start `bun run dev` from AI-driven runs.
+- To test changes quickly: run `bun test`, then use the `#test-mcp` MCP channel for anything that needs live tools. Do not start `bun run dev` from AI-driven runs.
 
 6. Integration & external deps
 
-- Key runtime deps (see `package.json`): tmcp, @tmcp/adapter-valibot, @tmcp/transport-http, @tmcp/transport-stdio, valibot, srvx, cheerio, turndown, fuse.js. Respect the pinned major versions when adding features unless requested.
-- No database. Cache persistence is optional: disk (`./.cache`) on Node/Bun, KV binding `TMCP_KV` on Cloudflare Workers.
+- Key runtime deps (see `package.json`): tmcp, @tmcp/adapter-valibot, @tmcp/transport-http, @tmcp/transport-stdio, valibot, srvx, cheerio, turndown, @orama/orama. Respect the pinned major versions when adding features unless requested.
+- No database. Cache persistence is optional: in-memory plus disk (`./.cache`) on Node/Bun.
 
 7. Debugging tips for AI agents
 
