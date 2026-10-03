@@ -54,8 +54,14 @@ export interface Catalog {
   counts: Record<CatalogType, number>;
 }
 
-const LLMS_URL = "https://shadcn-svelte.com/llms.txt";
-const CACHE_KEY = "catalog:llms:v1";
+const LLMS_URL = "https://www.shadcn-svelte.com/llms.txt";
+/**
+ * Bump the suffix whenever catalog construction changes shape (new fields,
+ * category derivation, item sources). The TTL is 3 days, so without a bump a
+ * fix silently waits for the old entry to expire - or forever, if the cache
+ * is only ever written by a long-lived process.
+ */
+const CACHE_KEY = "catalog:llms:v2";
 
 /** `- [Title](url): Description` — the shape of every llms.txt entry. */
 const ENTRY_RE = /^-\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+?)\)\s*(?::\s*(.+?))?$/;
@@ -81,6 +87,17 @@ const KEYWORD_STOPWORDS = new Set([
 export function tokenizeWords(input: string): string[] {
   return input.toLowerCase().split(WORD_SPLIT_RE).filter(Boolean);
 }
+
+/**
+ * Categories for registry-only components that have no llms.txt entry.
+ *
+ * Without these they fall back to a generic "Components" bucket, which the
+ * list tool then renders as a second, oddly-named heading alongside the real
+ * site categories.
+ */
+const REGISTRY_CATEGORY_HINTS: Record<string, string> = {
+  form: "Form & Input",
+};
 
 /** Search keywords from name/title/category — the site's own vocabulary. */
 function deriveKeywords(...parts: Array<string | undefined>): string[] {
@@ -157,7 +174,7 @@ function entryToItem(entry: LlmsEntry): CatalogItem | null {
       name,
       title: entry.title,
       type: "component",
-      category: entry.category || "Components",
+      category: entry.category || REGISTRY_CATEGORY_HINTS[name] || "Components",
       description: entry.description || `The ${entry.title} component.`,
       url: shadcnComponentUrl(name),
       keywords: deriveKeywords(name, entry.title, entry.category),
@@ -210,7 +227,7 @@ function fallbackComponent(name: string): CatalogItem {
     name,
     title: titleCase(name),
     type: "component",
-    category: "Components",
+    category: REGISTRY_CATEGORY_HINTS[name] || "Components",
     description: `The ${titleCase(name)} component.`,
     url: shadcnComponentUrl(name),
     keywords: deriveKeywords(name),
@@ -261,8 +278,10 @@ export async function getCatalog(): Promise<Catalog> {
 
   // 2. Registry — blocks/charts plus UI components missing from llms.txt.
   const registry = await discoverRegistry();
-  for (const block of registry.blocks) items.push(registryToItem(block.name, false));
-  for (const chart of registry.charts) items.push(registryToItem(chart.name, true));
+  for (const block of registry.blocks)
+    items.push(registryToItem(block.name, false));
+  for (const chart of registry.charts)
+    items.push(registryToItem(chart.name, true));
   for (const ui of registry.ui) {
     if (seenComponents.has(ui.name)) continue;
     seenComponents.add(ui.name);

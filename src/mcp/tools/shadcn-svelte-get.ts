@@ -9,8 +9,13 @@ import {
 import {
   isBlock,
   fetchRegistryItem,
+  fetchRegistryItemData,
+  registryDependenciesOf,
+  registryImportPath,
+  extractVariantAxes,
   extractExamples,
   extractVariants,
+  extractSizes,
   extractSummary,
   sanitizeContent,
   getInstallCommand,
@@ -66,6 +71,8 @@ interface ToolResponse {
     code?: string;
   };
   variants?: string[];
+  /** Prop values for the component's `size` axis, when it declares one. */
+  sizes?: string[];
   contextRules?: string[];
   rawContent?: string;
   error?: string;
@@ -117,10 +124,11 @@ export const shadcnSvelteGetTool = defineTool(
     ): ToolResponse => ({
       success: true,
       name: itemName,
-      type:
-        itemName.startsWith("chart-") ? "chart"
-        : registryType === "registry:ui" ? "component"
-        : "block",
+      type: itemName.startsWith("chart-")
+        ? "chart"
+        : registryType === "registry:ui"
+          ? "component"
+          : "block",
       description:
         registryType === "registry:ui"
           ? `UI component (registry source): ${itemName}`
@@ -182,15 +190,41 @@ export const shadcnSvelteGetTool = defineTool(
         }
 
         const rawContent = sanitizeContent(result.content);
+        const title = result.metadata?.title || name;
         const summary = extractSummary(rawContent);
         const examples = extractExamples(rawContent);
-        const variants = extractVariants(rawContent);
-        const bitsUiName = extractBitsUiName(result.bitsUiUrl);
-        // Fallback for primary code if examples didn't catch it
+
+        // The registry is the source of truth for what actually gets installed.
+        // Without it every structured field below would be a guess, and guesses
+        // here are worse than absent: a wrong import or dependency list makes
+        // the agent write code that does not build.
+        const registryItem = await fetchRegistryItemData(name);
+        const registryDeps = registryDependenciesOf(registryItem);
+        const axes = extractVariantAxes(registryItem);
+
+        // The registry config wins outright when present: it is the code that
+        // ships, and the docs drift from it (button's docs demonstrate
+        // `size="xs"`, which the registry never defines). Docs are only a
+        // fallback for components with no registry entry.
+        const docVariants = extractVariants(rawContent, title).map(
+          (v) => v.name,
+        );
+        const docSizes = extractSizes(rawContent, title);
+        const variants = axes.variants ?? docVariants;
+        const sizes = axes.sizes ?? docSizes;
+
+        // Prefer the "Usage" section as the canonical snippet: it is the
+        // smallest thing that compiles. Falling back to every example in the
+        // page (the old behaviour) duplicated rawContent wholesale.
+        const usageSection = examples.find(
+          (e) => e.title.toLowerCase() === "usage",
+        );
         const primaryCode =
-          examples.length > 0
-            ? examples[0].code
-            : getFirstCodeBlock(rawContent);
+          usageSection?.code ??
+          examples[0]?.code ??
+          getFirstCodeBlock(rawContent);
+
+        const bitsUiName = extractBitsUiName(result.bitsUiUrl);
 
         const response: ToolResponse = {
           success: true,
@@ -212,19 +246,23 @@ export const shadcnSvelteGetTool = defineTool(
                 },
           },
           installCommand: getInstallCommand(name),
-          importPath: getImportPath(name),
-          dependencies: bitsUiName ? ["bits-ui"] : [],
+          importPath:
+            registryImportPath(registryItem, name) ?? getImportPath(name),
+          // Only report what the registry states. `bits-ui` is not assumed:
+          // several components (button, card) are plain elements and do not
+          // depend on a primitive package at all.
+          dependencies: registryDeps,
           docs: {
             main: shadcnComponentUrl(name),
             primitive: result.bitsUiUrl,
             bitsuiName: bitsUiName,
           },
           usage: {
-            summary: "Use the examples below to understand implementation.",
+            summary: summary || `How to use the ${title} component.`,
             code: primaryCode,
           },
-          variants:
-            variants.length > 0 ? variants.map((v) => v.name) : undefined,
+          variants: variants.length > 0 ? variants : undefined,
+          sizes: sizes.length > 0 ? sizes : undefined,
           contextRules: [
             ...SVELTE_RULES,
             bitsUiName
@@ -277,7 +315,7 @@ export const shadcnSvelteGetTool = defineTool(
             main: result.metadata?.url,
           },
           usage: {
-            summary: "Primary usage code block extracted from documentation.",
+            summary: extractSummary(content) || "Primary usage snippet.",
             code: getFirstCodeBlock(content),
           },
           rawContent: content,

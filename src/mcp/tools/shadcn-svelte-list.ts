@@ -1,10 +1,7 @@
 import { defineTool } from "tmcp/tool";
 import { tool } from "tmcp/utils";
 import * as v from "valibot";
-import {
-  getCatalog,
-  type CatalogItem,
-} from "../../services/catalog.js";
+import { getCatalog, type CatalogItem } from "../../services/catalog.js";
 import {
   bulletList,
   renderColumns,
@@ -14,9 +11,7 @@ import {
 } from "./utils/shadcn-utils.js";
 
 /** Preserves catalog (site) order while grouping items by category. */
-function groupByCategory(
-  items: CatalogItem[],
-): Array<[string, CatalogItem[]]> {
+function groupByCategory(items: CatalogItem[]): Array<[string, CatalogItem[]]> {
   const groups = new Map<string, CatalogItem[]>();
   for (const item of items) {
     const bucket = groups.get(item.category) ?? [];
@@ -97,7 +92,10 @@ export const shadcnSvelteListTool = defineTool(
         result += `Found ${blocks.length} pre-built sections (dashboards, sidebars, login pages, etc.):\n\n`;
         result += category
           ? bulletList(blocks.map((b) => b.name))
-          : renderGroupedSection(blocks.map((b) => b.name), false);
+          : renderGroupedSection(
+              blocks.map((b) => b.name),
+              false,
+            );
       }
 
       if (type === "charts" || type === "all") {
@@ -106,7 +104,11 @@ export const shadcnSvelteListTool = defineTool(
         result += `Found ${charts.length} pre-built chart components:\n\n`;
         result += category
           ? bulletList(charts.map((c) => c.name))
-          : renderGroupedSection(charts.map((c) => c.name), true, " Charts");
+          : renderGroupedSection(
+              charts.map((c) => c.name),
+              true,
+              " Charts",
+            );
       }
 
       if (type === "docs" || type === "all") {
@@ -132,7 +134,32 @@ export const shadcnSvelteListTool = defineTool(
         result += `${LIST_FOOTER}\n`;
       }
 
-      result += `**Categories** (pass as \`category\` to this tool or \`shadcn-svelte-search\`): ${catalog.categories.join(" · ")}\n\n`;
+      // Only advertise categories that are reachable with the current filter. The
+      // full list mixes doc, block and chart categories, so a components-only
+      // call was suggesting filters (`Bar`, `Login`) that return nothing.
+      const TYPE_TO_ITEM: Record<string, CatalogItem["type"]> = {
+        components: "component",
+        "bits-ui": "bits-ui",
+        blocks: "block",
+        charts: "chart",
+        docs: "doc",
+        utilities: "utility",
+      };
+      const scoped = TYPE_TO_ITEM[type];
+      const availableCategories = [
+        ...new Set(
+          (scoped
+            ? catalog.items.filter(
+                (entry) =>
+                  entry.type === scoped &&
+                  (!needle || entry.category.toLowerCase().includes(needle)),
+              )
+            : catalog.items
+          ).map((entry) => entry.category),
+        ),
+      ];
+
+      result += `**Categories** (pass as \`category\` to this tool or \`shadcn-svelte-search\`): ${availableCategories.join(" · ")}\n\n`;
       result += LIST_USAGE;
 
       return tool.text(result);

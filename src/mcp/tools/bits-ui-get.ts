@@ -9,6 +9,7 @@ import { discoverBitsUIComponents } from "../../services/bits-ui-discovery.js";
 import {
   parseBitsUiApi,
   sanitizeContent,
+  stripApiReference,
   extractSummary,
   normalizeName,
   extractBitsUiName,
@@ -112,6 +113,11 @@ interface ToolResponse {
     useShadcnWrapper?: string;
   };
   contextRules?: string[];
+  /**
+   * The documentation body with navigation, installation and the API
+   * Reference section removed. Disjoint from `api.raw` by construction — that
+   * field holds the reference tables, this one holds everything around them.
+   */
   rawContent?: string;
   error?: string;
   suggestion?: string;
@@ -188,7 +194,13 @@ export const bitsUiGetTool = defineTool(
 
       // Parse structured API data from content
       const apiData = parseBitsUiApi(result.content);
-      const rawContent = sanitizeContent(result.content);
+      // `api.raw` already carries the API Reference section, so the body drops
+      // it: on Bits UI pages that section was 40-70% of `rawContent` verbatim,
+      // and these responses are large enough that the duplicate is a real cost
+      // in the caller's context window. Falls back to the full body when the
+      // page has no API Reference, since `api.raw` is undefined there.
+      const body = sanitizeContent(result.content);
+      const rawContent = apiData ? stripApiReference(body) : body;
 
       return fail({
         success: true,

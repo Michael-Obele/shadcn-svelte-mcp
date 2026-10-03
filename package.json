@@ -1,7 +1,7 @@
 {
   "name": "shadcn-svelte-mcp",
   "version": "1.13.0",
-  "description": "shadcn-svelte documentation MCP server built with tmcp — works on Cloudflare Workers, Fly.io, Render, or any JS runtime",
+  "description": "shadcn-svelte documentation MCP server built with tmcp — runs on Node or Bun, deployable to Fly.io or Render",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
@@ -29,9 +29,7 @@
     "start": "bun run src/index.ts",
     "mcp": "bun run src/stdio.ts",
     "build": "bun build ./src/index.ts --target=bun --outdir=dist && bun build ./src/stdio.ts --target=bun --outdir=dist",
-    "build:npm": "bun build ./src/stdio.ts --target=node --outdir=dist --external:@cloudflare/workers-types && chmod +x ./dist/stdio.js",
-    "deploy:worker": "wrangler deploy",
-    "build:worker": "wrangler deploy --dry-run --outdir=.wrangler/dist",
+    "build:npm": "bun build ./src/stdio.ts --target=node --outdir=dist && chmod +x ./dist/stdio.js",
     "check": "tsc --noEmit",
     "check:agents": "node scripts/check-agents-sync.js",
     "check:deadcode": "fallow dead-code --baseline .fallow/baseline.json",
@@ -53,12 +51,11 @@
     "bun": ">=1.1.0"
   },
   "dependencies": {
+    "@orama/orama": "^3.1.18",
     "@tmcp/adapter-valibot": "^0.1.6",
-    "@tmcp/session-manager-durable-objects": "^0.2.3",
     "@tmcp/transport-http": "^0.8.6",
     "@tmcp/transport-stdio": "^0.4.3",
     "cheerio": "^1.1.2",
-    "fuse.js": "^7.1.0",
     "srvx": "^0.12.5",
     "tmcp": "^1.19.4",
     "turndown": "^7.2.2",
@@ -77,7 +74,6 @@
     "conventional-changelog-conventionalcommits": "^9.1.0",
     "fallow": "^3.16.0",
     "semantic-release": "^25.0.1",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.0.0"
+    "typescript": "^5.9.3"
   }
 }

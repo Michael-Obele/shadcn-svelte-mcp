@@ -253,6 +253,8 @@ export interface RegistryFetchResult {
   code?: string;
   error?: string;
   registryType?: string;
+  /** Raw registry payload, so callers can read real deps/exports/variants. */
+  item?: RegistryItem;
 }
 
 interface RegistryFile {
@@ -263,11 +265,13 @@ interface RegistryFile {
   highlightedContent?: string;
 }
 
-interface RegistryItem {
+export interface RegistryItem {
   name?: string;
   description?: string;
   type?: string;
   registryDependencies?: string[];
+  dependencies?: string[];
+  devDependencies?: string[];
   files?: RegistryFile[];
 }
 
@@ -367,6 +371,7 @@ export async function fetchRegistryItem(
       success: true,
       code: renderRegistryMarkdown(block.data, name, packageManager),
       registryType: block.data.type,
+      item: block.data,
     };
   }
   // /api/block 404s for some items (demo-sidebar, new-components-01,
@@ -384,7 +389,274 @@ export async function fetchRegistryItem(
     success: true,
     code: renderRegistryMarkdown(raw.data, name, packageManager),
     registryType: raw.data.type,
+    item: raw.data,
   };
+}
+
+/**
+ * Raw registry payload only, without rendering markdown.
+ *
+ * The registry is the authoritative record of what a component actually
+ * installs (packages, exported names, variant axes). Deriving those from the
+ * slug or from prose in the docs produces confidently wrong answers, so
+ * structured tool fields are read from here instead.
+ */
+export async function fetchRegistryItemData(
+  name: string,
+): Promise<RegistryItem | undefined> {
+  const raw = await fetchRegistryData(
+    `https://shadcn-svelte.com/registry/${name}.json`,
+  );
+  return raw.data;
+}
+
+/** Strips a version range, keeping scoped packages intact (`@lucide/svelte@^1` -> `@lucide/svelte`). */
+function packageName(spec: string): string {
+  return spec.trim().replace(/@[^@/]*$/, "");
+}
+
+/**
+ * The package a module specifier belongs to, or undefined when it is not one.
+ *
+ * A specifier is only a package when it is neither relative (`./x`) nor a
+ * path alias (`$lib/x`, `$UTILS$.js`). Subpaths collapse to their package so
+ * `@lucide/svelte/icons/check` counts as `@lucide/svelte`.
+ */
+function packageOfSpecifier(specifier: string): string | undefined {
+  const spec = specifier.trim();
+  if (!spec || spec.startsWith(".") || spec.startsWith("/")) return undefined;
+  if (spec.startsWith("$")) return undefined;
+  const segments = spec.split("/");
+  const name = spec.startsWith("@") ? segments.slice(0, 2).join("/") : segments[0];
+  return name && name !== "@" ? name : undefined;
+}
+
+/** Every package imported by an item's own source files. */
+function importedPackages(item: RegistryItem): Set<string> {
+  const packages = new Set<string>();
+  for (const file of item.files ?? []) {
+    if (typeof file.content !== "string") continue;
+    for (const match of file.content.matchAll(
+      /(?:from|import|require)\s*\(?\s*["']([^"']+)["']/g,
+    )) {
+      const name = packageOfSpecifier(match[1]);
+      if (name) packages.add(name);
+    }
+  }
+  return packages;
+}
+
+/**
+ * Packages this item actually installs, taken from the registry.
+ *
+ * Both fields are considered (`dependencies` and `devDependencies`), then each
+ * candidate is checked against the item's own import statements. The registry's
+ * devDependency list carries copy-paste boilerplate — `bits-ui` is currently
+ * declared alongside `@internationalized/date` on every primitive-based
+ * component (toggle, checkbox, avatar), and nothing in those files imports it.
+ * Reporting it verbatim told an agent to add a date library to install a Toggle.
+ *
+ * The import statements are the ground truth for what the code needs, so they
+ * decide. If a payload carries no readable file content there is nothing to
+ * check against, and the declared list is returned unfiltered rather than
+ * silently emptied.
+ */
+export function registryDependenciesOf(item?: RegistryItem): string[] {
+  if (!item) return [];
+  const specs = [
+    ...(Array.isArray(item.dependencies) ? item.dependencies : []),
+    ...(Array.isArray(item.devDependencies) ? item.devDependencies : []),
+  ];
+
+  const declared: string[] = [];
+  const seen = new Set<string>();
+  for (const spec of specs) {
+    const name = packageName(String(spec));
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      declared.push(name);
+    }
+  }
+
+  const imported = importedPackages(item);
+  if (imported.size === 0) return declared;
+
+  return declared.filter((name) => imported.has(name));
+}
+
+/** Value exports declared by a registry item's files (type-only exports excluded). */
+export function registryExports(item?: RegistryItem): string[] {
+  const names = new Set<string>();
+  for (const file of item?.files ?? []) {
+    if (typeof file.content !== "string") continue;
+    for (const block of file.content.matchAll(/export\s*\{([^}]*)\}/g)) {
+      for (const part of block[1].split(",")) {
+        const segment = part
+          .trim()
+          .replace(/^\/\/.*$/, "")
+          .trim();
+        if (!segment) continue;
+        // `type ButtonProps as Props` is type-only: it cannot appear in a
+        // value import, so it is not part of the runtime surface.
+        if (/^type\s+[A-Za-z0-9_$]/.test(segment)) continue;
+        // `Root as Button` -> the exported name is what follows `as`.
+        const aliased = segment.match(/\bas\s+([A-Za-z0-9_$]+)\s*$/);
+        if (aliased) {
+          names.add(aliased[1]);
+          continue;
+        }
+        const plain = segment.match(/^([A-Za-z0-9_$]+)\s*$/);
+        if (plain) names.add(plain[1]);
+      }
+    }
+  }
+  return [...names];
+}
+
+/**
+ * The real import statement for a registry item.
+ *
+ * Read from the barrel file's own `export` list rather than guessed from the
+ * slug — `sonner` exports `Toaster`, not `Sonner`, and `card` exports several
+ * parts. Returns undefined when the barrel can't be identified, so callers
+ * can fall back deliberately rather than emit a broken import.
+ */
+export function registryImportPath(
+  item?: RegistryItem,
+  fallbackName?: string,
+): string | undefined {
+  const barrel = (item?.files ?? []).find((file) =>
+    /(^|\/)index\.(ts|js)$/.test(file.target || file.path || ""),
+  );
+  const barrelPath = barrel?.target || barrel?.path || "";
+  const dir = barrelPath
+    .replace(/(^|\/)index\.(ts|js)$/, "")
+    .replace(/\/$/, "");
+  if (!dir) return undefined;
+
+  const exported = registryExports(item);
+  if (exported.length === 0) return undefined;
+
+  // Prefer an export named after the component; otherwise use the whole
+  // public surface (namespaces like `import * as Card` are common).
+  const componentName = pascalCase(fallbackName || item?.name || "");
+  const preferred = componentName
+    ? exported.filter((n) => n === componentName)
+    : [];
+  const names = preferred.length > 0 ? preferred : exported;
+
+  return `import { ${names.join(", ")} } from "$lib/components/ui/${dir}/index.js";`;
+}
+
+/**
+ * Blanks out string-literal values while preserving object keys, quotes and
+ * newlines.
+ *
+ * Needed before scanning for keys: tailwind class values contain colons
+ * (`hover:bg-accent`, `focus-visible:ring-...`) and some start on their own
+ * line, so an unmasked scan reports them as variant keys. Quoted *keys*
+ * (`"icon-sm":`) must survive, which is why a string is only blanked when it
+ * is not followed by `:`.
+ */
+function maskStrings(source: string): string {
+  let out = "";
+  let i = 0;
+  while (i < source.length) {
+    const ch = source[i];
+    if (ch !== '"' && ch !== "'" && ch !== "`") {
+      out += ch;
+      i++;
+      continue;
+    }
+
+    const quote = ch;
+    let j = i + 1;
+    let closeAt = -1;
+    while (j < source.length) {
+      const inner = source[j];
+      if (inner === "\\") {
+        j += 2;
+        continue;
+      }
+      if (inner === quote) {
+        closeAt = j;
+        j++;
+        break;
+      }
+      j++;
+    }
+    if (closeAt < 0) {
+      out += source.slice(i);
+      break;
+    }
+
+    const content = source.slice(i + 1, closeAt);
+    let after = j;
+    while (after < source.length && /\s/.test(source[after])) after++;
+    const isKey = source[after] === ":";
+    // Blank values but keep the length, so offsets stay comparable.
+    const blanked = content.replace(/[^\n]/g, " ");
+    out += quote + (isKey ? content : blanked) + quote;
+    i = j;
+  }
+  return out;
+}
+
+/** Contents of the `{...}` block whose opening brace is at `open`. */
+function blockAt(source: string, open: number): string | undefined {
+  if (source[open] !== "{") return undefined;
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === "{") depth++;
+    else if (source[i] === "}") {
+      depth--;
+      if (depth === 0) return source.slice(open + 1, i);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Variant axes declared by a component's own source.
+ *
+ * Parses the `tv({...})` / `cva({...})` config that shadcn-svelte components
+ * ship, which is the authoritative list of accepted prop values. Docs prose is
+ * deliberately not used as a fallback source here: it drifts from the
+ * installed code (the button docs advertise `xs`/`icon-xs`, which the registry
+ * does not define) and it leaks other components' attributes (sonner's page
+ * shows `<Button variant="outline">`, which is not a Sonner variant).
+ */
+export function extractVariantAxes(item?: RegistryItem): {
+  variants?: string[];
+  sizes?: string[];
+} {
+  const source = (item?.files ?? [])
+    .map((file) => (typeof file.content === "string" ? file.content : ""))
+    .join("\n");
+
+  const variantsAt = source.search(/\bvariants\s*:\s*\{/);
+  if (variantsAt < 0) return {};
+  const variantsBody = blockAt(source, source.indexOf("{", variantsAt));
+  if (!variantsBody) return {};
+
+  const axes: Record<string, string[]> = {};
+  const axisPattern = /(\w+)\s*:\s*\{/g;
+  let axis: RegExpExecArray | null;
+  while ((axis = axisPattern.exec(variantsBody)) !== null) {
+    const body = blockAt(variantsBody, axis.index + axis[0].length - 1);
+    if (!body) continue;
+    const keys = new Set<string>();
+    const masked = maskStrings(body);
+    for (const key of masked.matchAll(/(?:^|\n)\s*"?([A-Za-z][\w-]*)"?\s*:/g)) {
+      keys.add(key[1]);
+    }
+    if (keys.size > 0) axes[axis[1]] = [...keys];
+  }
+
+  const result: { variants?: string[]; sizes?: string[] } = {};
+  if (axes.variant?.length) result.variants = axes.variant;
+  if (axes.size?.length) result.sizes = axes.size;
+  return result;
 }
 
 /**
@@ -403,20 +675,17 @@ export function extractExamples(content: string): Array<{
     language?: string;
   }> = [];
 
-  // Look for example sections (### Example Name, ### Size, ### Variant, etc.)
-  const exampleSections = content.split(/^###\s+(.+)$/gm);
+  // Split on any doc heading level. Previously this matched only `###`, which
+  // on the current site meant the run split on the sponsor `### [Epicenter]`
+  // heading and swallowed the entire page into a single "example".
+  const exampleSections = content.split(DOC_HEADING);
 
   for (let i = 1; i < exampleSections.length; i += 2) {
-    const title = exampleSections[i].trim();
+    const title = cleanHeading(exampleSections[i]);
     const sectionContent = exampleSections[i + 1] || "";
 
-    // Skip certain sections that aren't examples
-    if (
-      title.toLowerCase().includes("installation") ||
-      title.toLowerCase().includes("changelog") ||
-      title.toLowerCase().includes("link") ||
-      title.toLowerCase().includes("usage")
-    ) {
+    // Skip guidance sections rather than examples.
+    if (NON_EXAMPLE_SECTIONS.has(title.toLowerCase())) {
       continue;
     }
 
@@ -448,43 +717,97 @@ function extractCodeBlocks(
 }
 
 /**
- * Extracts component variants from documentation
+ * Docs headings are emitted at level 2-4 and carry a link label, e.g.
+ * `## [Default](#default)`. Matching only `###` silently found nothing on the
+ * current site and made both example and variant extraction fall back to
+ * whole-document scraping.
  */
-export function extractVariants(content: string): Array<{
+const DOC_HEADING = /^#{2,4}\s+(.+)$/m;
+
+/** `## [Default](#default)` -> `Default`; strips emphasis and list markers. */
+function cleanHeading(raw: string): string {
+  return raw
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/^[-*\d.\s]+/, "")
+    .replace(/[*_`]/g, "")
+    .trim();
+}
+
+/** Section titles that are guidance rather than a runnable example. */
+const NON_EXAMPLE_SECTIONS = new Set([
+  "installation",
+  "usage",
+  "changelog",
+  "api reference",
+  "examples",
+  "about",
+  "cursor",
+  "resources",
+  "contributing",
+  "dark mode",
+  "installation notes",
+]);
+
+/** All cleaned doc headings in the page. */
+function docHeadings(content: string): string[] {
+  return [...content.matchAll(new RegExp(DOC_HEADING.source, "gm"))].map((m) =>
+    cleanHeading(m[1]),
+  );
+}
+
+/**
+ * Values a prop takes on the component's own tag, e.g. `<Button variant="ghost">`.
+ *
+ * Scoping to the tag matters: component pages routinely demo sibling
+ * components, and an unscoped `variant="..."` scan reports Button's variants
+ * as Sonner's.
+ */
+function ownPropValues(
+  content: string,
+  tag: string | undefined,
+  prop: string,
+): string[] {
+  if (!tag) return [];
+  const values = new Set<string>();
+  const pattern = new RegExp(
+    `<${tag}\\b[^>]*?\\b${prop}=["']([^"']+)["']`,
+    "g",
+  );
+  let match;
+  while ((match = pattern.exec(content)) !== null) {
+    const value = match[1];
+    if (
+      value &&
+      !value.includes("$") &&
+      !value.includes("(") &&
+      value.length < 30
+    ) {
+      values.add(value);
+    }
+  }
+  return [...values];
+}
+
+/**
+ * Extracts component variants from documentation.
+ *
+ * Docs-derived fallback only — prefer `extractVariantAxes`, which reads the
+ * registry source and is authoritative. Used when a component has no registry
+ * entry, or to supplement it with values the docs demonstrate.
+ */
+export function extractVariants(
+  content: string,
+  componentName?: string,
+): Array<{
   name: string;
   description?: string;
 }> {
-  const variants: Array<{
-    name: string;
-    description?: string;
-  }> = [];
+  const found = new Set<string>();
+  const tag = componentName ? pascalCase(componentName) : undefined;
 
-  // Look for variant mentions in the content
-  // We look for patterns like variant="default" or variant='outline'
-  const variantPatterns = [
-    /variant=["']([^"']+)["']/g,
-    /variant=\{["']([^"']+)["']\}/g,
-  ];
-
-  const foundVariants = new Set<string>();
-
-  for (const pattern of variantPatterns) {
-    let match;
-    while ((match = pattern.exec(content)) !== null) {
-      // Filter out values that are likely variables or logic
-      if (
-        !match[1].includes("$") &&
-        !match[1].includes("(") &&
-        match[1].length < 30
-      ) {
-        foundVariants.add(match[1]);
-      }
-    }
-  }
-
-  // Also look for specific markdown headers in variant sections
-  // This helps when variants are listed as "### Secondary" etc.
-  // We only do this for known variant names to avoid false positives
+  // Section headings such as `## [Default](#default)` name the variants, and
+  // document order is the order an agent should expect to read them in.
+  const headings = docHeadings(content).map((h) => h.toLowerCase());
   const commonVariantNames = [
     "default",
     "secondary",
@@ -496,21 +819,29 @@ export function extractVariants(content: string): Array<{
     "warning",
     "info",
   ];
-
+  const headingSet = new Set(headings);
   for (const name of commonVariantNames) {
-    if (content.match(new RegExp(`###\\s+${name}`, "i"))) {
-      foundVariants.add(name);
-    }
+    if (headingSet.has(name)) found.add(name);
   }
 
-  for (const variant of foundVariants) {
-    variants.push({
-      name: variant,
-      description: getVariantDescription(variant),
-    });
+  // Then anything the examples demonstrate on the component's own tag.
+  for (const value of ownPropValues(content, tag, "variant")) {
+    found.add(value);
   }
 
-  return variants;
+  return [...found].map((variant) => ({
+    name: variant,
+    description: getVariantDescription(variant),
+  }));
+}
+
+/** Values the `size` prop takes on the component's own tag. */
+export function extractSizes(
+  content: string,
+  componentName?: string,
+): string[] {
+  const tag = componentName ? pascalCase(componentName) : undefined;
+  return ownPropValues(content, tag, "size");
 }
 
 /**
@@ -646,6 +977,37 @@ export function getInstallCommand(name: string): {
 export function getImportPath(name: string): string {
   // Common pattern for shadcn-svelte components — primary barrel import.
   return `import { ${pascalCase(name)} } from "$lib/components/ui/${name}/index.js";`;
+}
+
+/**
+ * Removes the API Reference section from a docs page.
+ *
+ * `parseBitsUiApi` already lifts that section into `api.raw`, so leaving it in
+ * the body means every response ships it twice — measured at 40-70% of the body
+ * on Bits UI pages, which are already the largest responses this server
+ * produces. Removing it makes the two fields disjoint: `api.raw` is the
+ * reference, `rawContent` is everything around it.
+ *
+ * Returns the content unchanged when there is no API Reference section, or when
+ * stripping would consume all of it (a body that is only a reference table
+ * carries no information the caller would not still have).
+ */
+export function stripApiReference(content: string): string {
+  if (!content) return content;
+
+  const marker = /(?:^|\n)(?:##|#|\\#+)\s*API Reference/i;
+  const match = content.match(marker);
+  if (!match || match.index === undefined) return content;
+
+  const start = match.index + (match[0].startsWith("\n") ? 1 : 0);
+  const before = content.slice(0, start).trim();
+  const after = content
+    .slice(start)
+    .replace(/^(?:##|#|\\#+)\s*API Reference[\s\S]*?(?=\[Previous\s|$)/i, "")
+    .trim();
+
+  const remainder = [before, after].filter(Boolean).join("\n\n");
+  return remainder.length > 40 ? remainder : content;
 }
 
 /**
