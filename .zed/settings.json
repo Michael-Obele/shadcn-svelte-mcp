@@ -1,0 +1,16 @@
+{
+  // Project-scoped MCP servers for Zed.
+  //
+  // Zed does NOT read .vscode/mcp.json; it uses its own `context_servers` key
+  // in .zed/settings.json. Server ids are namespaced, so tools resolve as
+  // `mcp:test-mcp:shadcn-svelte-get`, `mcp:shadcn-svelte:bits-ui-get`, etc.
+  //
+  // `test-mcp` only answers while a local server is running:
+  //   PORT=5000 bun run src/index.ts
+  // Zed reports it inactive until then, which is the intended workflow.
+  "context_servers": {
+    "test-mcp": {
+      "url": "http://localhost:5000/mcp",
+    },
+  },
+}
