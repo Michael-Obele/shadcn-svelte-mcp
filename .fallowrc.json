@@ -1,7 +1,7 @@
 {
   // shadcn-svelte-mcp — fallow configuration
   // Research-backed choices to avoid false positives in this codebase:
-  //  1. .mastra/** and .wrangler/** are build artifacts / stale output dirs.
+  //  1. .mastra/** is a build artifact / stale output dir.
   //  2. conventional-changelog-conventionalcommits is consumed implicitly as the
   //     semantic-release preset in .releaserc.json ({"preset":"conventionalcommits"})
   //     — fallow cannot see JSON-config presets, so it's a verified false positive.
@@ -11,11 +11,7 @@
   //     "build" script) — declared explicitly so it's an entry.
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": ["src/stdio.ts"],
-  "ignorePatterns": [
-    ".mastra/**",
-    ".wrangler/**",
-    ".fallow/**"
-  ],
+  "ignorePatterns": [".mastra/**", ".fallow/**"],
   "ignoreDependencies": ["conventional-changelog-conventionalcommits"],
   "ignoreExportsUsedInFile": true
 }
